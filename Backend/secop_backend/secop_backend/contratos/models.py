@@ -2,10 +2,27 @@
 from django.db import models
 
 
+class Entidad(models.Model):
+    nombre_entidad = models.CharField(max_length=255)
+    nit_entidad = models.CharField(max_length=50, unique=True)
+    departamento = models.CharField(max_length=100)
+    ciudad = models.CharField(max_length=100)
+    sector = models.CharField(max_length=100)
+
+    class Meta:
+        db_table = "entidad"
+        indexes = [
+            models.Index(fields=["nit_entidad"], name="idx_entidad_nit"),
+        ]
+
+    def __str__(self):
+        return f"{self.nombre_entidad} - {self.nit_entidad}"
+
+
 class Contrato(models.Model):
     nombre_entidad = models.CharField(max_length=255)
     nit_entidad = models.CharField(max_length=50)
-    departamento = models.CharField(max_length=100, db_index=True)
+    departamento = models.CharField(max_length=100)
     ciudad = models.CharField(max_length=100)
     orden = models.CharField(max_length=100)
     sector = models.CharField(max_length=100)
@@ -15,9 +32,11 @@ class Contrato(models.Model):
     descripcion_del_proceso = models.TextField()
     valor_contrato = models.DecimalField(max_digits=18, decimal_places=2)
     fecha_firma = models.DateField()
-    modalidad = models.CharField(max_length=100, db_index=True)
-    contratista_nit = models.CharField(max_length=50, db_index=True)
+    modalidad = models.CharField(max_length=100)
+    contratista_nit = models.CharField(max_length=50)
     contratista_nombre = models.CharField(max_length=255)
+
+    entidad = models.ForeignKey(Entidad, on_delete=models.CASCADE, related_name="contratos", null=True, blank=True)
 
     class Meta:
         db_table = "contrato"

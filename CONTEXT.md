@@ -21,22 +21,24 @@ Colombia publica 5.98M de contratos en SECOP II con 85 columnas planas que crece
 - **4 índices B-tree obligatorios:** `departamento`, `modalidad`, `fecha_firma`, `contratista_nit` — sin ellos agregación pasa de 40ms a 3s con 100k.
 - **Tipos estrictos:** `valor_contrato` Decimal(18,2) y `fecha_firma` DateField probados con `full_clean()`.
 
-## 4. Estado real al 01/09/2026 — Validado en ejecución
-- **Infra:** `Backend/secop_backend/secop_backend/` con `manage.py`, `contratos` app registrada, `migrate` OK (incluye `0002_contrato_idx_*`).
-- **Modelo:** `contratos/models.py:1` con clase `Contrato(models.Model)` PascalCase, 15 campos, Meta `db_table="contrato"` + 4 `Index`, `__str__` corregido (antes sin sangría, ahora `CO1-TEST-001 - PEPITO SAS`).
-- **Pruebas shell (Python 3.14.5, Django 6.1, venv):** `Contrato.objects.create` OK (1 registro), `full_clean` rechaza `Decimal("123.456")` → `no more than 2 decimal places`, rechaza `"no es fecha"` → `invalid date format`. Todo verificado con `python manage.py shell`.
-- **VS Code:** `.vscode/settings.json` en 3 roots apuntando a `venv/Scripts/python.exe`, `ruff.lint.enable:false` para silenciar falsos positivos, `python.analysis.extraPaths` a `site-packages`. Pendiente `Reload Window` del usuario.
-- **Frontend:** Scaffold Vite+React existente en `Frontend/secop_frontend/` sin dashboard aún (Sesión 3).
+## 4. Estado real al 02/09/2026 — Validado en ejecución
+- **Infra:** `Backend/secop_backend/secop_backend/` con `manage.py`, apps `contratos` + `contratos.Entidad` registradas, `migrate` OK (0001, 0002, 0003 limpieza, 0004 Entidad+FK). Tabla `contrato` renombrada a `contrato` con 7 índices finales (pkey + id_contrato + 4 idx_contrato_*), duplicados `db_index` eliminados vía `DROP INDEX`.
+- **Modelos:** `contratos/models.py:1` con `Contrato` (15 cols) + `Entidad` (5 cols, `db_table="entidad"`, `idx_entidad_nit`) + `Contrato.entidad ForeignKey(Entidad, CASCADE, null=True)` + `__str__` corregido fuera de `Meta` (antes dentro, causaba Pyrefly `missing-attribute`).
+- **Pruebas shell (Python 3.14.5, Django 6.1, venv, PostgreSQL 18 local pgAdmin 5432):** `Contrato.objects.create` OK, `full_clean` rechaza `Decimal 123.456` y `"no es fecha"`, `migrate zero` → `relation does not exist` → `migrate` OK verificado, `Entidad.objects.create` + `Contrato(entidad=ent)` OK vía Admin (CO1-RF25-001).
+- **Calidad BD:** `SELECT indexname FROM pg_indexes WHERE tablename='contrato'` → 7 índices limpios (pkey, id_contrato_key, id_contrato_like, idx_contrato_depto/modalidad/fecha/nit) — duplicados `contratos_contrato_*_da3cca3f` borrados.
+- **IDE:** `.vscode/settings.json` en 3 roots + `pyproject.toml` + `Antigravity User/settings.json` apuntando a `venv/Scripts/python.exe`, `ruff.lint.enable:false`, `pyrefly.enabled:false`. Antigravity/VS Code reload OK.
+- **Frontend:** Scaffold Vite+React en `Frontend/secop_frontend/` sin dashboard aún (Sesión 3).
 
 ## 5. Cómo enseñamos (acuerdo con Steven)
 - Explicación en párrafos cortos, no en bullet infinito. Cada paso va con el código literal para copiar en el chat y el por qué en párrafo aparte.
 - No se toca ninguna carpeta sin "sí, te autorizo". Cada `makemigrations`, `migrate` o escritura de archivo se pide permiso y se verifica con ejecución.
 - Retroalimentación constante: se celebra el acierto (mayúscula de `Contrato`) y se corrige el detalle (tabla `contrato` no `contraro`, `__str__(self)` no "toma lo del archivo").
 
-## 6. Próximos pasos inmediatos
-1. Verificar visualmente que Pylance ya no subraya `django.db` tras `Reload Window`.
-2. Limpiar registro de prueba `CO1-TEST-001` o dejarlo como semilla.
-3. Iniciar **Sesión 2 / RF-06**: `management/commands/cargar_secop.py` con loop `$limit=50000/$offset`, `X-App-Token`, `bulk_create(batch=1000)`, `ProcessingJob` + `Thread` + `202 Accepted` + polling, y crear los 6 endpoints agregados con `annotate/aggregate` y `throttling 60/min`.
+## 6. Próximos pasos inmediatos (Sprint 1 — 5 restantes de 8)
+1. **RF-03 Registro** (5h, Alta) — `users` app + `RegisterSerializer` + PBKDF2 + `201/400` — siguiente literal.
+2. **RF-04 Login** (5h, Alta) — SimpleJWT 5.3 `HS256` `access 1h / refresh 1d` + `401` sin revelar campo.
+3. **RF-05 Logout** (2.5h, Media) + **RNF-01/02** (HTTPS, .env) para cerrar Sprint 1 Día 1 (8/8, 22pts).
+4. Luego **Sprint 2 Sesión 2 / RF-06**: `management/commands/cargar_secop.py` SODA 2.1 `$limit=50k/$offset/$order=:id` + `X-App-Token` + `bulk_create 1000` + `ProcessingJob` + `202 + polling`.
 
 ## 7. Fuentes y artefactos (V2)
 - `Observatorio_SECOP_II_Definicion_Proyecto.pdf` (definición 6 páginas, base Guía 4)
@@ -47,5 +49,47 @@ Colombia publica 5.98M de contratos en SECOP II con 85 columnas planas que crece
 - `SECOP_Insight_Backlog_Notion.md` / `.csv` (58 pts refinado)
 - Dataset SODA 2.1 `j13v-233n` — 5.98M × 85 cols, columnas verificadas vía `schema-column-preview`
 
+## 8. 🔑 Clave de Buenas Prácticas — Obligatoria para quien lea este proyecto
+> **Si vas a tocar este código, léelo sí o sí. Sin esto, el proyecto se rompe en 2 sprints. Fuente: `Informe_Stack_Django_React (1).pdf` (57 págs, Guía 1, Grupo 8, Julio 2026).**
+
+Esta clave resume tu PDF largo en 8 reglas no negociables. No son opcionales para aprobar Guía 4 — salen de los Bloques 6 a 8 del informe.
+
+**1. Separación de dominios (Clean Arch + Capas + Hexagonal — Bloque 4):**
+- Cliente-Servidor + REST es la base obligatoria: React (cliente, `localhost:3000`) ↔ Django (servidor, `localhost:8000`) vía HTTP JSON. No hay alternativa.
+- `contratos` guarda `Contrato + Entidad` y su `ForeignKey` (mismo dominio SECOP, relación 1-N). No mezcles `User` aquí.
+- `users` guardará `Registro/Login/Logout` y `SimpleJWT` (dominio identidad). Arquitectura en capas: presentación (vistas/serializers) → aplicación (servicios) → datos (ORM). Así evitas "vistas gordas" de 100 líneas.
+
+**2. SOLID + DRY + KISS + YAGNI (Bloque 6):**
+- **SOLID:** SRP separa `InterpretacionService` de `ProyectoRepository` y `DictadoView`; OCP permite cambiar de Gemini a otro LLM con nuevo adaptador sin tocar servicio; LSP permite intercambiar estrategias (diccionario vs IA); ISP serializador solo con campos necesarios; DIP inyecta proveedor IA para testear con mock.
+- **DRY:** Un solo diccionario central para `abre paréntesis → (` y un solo hook de voz, no copias dispersas.
+- **KISS:** Usa `SimpleJWT` y `Context API`, no Redux ni motor NLP complejo si no lo necesitas.
+- **YAGNI:** MVP con 2 roles (`usuario` y `admin`), sin sistema de plugins ni pipeline CI/CD multi-etapa. No construyas lo que no necesitas hoy.
+
+**3. Migraciones vs ETL — nunca al revés (Bloque 8):**
+- `makemigrations` → `migrate` crea tabla vacía + índices (versiona esquema, `0001-0004` ya aplicados). `cargar_secop` la llena con `bulk_create batch 1000` (datos). Si inviertes el orden verás `relation does not exist`. Orden: `migrate` → `cargar_secop` → `/api/resumen`.
+
+**4. Nunca hardcodees secretos (Bloque 7):**
+- `DB_PASSWORD`, `SODA_TOKEN` (`X-App-Token`), `SECRET_KEY` y `JWT_SECRET` van en `.env` con `os.getenv` / `python-dotenv`. El `.env` nunca se versiona (`.gitignore`), solo `.env.example`. El commit `42dd803` ya corrigió el `PASSWORD='1057585950'` quemado. En prod, `HTTPS/TLS 1.3` obligatorio — Render/Vercel lo da con Let's Encrypt.
+
+**5. Seguridad por defecto (Bloque 7 — OWASP Top 10):**
+- **Hashing:** `PBKDF2` con 390k iteraciones (Django default, no texto plano) — RF-03/04 ya lo usa vía `create_user`.
+- **JWT:** `HS256`, `access 1h / refresh 1d`, `Authorization: Bearer` — no en `localStorage` sin protección, expiración corta, refresh para renovar.
+- **CORS:** `django-cors-headers` solo al dominio del frontend, nunca `ALLOW_ALL = ["*"]`.
+- **CSRF:** Activo con token rotativo, aunque uses JWT sigue si usas cookies.
+- **XSS:** React escapa por defecto, nunca uses `dangerouslySetInnerHTML` sin sanitizar.
+- **SQLi:** Usa ORM parametrizado, nunca `.raw()` con strings formateados. Valida permisos a nivel objeto: `get_queryset().filter(user=request.user)`.
+
+**6. Nombres, tipos e índices estrictos (PEP 8 + Clean Code + Bloque 8):**
+- Clases `PascalCase` (`Contrato`, `Entidad`), tablas `snake_case` (`contrato`, `entidad`), índices `idx_contrato_*`. `Decimal(18,2)` y `DateField` con `full_clean()` — si aceptas 3 decimales o texto en fecha, fallas RF-01. Código formateado con `Ruff/Black` (Python) y `Prettier/ESLint` (React) vía pre-commit.
+
+**7. Un índice = un propósito (Bloque 8 — Índices):**
+- Sin índice → full table scan; con índice → acceso directo. Define en `Meta.Index` y evita `db_index=True` duplicado. Duplicar deja 13 índices donde bastan 7 y ralentiza `bulk_create`. Ya limpiamos 6 duplicados con `DROP INDEX`. Usa `transaction.atomic()` para integridad (Unit of Work).
+
+**8. Trabajo profesional (Bloques 5 y 9 — Patrones + Git):**
+- **Patrones que sí usamos (13/14):** `Builder` (QuerySets encadenados), `Facade` (Serializers), `Decorator` (`@api_view`), `Proxy` (Nginx/backend como proxy a IA), `Observer` (Signals/`useEffect`), `Strategy` (diccionario vs IA), `Command` (`manage.py`), `Repository` (centraliza ORM), `Unit of Work` (`atomic`), `Dependency Injection` (inyecta proveedor IA), `Service Layer` (evita vistas gordas). `CQRS` no aplica (sobreingeniería para 42 requisitos).
+- **Git:** Monorepo `Big data/` con ramas `feature/*`, commits con historia, PR con code review, `requirements.txt`/`package.json` bloqueados (`pip install`/`npm install` reproducibles). Pruebas `pytest-django` (backend) y `Jest + React Testing Library` (frontend) — unitarias, integración, E2E con Playwright.
+
+**Fuente completa:** `Informe_Stack_Django_React (1).pdf` en `Big data/` — Bloques 1-13 con historia Django/React, componentes, paradigmas (declarativa/funcional en React, OOP en Django), arquitecturas y comparación MERN/.NET/Spring.
+
 ---
-*Actualizado: 02/09/2026 — V2 completa leída: docx (ETL+MIG+Profiler Dual) + EstructuraSesion_v2.xlsx V2 (30h, 5 días × 6h 6:00-11:30, Día1-5) + SECOP_Backlog_Producto.xlsx (42 historias con criterios, RF-25 Entidad FK) + RF-01 DONE (validado) — Siguiente: RF-25 + Sesión 2 ETL.*
+*Actualizado: 02/09/2026 — V2 + RF-01 DONE + RF-25 DONE (Entidad FK) + RF-02 DONE limpio (7 índices) + IDE Antigravity/VS Code OK — Siguiente: RF-03 Registro (users app) — Clave de Buenas Prácticas añadida.*

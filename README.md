@@ -30,20 +30,29 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
   - Modelo `Contrato` con 15 columnas en `contratos/models.py:1` — `nombre_entidad`, `nit_entidad`, `departamento`, `ciudad`, `orden`, `sector`, `id_contrato` (unique), `estado_contrato`, `codigo_categoria_principal`, `descripcion_del_proceso`, `valor_contrato` (Decimal 18,2), `fecha_firma` (DateField), `modalidad`, `contratista_nit`, `contratista_nombre`
   - 4 índices B-tree: `idx_contrato_depto`, `idx_contrato_modalidad`, `idx_contrato_fecha`, `idx_contrato_nit` — validado con `sqlmigrate` y `Django shell`
   - Pruebas en shell: creación válida `CO1-TEST-001` OK + rechazo de 3 decimales y fecha texto OK
-  - Migración `0002_contrato_idx_*` aplicada — tabla `contrato` operativa con 1 registro de prueba
-  - **Pendiente RF-25 (mismo Sprint 1):** Modelo `Entidad` separado con FK `Contrato → Entidad` (5h) — definido en `SECOP_Backlog_Producto.xlsx:RF-25`, debe crearse antes de seguir a ETL para evitar refacto en Sprint 3
+  - Migraciones `0001`, `0002` aplicadas + `0003` limpieza duplicados `db_index` → 7 índices finales (`pkey` + `id_contrato` + 4 `idx_contrato_*`)
+- **RF-25 — Entidad separada con FK — COMPLETADO (02/09/2026):**
+  - Modelo `Entidad` con 5 cols `nombre_entidad`, `nit_entidad` (unique), `departamento`, `ciudad`, `sector` + `idx_entidad_nit` en `contratos/models.py:6`
+  - `Contrato.entidad ForeignKey(Entidad, CASCADE, null=True, related_name="contratos")` + migración `0004_entidad_contrato_entidad` OK
+  - Validado vía Admin: `ALCALDIA DE TUNJA - 891800123` + `CO1-RF25-001` con FK
+  - `__str__` corregido fuera de `Meta` (antes dentro causaba Pyrefly `missing-attribute`)
+- **RF-02 — Migraciones — COMPLETADO y LIMPIO (02/09/2026):**
+  - `migrate zero` → `relation does not exist` verificado → `migrate` OK
+  - `sqlmigrate 0001/0002` verificado, `DROP INDEX` duplicados ejecutado → 7 índices finales en `pg_indexes`
 
 ## Estructura de carpetas
 ```
 Big data/
 ├── Backend/secop_backend/
 │   ├── secop_backend/        # proyecto Django (settings.py, urls.py, wsgi.py)
-│   │   ├── contratos/        # app RF-01 (models.py, migrations/, admin.py)
+│   │   ├── contratos/        # app RF-01+RF-25 (Contrato 15 cols + Entidad 5 cols + FK, migrations 0001-0004)
 │   │   └── manage.py
 │   ├── venv/                 # entorno virtual (Python 3.14.5, Django 6.1)
-│   └── .vscode/settings.json # intérprete apuntando a venv
+│   └── .vscode/settings.json # intérprete venv + pyrefly/pyproject
 ├── Frontend/secop_frontend/  # Vite + React (App.jsx, main.jsx)
-└── README.md / CONTEXT.md
+├── SECOP_Backlog_Producto.xlsx (42 historias, RF-25)
+├── SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx V2
+└── README.md / CONTEXT.md (con Clave de Buenas Prácticas)
 ```
 
 ## Cómo levantar el proyecto (Postgres local)
@@ -85,6 +94,7 @@ No descargar 5.98M de golpe. SODA 2.1 exige paginación: `?$limit=50000&$offset=
 - Guía SENA GFPI-F-135 V04 — Fase Desarrollo — ADSO 3171062
 - Planificación local: `SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx` V2 (ETL + Migraciones + Profiler Dual)
 - Backlogs: `EstructuraSesion_v2.xlsx` (5 sesiones 6h) + `SECOP_Insight_Backlog_Notion.md`
+- Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs, Grupo 8, Julio 2026 — SOLID, DRY, KISS, YAGNI, Clean Code, JWT/PBKDF2, CORS/CSRF, ORM, Git) — ver `CONTEXT.md:8` Clave Obligatoria
 
 ---
 *Última actualización: 02/09/2026 — V2 leída (ETL + Migraciones + Profiler Dual, pgAdmin 5432, SODA 2.1) + RF-01 validado — Autor: Steven Araque + Jarvis ⚡*
