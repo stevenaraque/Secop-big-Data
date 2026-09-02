@@ -55,22 +55,69 @@ Big data/
 └── README.md / CONTEXT.md (con Clave de Buenas Prácticas)
 ```
 
-## Cómo levantar el proyecto (Postgres local)
-1. Crear BD en Postgres: `createdb secop_db` (usuario `postgres`)
-2. Crear `.env` en `secop_backend/secop_backend/` con `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST=localhost`, `DB_PORT=5432`
-3. Activar venv y migrar:
+## Cómo levantar el proyecto en otro computador (desde cero)
+
+**Requisitos previos:** `Git`, `Python 3.14`, `PostgreSQL 18 + pgAdmin`, `Node.js 20+` y `VS Code / Antigravity` con extensiones ya configuradas en `.vscode/settings.json`.
+
+1. **Clonar y entrar:**
+   ```bash
+   git clone https://github.com/stevenaraque/Secop-big-Data.git
+   cd Secop-big-Data/Big\ data
    ```
-   venv\Scripts\activate
-   cd secop_backend/secop_backend
+
+2. **Backend — crear entorno e instalar:**
+   ```bash
+   cd Backend/secop_backend
+   python -m venv venv
+   venv\Scripts\activate          # Windows
+   # source venv/bin/activate     # Mac/Linux
+   pip install -r requirements.txt
+   ```
+
+3. **Base de datos — crear BD vacía en pgAdmin/psql:**
+   ```sql
+   -- en pgAdmin Query Tool o psql
+   CREATE DATABASE secop_db;
+   -- verifica: \l debe listar secop_db
+   ```
+
+4. **Variables de entorno — copiar plantilla y editar:**
+   ```bash
+   copy secop_backend\.env.example secop_backend\.env
+   # edita secop_backend\.env con tu clave local:
+   # DB_NAME=secop_db
+   # DB_USER=postgres
+   # DB_PASSWORD=tu_clave_postgres
+   # DB_HOST=localhost
+   # DB_PORT=5432
+   ```
+
+5. **Migraciones — crear tablas + índices (RF-01, RF-25, RF-02):**
+   ```bash
+   cd secop_backend
    python manage.py migrate
-   python manage.py shell  # para probar Contrato
+   # debe decir: Applying contratos.0001... OK hasta 0004 OK
+   python manage.py createsuperuser  # para /admin
    ```
-4. Frontend:
+
+6. **Probar que todo quedó (opcional pero recomendado):**
+   ```bash
+   python manage.py shell
+   >>> from contratos.models import Contrato
+   >>> Contrato.objects.count()  # debe ser 0 recién clonado
    ```
-   cd Frontend/secop_frontend
+
+7. **Frontend — instalar y correr:**
+   ```bash
+   cd ..\..\Frontend\secop_frontend
    npm install
-   npm run dev
+   npm run dev   # abre http://localhost:5173
+   # Backend corre en http://127.0.0.1:8000/admin
    ```
+
+8. **Verificación final:** Abre `http://127.0.0.1:8000/admin`, entra con tu superuser y crea una `Entidad` y un `Contrato` de prueba (ver `CONTEXT.md:4`).
+
+> **Nota:** No subas tu `.env` real. Solo `.env.example` está versionado. Si `migrate` falla con `relation does not exist`, revisa que tu `.env` apunta a `localhost:5432` y que `secop_db` existe en pgAdmin.
 
 ## Arquitectura V2 — Decoupled + Flujo migrate → ETL → API
 ```
