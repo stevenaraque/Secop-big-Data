@@ -4,7 +4,7 @@
 > Grupo 8 — ADSO 3171062 — Steven Alejandro Araque Castro | Yesid Amaya — Instructor Gustavo Jiménez Suancha — CIMM — Agosto-Septiembre 2026
 
 ## Objetivo del proyecto
-Construir un Observatorio Ciudadano que ingiera masivamente contratos SECOP II desde `datos.gov.co` (dataset `j13v-233n`, 5.98M filas x 85 cols), los agregue en base de datos y los exponga en un dashboard React con KPIs, filtros, mapa coroplético, grafo de redes y banderas rojas, sin congelar el navegador. El patrón central es **agregar en BD y enviar solo <50KB** al frontend, no traer filas completas (anti-patrón de 100MB).
+Construir un Observatorio Ciudadano que ingiera masivamente contratos SECOP II desde `datos.gov.co` (dataset `jbjy-vk9h`, 5.98M filas x 85 cols), los agregue en base de datos y los exponga en un dashboard React con KPIs, filtros, mapa coroplético, grafo de redes y banderas rojas, sin congelar el navegador. El patrón central es **agregar en BD y enviar solo <50KB** al frontend, no traer filas completas (anti-patrón de 100MB).
 
 **Objetivo General (Guía 4 GFPI-F-135 V04)** — Construir la estructura de datos y la interfaz del software bajo arquitectura decoupled, demostrando el Stack completo en sesiones de explicación paso a paso.
 
@@ -46,6 +46,10 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
   - `users/serializers.py:26` `InicioSesionSerializer` español `correo`/`contrasena` + `authenticate` + `RefreshToken.for_user` HS256 `users/views.py:12` `VistaLogin` `APIView AllowAny` `POST 200` `{"access":"eyJ...","refresh":"eyJ...","nombre_usuario","correo"}` + `400` `Credenciales inválidas.` sin revelar campo, `users/urls.py:6` `login/` → `api/auth/login/` verificado `Invoke-RestMethod` `access eyJhbGciOiJIUzI1...` OK y `400` clave mala OK, `SIMPLE_JWT` `ACCESS 1h / REFRESH 1d` `HS256` `Bearer` `jwt.io` `exp-iat=3600` OK, `check` 0 issues, `cspell.json` 40 palabras
 - **RF-05 — Logout — COMPLETADO y VALIDADO (07/09/2026):**
   - `secop_backend/settings.py:34` `INSTALLED_APPS` + `token_blacklist` + `migrate` 0001-0013 OK + `REST_FRAMEWORK JWTAuthentication`, `users/serializers.py:50` `CierreSesionSerializer` `refresh` → `RefreshToken.blacklist()` + `users/views.py:22` `VistaLogout` `IsAuthenticated` `POST 205` `{"detalle":"Sesión cerrada correctamente."}`, `users/urls.py:7` `logout/` → `api/auth/logout/` verificado `Invoke-RestMethod` `205` con `Bearer eyJ...access` + `refresh eyJ...` OK. Sprint 1 Día 1 8/8 22pts CERRADO
+- **RF-06 — ETL base — COMPLETADO y VALIDADO (07/09/2026):**
+  - Ya se puede cargar datos reales: `TrabajoCarga` `trabajo_carga` `0005` + `SODA jbjy-vk9h` (antes `j13v-233n` daba 404 `dataset.missing`) + `requests==2.34.2` corregido
+  - Comando `cargar_secop --limit 2` y `--limit 1 --depto Boyacá` con `bulk_create 1000` y `transaction.atomic` probados
+  - `POST /api/cargar/ 202` con `Thread` y `GET /api/cargar/<id>/` con `Bearer` devuelven `pendiente → completado 2/2` verificado en `shell` `Contrato.objects.count()=6`
 
 ## Estructura de carpetas
 ```
@@ -128,7 +132,7 @@ Big data/
 
 ## Arquitectura V2 — Decoupled + Flujo migrate → ETL → API
 ```
-[datos.gov.co SODA 2.1 j13v-233n 5.98M] --$limit=50k & $offset + $order=:id + X-App-Token--> [Django Thread bulk_create 1000] --> [PostgreSQL local 15 cols indexadas]
+[datos.gov.co SODA 2.1 jbjy-vk9h 5.98M] --$limit=50k & $offset + $order=:id + X-App-Token--> [Django Thread bulk_create 1000] --> [PostgreSQL local 15 cols indexadas]
 [React filtros] --GET /api/optimized/resumen?depto=Boyaca--> [Django DRF] --JSON 50KB--> [React Recharts/Mapa/Tabla Virtual + Profiler 4 barras]
 ```
 **Regla de oro V2:** `migrate` crea tabla vacía + índices → `cargar_secop` la llena (ETL Extract-Transform-Load) → `/api/resumen` la consulta. Sin `migrate` falla `relation does not exist`; sin ETL responde 0.
@@ -143,7 +147,7 @@ Big data/
 No descargar 5.98M de golpe. SODA 2.1 exige paginación: `?$limit=50000&$offset=50000&$order=:id&$where=departamento='Boyaca'` — 100 requests para 5M. Con `X-App-Token` en `.env` pasas de 1k a 10k req/h. Índices `CREATE INDEX idx_contrato_depto ON contrato(departamento)` pasan agregaciones de segundos a ms.
 
 ## Fuentes y Artefactos V2
-- Dataset: https://www.datos.gov.co/resource/j13v-233n.json (SECOP II, 5.98M, 2.72M vistas, CC BY-SA 4.0)
+- Dataset: https://www.datos.gov.co/resource/jbjy-vk9h.json (SECOP II, 5.98M, 2.72M vistas, CC BY-SA 4.0)
 - SODA 2.1 paginación: https://support.socrata.com (Tyler Tech, 2025 — $limit 50k + $offset)
 - Guía SENA GFPI-F-135 V04 — Fase Desarrollo — ADSO 3171062
 - Planificación local: `SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx` V2 (ETL + Migraciones + Profiler Dual)
@@ -151,4 +155,4 @@ No descargar 5.98M de golpe. SODA 2.1 exige paginación: `?$limit=50000&$offset=
 - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs, Grupo 8, Julio 2026 — SOLID, DRY, KISS, YAGNI, Clean Code, JWT/PBKDF2, CORS/CSRF, ORM, Git) — ver `CONTEXT.md:8` Clave Obligatoria
 
 ---
-*Última actualización: 07/09/2026 — V2 + RF-01/02/25 + IDE fix + cSpell 40 palabras + RF-03 Registro DONE + RF-04 Login DONE + RF-05 Logout DONE (CierreSesion 205 + token_blacklist + SIMPLE_JWT 1h/1d HS256 3600) — Sprint 1 8/8 22pts CERRADO — Siguiente: Sprint 2 RF-06 ETL SODA 2.1 — Autor: Steven Araque + Jarvis ⚡*
+*Última actualización: 07/09/2026 — V2 + RF-01/02/25 + IDE fix + cSpell 40 palabras + RF-03/04/05 DONE + RF-06 ETL base DONE (TrabajoCarga 0005 + jbjy-vk9h + cargar_secop limit 2 + 202 Thread completado 2/2 + count=6) — Sprint 1 CERRADO — Siguiente: ETL pulido + resumen optimizado — Autor: Steven Araque + Jarvis ⚡*

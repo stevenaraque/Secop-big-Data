@@ -27,9 +27,10 @@ Colombia publica 5.98M de contratos en SECOP II con 85 columnas planas que crece
 - **Auth RF-03 DONE (07/09/2026):** `users/serializers.py:1` `RegistroSerializer` en español (`nombre_usuario`/`correo`/`contrasena` → `source="username/email/password"`), `validate_correo` `exists()` + `create_user` PBKDF2 `pbkdf2_sha256$1500000$` verificado en shell, `users/views.py:1` `VistaRegistro` `CreateAPIView AllowAny`, `users/urls.py:1` `register/` + `secop_backend/urls.py:21` `api/auth/` → `POST 201` `{"id":2,"nombre_usuario":"alejo","correo":"alejo@test.com"}` sin `contrasena` (`write_only`) y `400` duplicado OK. `python manage.py check` 0 issues, `runserver` OK.
 - **Auth RF-04 DONE (07/09/2026):** `users/serializers.py:26` `InicioSesionSerializer` en español (`correo`/`contrasena` → `authenticate` + `RefreshToken.for_user` HS256), `users/views.py:12` `VistaLogin` `APIView AllowAny` `POST 200` `{"access":"eyJ...","refresh":"eyJ...","nombre_usuario","correo"}` + `400` `Credenciales inválidas.` sin revelar campo (OWASP), `users/urls.py:6` `login/` → `api/auth/login/` verificado `Invoke-RestMethod` `access eyJhbGciOiJIUzI1...` OK y `400` clave mala OK. `check` 0 issues. Archivo suelto `RegistroSerializer.py` borrado, `Pyrefly` limpio, `cspell.json` 40 palabras.
 - **Auth RF-05 DONE (07/09/2026):** `secop_backend/settings.py:34` `INSTALLED_APPS` + `token_blacklist` + `migrate` 0001-0013 OK + `SIMPLE_JWT` `ACCESS 1h / REFRESH 1d` `HS256` `Bearer` + `REST_FRAMEWORK JWTAuthentication`, `users/serializers.py:50` `CierreSesionSerializer` `refresh` → `RefreshToken.blacklist()` + `users/views.py:22` `VistaLogout` `IsAuthenticated` `POST 205` `{"detalle":"Sesión cerrada correctamente."}`, `users/urls.py:7` `logout/` → `api/auth/logout/` verificado `Invoke-RestMethod` `205` con `Bearer eyJ...access` + `refresh eyJ...` OK y `exp-iat=3600` `jwt.io` HS256 OK. `check` 0 issues. Sprint 1 Día 1 8/8 22pts cerrado.
-- **Pruebas shell (Python 3.14.5, Django 6.1, venv, PostgreSQL 18 local pgAdmin 5432):** `Contrato.objects.create` OK, `full_clean` rechaza `Decimal 123.456` y `"no es fecha"`, `migrate zero` → `relation does not exist` → `migrate` OK, `Entidad` + `Contrato(entidad=ent)` OK, `User.objects.get(email="alejo@test.com").password` → `pbkdf2_sha256$` verificado.
-- **Calidad BD:** `SELECT indexname FROM pg_indexes WHERE tablename='contrato'` → 7 índices limpios — duplicados borrados.
-- **IDE:** `.vscode/settings.json`×3 corregidos a `C:/...` forward-slash + `cSpell.language en,es` + `cspell.json` 31 palabras, `cSpell.words` 22, `pyproject.toml` OK. Antigravity/VS Code reload OK.
+- **ETL RF-06 ETL base DONE (07/09/2026):** `contratos/models.py:53` `TrabajoCarga` `trabajo_carga` + `0005_trabajocarga.py` OK, `SODA_URL jbjy-vk9h` corregido (antes `j13v-233n` 404 `dataset.missing`) + `requests==2.34.2`, `management/commands/cargar_secop.py:1` `--limit/--offset/--depto/--trabajo-id` + `bulk_create 1000` `transaction.atomic` + `contratos/views.py:1` `VistaIniciarCarga 202` `Thread` + `VistaEstadoCarga` polling + `contratos/urls.py:1` `api/cargar/` verificado `POST 202 id 9 pendiente` → `GET completado 2/2` + `shell` `Contrato.objects.count()=6` (Boyacá/Bogotá/Bolívar).
+- **Pruebas shell (Python 3.14.5, Django 6.1, venv, PostgreSQL 18 local pgAdmin 5432):** `Contrato.objects.create` OK, `full_clean` rechaza `Decimal 123.456` y `"no es fecha"`, `migrate zero` → `relation does not exist` → `migrate` OK, `Entidad` + `Contrato(entidad=ent)` OK, `User.objects.get(email="alejo@test.com").password` → `pbkdf2_sha256$` verificado, `cargar_secop --limit 2` OK, `jbjy-vk9h` `Boyacá` con tilde OK.
+- **Calidad BD:** `SELECT indexname FROM pg_indexes WHERE tablename='contrato'` → 7 índices limpios — duplicados borrados, `trabajo_carga` con `ordering -creado_en`.
+- **IDE:** `.vscode/settings.json`×3 corregidos a `C:/...` forward-slash + `cSpell.language en,es` + `cspell.json` 40 palabras, `pyproject.toml` OK. Antigravity/VS Code reload OK.
 - **Frontend:** Scaffold Vite+React en `Frontend/secop_frontend/` sin dashboard aún (Sesión 3).
 
 ## 5. Cómo enseñamos (acuerdo con Steven)
@@ -37,11 +38,11 @@ Colombia publica 5.98M de contratos en SECOP II con 85 columnas planas que crece
 - No se toca ninguna carpeta sin "sí, te autorizo". Cada `makemigrations`, `migrate` o escritura de archivo se pide permiso y se verifica con ejecución.
 - Retroalimentación constante: se celebra el acierto (mayúscula de `Contrato`) y se corrige el detalle (tabla `contrato` no `contraro`, `__str__(self)` no "toma lo del archivo").
 
-## 6. Próximos pasos inmediatos (Sprint 1 — CERRADO 8/8 22pts 07/09)
+## 6. Próximos pasos inmediatos (Sprint 1 CERRADO 8/8 22pts + Sprint 2 RF-06 base DONE 07/09)
 1. **RF-03 Registro DONE (07/09)** — `RegistroSerializer` + `VistaRegistro` + `201/400` PBKDF2 verificado.
 2. **RF-04 Login DONE (07/09)** — `InicioSesionSerializer` + `VistaLogin` + `200` `eyJ...` / `400` verificado + `SIMPLE_JWT` `1h/1d` `HS256` `Bearer` `jwt.io` `exp-iat=3600` OK.
-3. **RF-05 Logout DONE (07/09)** — `CierreSesionSerializer` + `VistaLogout` `205` `Sesión cerrada correctamente.` + `token_blacklist` `migrate` 0001-0013 OK verificado `Bearer` + `refresh` OK.
-4. Siguiente **Sprint 2 Sesión 2 / RF-06**: `management/commands/cargar_secop.py` SODA 2.1 `$limit=50k/$offset/$order=:id` + `X-App-Token` + `bulk_create 1000` + `ProcessingJob` + `202 + polling` + `RNF-01/02` cierre.
+3. **RF-05 Logout DONE (07/09)** — `CierreSesionSerializer` + `VistaLogout` `205` `Sesión cerrada` + `token_blacklist` `migrate` 0001-0013 OK.
+4. **RF-06 ETL base DONE (07/09)** — `TrabajoCarga` `0005` + `cargar_secop` `jbjy-vk9h` `limit 2` `Boyacá` + `202 Thread` `completado 2/2` verificado `shell count=6`. Siguiente: pulir `EDS` y `api/resumen` optimizado.
 
 ## 7. Fuentes y artefactos (V2)
 - `Observatorio_SECOP_II_Definicion_Proyecto.pdf` (definición 6 páginas, base Guía 4)
@@ -50,7 +51,7 @@ Colombia publica 5.98M de contratos en SECOP II con 85 columnas planas que crece
 - `SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx` V2 — ETL + Migraciones + Profiler Dual, pgAdmin 5432, SODA 2.1 (nuevo 02/09)
 - `SECOP_Backlog_Producto.xlsx` (backlog actualizado, pull 02/09)
 - `SECOP_Insight_Backlog_Notion.md` / `.csv` (58 pts refinado)
-- Dataset SODA 2.1 `j13v-233n` — 5.98M × 85 cols, columnas verificadas vía `schema-column-preview`
+- Dataset SODA 2.1 `jbjy-vk9h` — 5.98M × 85 cols, columnas verificadas vía `schema-column-preview`
 
 ## 8. 🔑 Clave de Buenas Prácticas — Obligatoria para quien lea este proyecto
 > **Si vas a tocar este código, léelo sí o sí. Sin esto, el proyecto se rompe en 2 sprints. Fuente: `Informe_Stack_Django_React (1).pdf` (57 págs, Guía 1, Grupo 8, Julio 2026).**
@@ -95,4 +96,4 @@ Esta clave resume tu PDF largo en 8 reglas no negociables. No son opcionales par
 **Fuente completa:** `Informe_Stack_Django_React (1).pdf` en `Big data/` — Bloques 1-13 con historia Django/React, componentes, paradigmas (declarativa/funcional en React, OOP en Django), arquitecturas y comparación MERN/.NET/Spring.
 
 ---
-*Actualizado: 07/09/2026 — V2 + RF-01/25/02 + IDE fix + cSpell 40 palabras + RF-03 Registro DONE + RF-04 Login DONE + RF-05 Logout DONE (CierreSesion 205 + token_blacklist + SIMPLE_JWT 1h/1d HS256 Bearer 3600) — Sprint 1 8/8 22pts CERRADO — Siguiente: Sprint 2 RF-06 ETL SODA 2.1 — Clave OK.*
+*Actualizado: 07/09/2026 — V2 + RF-01/25/02 + IDE fix + cSpell 40 palabras + RF-03/04/05 DONE + RF-06 ETL base DONE (TrabajoCarga 0005 + jbjy-vk9h + cargar_secop limit 2 + 202 Thread completado 2/2 + count=6 Boyacá) — Sprint 1 CERRADO 8/8 — Siguiente: RF-06 pulido + resumen optimizado — Clave OK.*

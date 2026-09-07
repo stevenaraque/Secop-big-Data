@@ -38,6 +38,8 @@ class Contrato(models.Model):
 
     entidad = models.ForeignKey(Entidad, on_delete=models.CASCADE, related_name="contratos", null=True, blank=True)
 
+
+
     class Meta:
         db_table = "contrato"
         indexes = [
@@ -49,3 +51,24 @@ class Contrato(models.Model):
 
     def __str__(self):
         return f"{self.id_contrato} - {self.contratista_nombre}"
+class TrabajoCarga(models.Model):
+    ESTADOS = [
+        ("pendiente", "Pendiente"),
+        ("en_progreso", "En progreso"),
+        ("completado", "Completado"),
+        ("error", "Error"),
+    ]
+    estado = models.CharField(max_length=20, choices=ESTADOS, default="pendiente")
+    total_registros = models.IntegerField(default=0)
+    registros_procesados = models.IntegerField(default=0)
+    offset_actual = models.IntegerField(default=0)
+    mensaje_error = models.TextField(blank=True, null=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "trabajo_carga"
+        ordering = ["-creado_en"]
+
+    def __str__(self):
+        return f"Carga {self.id} - {self.estado} {self.registros_procesados}/{self.total_registros}"
