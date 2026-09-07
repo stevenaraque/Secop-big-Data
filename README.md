@@ -39,6 +39,13 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
 - **RF-02 — Migraciones — COMPLETADO y LIMPIO (02/09/2026):**
   - `migrate zero` → `relation does not exist` verificado → `migrate` OK
   - `sqlmigrate 0001/0002` verificado, `DROP INDEX` duplicados ejecutado → 7 índices finales en `pg_indexes`
+- **RF-03 — Registro — COMPLETADO y VALIDADO (07/09/2026):**
+  - `users/serializers.py:1` `RegistroSerializer` español `nombre_usuario`/`correo`/`contrasena` → `source username/email/password` + `validate_correo` `exists()` + `create_user` PBKDF2 `pbkdf2_sha256$1500000$`
+  - `users/views.py:1` `VistaRegistro` `CreateAPIView AllowAny` + `users/urls.py:1` `register/` + `secop_backend/urls.py:21` `api/auth/` → `POST 201` `{"id":2,"nombre_usuario":"alejo","correo":"alejo@test.com"}` sin `contrasena` y `400` duplicado, `python manage.py check` 0 issues, `runserver` OK, hash verificado en `shell` `User.objects.get(email="alejo@test.com")`
+- **RF-04 — Login — COMPLETADO y VALIDADO (07/09/2026):**
+  - `users/serializers.py:26` `InicioSesionSerializer` español `correo`/`contrasena` + `authenticate` + `RefreshToken.for_user` HS256 `users/views.py:12` `VistaLogin` `APIView AllowAny` `POST 200` `{"access":"eyJ...","refresh":"eyJ...","nombre_usuario","correo"}` + `400` `Credenciales inválidas.` sin revelar campo, `users/urls.py:6` `login/` → `api/auth/login/` verificado `Invoke-RestMethod` `access eyJhbGciOiJIUzI1...` OK y `400` clave mala OK, `SIMPLE_JWT` `ACCESS 1h / REFRESH 1d` `HS256` `Bearer` `jwt.io` `exp-iat=3600` OK, `check` 0 issues, `cspell.json` 40 palabras
+- **RF-05 — Logout — COMPLETADO y VALIDADO (07/09/2026):**
+  - `secop_backend/settings.py:34` `INSTALLED_APPS` + `token_blacklist` + `migrate` 0001-0013 OK + `REST_FRAMEWORK JWTAuthentication`, `users/serializers.py:50` `CierreSesionSerializer` `refresh` → `RefreshToken.blacklist()` + `users/views.py:22` `VistaLogout` `IsAuthenticated` `POST 205` `{"detalle":"Sesión cerrada correctamente."}`, `users/urls.py:7` `logout/` → `api/auth/logout/` verificado `Invoke-RestMethod` `205` con `Bearer eyJ...access` + `refresh eyJ...` OK. Sprint 1 Día 1 8/8 22pts CERRADO
 
 ## Estructura de carpetas
 ```
@@ -144,4 +151,4 @@ No descargar 5.98M de golpe. SODA 2.1 exige paginación: `?$limit=50000&$offset=
 - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs, Grupo 8, Julio 2026 — SOLID, DRY, KISS, YAGNI, Clean Code, JWT/PBKDF2, CORS/CSRF, ORM, Git) — ver `CONTEXT.md:8` Clave Obligatoria
 
 ---
-*Última actualización: 02/09/2026 — V2 leída (ETL + Migraciones + Profiler Dual, pgAdmin 5432, SODA 2.1) + RF-01 validado — Autor: Steven Araque + Jarvis ⚡*
+*Última actualización: 07/09/2026 — V2 + RF-01/02/25 + IDE fix + cSpell 40 palabras + RF-03 Registro DONE + RF-04 Login DONE + RF-05 Logout DONE (CierreSesion 205 + token_blacklist + SIMPLE_JWT 1h/1d HS256 3600) — Sprint 1 8/8 22pts CERRADO — Siguiente: Sprint 2 RF-06 ETL SODA 2.1 — Autor: Steven Araque + Jarvis ⚡*

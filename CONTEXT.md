@@ -21,12 +21,15 @@ Colombia publica 5.98M de contratos en SECOP II con 85 columnas planas que crece
 - **4 índices B-tree obligatorios:** `departamento`, `modalidad`, `fecha_firma`, `contratista_nit` — sin ellos agregación pasa de 40ms a 3s con 100k.
 - **Tipos estrictos:** `valor_contrato` Decimal(18,2) y `fecha_firma` DateField probados con `full_clean()`.
 
-## 4. Estado real al 02/09/2026 — Validado en ejecución
-- **Infra:** `Backend/secop_backend/secop_backend/` con `manage.py`, apps `contratos` + `contratos.Entidad` registradas, `migrate` OK (0001, 0002, 0003 limpieza, 0004 Entidad+FK). Tabla `contrato` renombrada a `contrato` con 7 índices finales (pkey + id_contrato + 4 idx_contrato_*), duplicados `db_index` eliminados vía `DROP INDEX`.
-- **Modelos:** `contratos/models.py:1` con `Contrato` (15 cols) + `Entidad` (5 cols, `db_table="entidad"`, `idx_entidad_nit`) + `Contrato.entidad ForeignKey(Entidad, CASCADE, null=True)` + `__str__` corregido fuera de `Meta` (antes dentro, causaba Pyrefly `missing-attribute`).
-- **Pruebas shell (Python 3.14.5, Django 6.1, venv, PostgreSQL 18 local pgAdmin 5432):** `Contrato.objects.create` OK, `full_clean` rechaza `Decimal 123.456` y `"no es fecha"`, `migrate zero` → `relation does not exist` → `migrate` OK verificado, `Entidad.objects.create` + `Contrato(entidad=ent)` OK vía Admin (CO1-RF25-001).
-- **Calidad BD:** `SELECT indexname FROM pg_indexes WHERE tablename='contrato'` → 7 índices limpios (pkey, id_contrato_key, id_contrato_like, idx_contrato_depto/modalidad/fecha/nit) — duplicados `contratos_contrato_*_da3cca3f` borrados.
-- **IDE:** `.vscode/settings.json` en 3 roots + `pyproject.toml` + `Antigravity User/settings.json` apuntando a `venv/Scripts/python.exe`, `ruff.lint.enable:false`, `pyrefly.enabled:false`. Antigravity/VS Code reload OK.
+## 4. Estado real al 07/09/2026 — Validado en ejecución
+- **Infra:** `Backend/secop_backend/secop_backend/` con `manage.py`, apps `contratos` + `contratos.Entidad` + `users` registradas, `migrate` OK (0001, 0002, 0003 limpieza, 0004 Entidad+FK). Tabla `contrato` con 7 índices finales (pkey + id_contrato + 4 idx_contrato_*), duplicados `db_index` eliminados vía `DROP INDEX`.
+- **Modelos:** `contratos/models.py:1` con `Contrato` (15 cols) + `Entidad` (5 cols, `db_table="entidad"`, `idx_entidad_nit`) + `Contrato.entidad ForeignKey(Entidad, CASCADE, null=True)` + `__str__` corregido fuera de `Meta`.
+- **Auth RF-03 DONE (07/09/2026):** `users/serializers.py:1` `RegistroSerializer` en español (`nombre_usuario`/`correo`/`contrasena` → `source="username/email/password"`), `validate_correo` `exists()` + `create_user` PBKDF2 `pbkdf2_sha256$1500000$` verificado en shell, `users/views.py:1` `VistaRegistro` `CreateAPIView AllowAny`, `users/urls.py:1` `register/` + `secop_backend/urls.py:21` `api/auth/` → `POST 201` `{"id":2,"nombre_usuario":"alejo","correo":"alejo@test.com"}` sin `contrasena` (`write_only`) y `400` duplicado OK. `python manage.py check` 0 issues, `runserver` OK.
+- **Auth RF-04 DONE (07/09/2026):** `users/serializers.py:26` `InicioSesionSerializer` en español (`correo`/`contrasena` → `authenticate` + `RefreshToken.for_user` HS256), `users/views.py:12` `VistaLogin` `APIView AllowAny` `POST 200` `{"access":"eyJ...","refresh":"eyJ...","nombre_usuario","correo"}` + `400` `Credenciales inválidas.` sin revelar campo (OWASP), `users/urls.py:6` `login/` → `api/auth/login/` verificado `Invoke-RestMethod` `access eyJhbGciOiJIUzI1...` OK y `400` clave mala OK. `check` 0 issues. Archivo suelto `RegistroSerializer.py` borrado, `Pyrefly` limpio, `cspell.json` 40 palabras.
+- **Auth RF-05 DONE (07/09/2026):** `secop_backend/settings.py:34` `INSTALLED_APPS` + `token_blacklist` + `migrate` 0001-0013 OK + `SIMPLE_JWT` `ACCESS 1h / REFRESH 1d` `HS256` `Bearer` + `REST_FRAMEWORK JWTAuthentication`, `users/serializers.py:50` `CierreSesionSerializer` `refresh` → `RefreshToken.blacklist()` + `users/views.py:22` `VistaLogout` `IsAuthenticated` `POST 205` `{"detalle":"Sesión cerrada correctamente."}`, `users/urls.py:7` `logout/` → `api/auth/logout/` verificado `Invoke-RestMethod` `205` con `Bearer eyJ...access` + `refresh eyJ...` OK y `exp-iat=3600` `jwt.io` HS256 OK. `check` 0 issues. Sprint 1 Día 1 8/8 22pts cerrado.
+- **Pruebas shell (Python 3.14.5, Django 6.1, venv, PostgreSQL 18 local pgAdmin 5432):** `Contrato.objects.create` OK, `full_clean` rechaza `Decimal 123.456` y `"no es fecha"`, `migrate zero` → `relation does not exist` → `migrate` OK, `Entidad` + `Contrato(entidad=ent)` OK, `User.objects.get(email="alejo@test.com").password` → `pbkdf2_sha256$` verificado.
+- **Calidad BD:** `SELECT indexname FROM pg_indexes WHERE tablename='contrato'` → 7 índices limpios — duplicados borrados.
+- **IDE:** `.vscode/settings.json`×3 corregidos a `C:/...` forward-slash + `cSpell.language en,es` + `cspell.json` 31 palabras, `cSpell.words` 22, `pyproject.toml` OK. Antigravity/VS Code reload OK.
 - **Frontend:** Scaffold Vite+React en `Frontend/secop_frontend/` sin dashboard aún (Sesión 3).
 
 ## 5. Cómo enseñamos (acuerdo con Steven)
@@ -34,11 +37,11 @@ Colombia publica 5.98M de contratos en SECOP II con 85 columnas planas que crece
 - No se toca ninguna carpeta sin "sí, te autorizo". Cada `makemigrations`, `migrate` o escritura de archivo se pide permiso y se verifica con ejecución.
 - Retroalimentación constante: se celebra el acierto (mayúscula de `Contrato`) y se corrige el detalle (tabla `contrato` no `contraro`, `__str__(self)` no "toma lo del archivo").
 
-## 6. Próximos pasos inmediatos (Sprint 1 — 5 restantes de 8)
-1. **RF-03 Registro** (5h, Alta) — `users` app + `RegisterSerializer` + PBKDF2 + `201/400` — siguiente literal.
-2. **RF-04 Login** (5h, Alta) — SimpleJWT 5.3 `HS256` `access 1h / refresh 1d` + `401` sin revelar campo.
-3. **RF-05 Logout** (2.5h, Media) + **RNF-01/02** (HTTPS, .env) para cerrar Sprint 1 Día 1 (8/8, 22pts).
-4. Luego **Sprint 2 Sesión 2 / RF-06**: `management/commands/cargar_secop.py` SODA 2.1 `$limit=50k/$offset/$order=:id` + `X-App-Token` + `bulk_create 1000` + `ProcessingJob` + `202 + polling`.
+## 6. Próximos pasos inmediatos (Sprint 1 — CERRADO 8/8 22pts 07/09)
+1. **RF-03 Registro DONE (07/09)** — `RegistroSerializer` + `VistaRegistro` + `201/400` PBKDF2 verificado.
+2. **RF-04 Login DONE (07/09)** — `InicioSesionSerializer` + `VistaLogin` + `200` `eyJ...` / `400` verificado + `SIMPLE_JWT` `1h/1d` `HS256` `Bearer` `jwt.io` `exp-iat=3600` OK.
+3. **RF-05 Logout DONE (07/09)** — `CierreSesionSerializer` + `VistaLogout` `205` `Sesión cerrada correctamente.` + `token_blacklist` `migrate` 0001-0013 OK verificado `Bearer` + `refresh` OK.
+4. Siguiente **Sprint 2 Sesión 2 / RF-06**: `management/commands/cargar_secop.py` SODA 2.1 `$limit=50k/$offset/$order=:id` + `X-App-Token` + `bulk_create 1000` + `ProcessingJob` + `202 + polling` + `RNF-01/02` cierre.
 
 ## 7. Fuentes y artefactos (V2)
 - `Observatorio_SECOP_II_Definicion_Proyecto.pdf` (definición 6 páginas, base Guía 4)
@@ -92,4 +95,4 @@ Esta clave resume tu PDF largo en 8 reglas no negociables. No son opcionales par
 **Fuente completa:** `Informe_Stack_Django_React (1).pdf` en `Big data/` — Bloques 1-13 con historia Django/React, componentes, paradigmas (declarativa/funcional en React, OOP en Django), arquitecturas y comparación MERN/.NET/Spring.
 
 ---
-*Actualizado: 02/09/2026 — V2 + RF-01 DONE + RF-25 DONE (Entidad FK) + RF-02 DONE limpio (7 índices) + IDE Antigravity/VS Code OK — Siguiente: RF-03 Registro (users app) — Clave de Buenas Prácticas añadida.*
+*Actualizado: 07/09/2026 — V2 + RF-01/25/02 + IDE fix + cSpell 40 palabras + RF-03 Registro DONE + RF-04 Login DONE + RF-05 Logout DONE (CierreSesion 205 + token_blacklist + SIMPLE_JWT 1h/1d HS256 Bearer 3600) — Sprint 1 8/8 22pts CERRADO — Siguiente: Sprint 2 RF-06 ETL SODA 2.1 — Clave OK.*
