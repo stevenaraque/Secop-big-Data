@@ -50,6 +50,8 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
   - Ya se puede cargar datos reales: `TrabajoCarga` `trabajo_carga` `0005` + `SODA jbjy-vk9h` (antes `j13v-233n` daba 404 `dataset.missing`) + `requests==2.34.2` corregido
   - Comando `cargar_secop --limit 2` y `--limit 1 --depto Boyacá` con `bulk_create 1000` y `transaction.atomic` probados
   - `POST /api/cargar/ 202` con `Thread` y `GET /api/cargar/<id>/` con `Bearer` devuelven `pendiente → completado 2/2` verificado en `shell` `Contrato.objects.count()=6`
+- **RF-06 — pulido .env — COMPLETADO (07/09/2026):**
+  - `.env.example` y `.env` con `SODA_APP_TOKEN` plantilla vacía (RNF-02 sin hardcodear), `settings.py` con `load_dotenv()` y `python-dotenv==1.2.3`, `requirements.txt` limpio UTF-8, SODA v3 `api/v3/views/jbjy-vk9h/query.json` anotado (SODA 2.1 sigue vigente)
 
 ## Estructura de carpetas
 ```
