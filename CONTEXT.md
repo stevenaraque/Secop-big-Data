@@ -29,6 +29,7 @@ Colombia publica 5.98M de contratos en SECOP II con 85 columnas planas que crece
 - **Auth RF-05 DONE (07/09/2026):** `secop_backend/settings.py:34` `INSTALLED_APPS` + `token_blacklist` + `migrate` 0001-0013 OK + `SIMPLE_JWT` `ACCESS 1h / REFRESH 1d` `HS256` `Bearer` + `REST_FRAMEWORK JWTAuthentication`, `users/serializers.py:50` `CierreSesionSerializer` `refresh` → `RefreshToken.blacklist()` + `users/views.py:22` `VistaLogout` `IsAuthenticated` `POST 205` `{"detalle":"Sesión cerrada correctamente."}`, `users/urls.py:7` `logout/` → `api/auth/logout/` verificado `Invoke-RestMethod` `205` con `Bearer eyJ...access` + `refresh eyJ...` OK y `exp-iat=3600` `jwt.io` HS256 OK. `check` 0 issues. Sprint 1 Día 1 8/8 22pts cerrado.
 - **ETL RF-06 ETL base DONE (07/09/2026):** `contratos/models.py:53` `TrabajoCarga` `trabajo_carga` + `0005_trabajocarga.py` OK, `SODA_URL jbjy-vk9h` corregido (antes `j13v-233n` 404 `dataset.missing`) + `requests==2.34.2`, `management/commands/cargar_secop.py:1` `--limit/--offset/--depto/--trabajo-id` + `bulk_create 1000` `transaction.atomic` + `contratos/views.py:1` `VistaIniciarCarga 202` `Thread` + `VistaEstadoCarga` polling + `contratos/urls.py:1` `api/cargar/` verificado `POST 202 id 9 pendiente` → `GET completado 2/2` + `shell` `Contrato.objects.count()=6` (Boyacá/Bogotá/Bolívar).
 - **ETL RF-06 pulido .env DONE (07/09/2026):** `.env.example:8` + `.env:8` `SODA_APP_TOKEN` plantilla vacía (RNF-02 sin hardcodear, 1k req/h sin token → 10k con token), `settings.py:16` `load_dotenv()` + `python-dotenv==1.2.3` `check 0 silenced`, `SODA v3` `https://www.datos.gov.co/api/v3/views/jbjy-vk9h/query.json` anotado (SODA 2.1 `resource/jbjy-vk9h.json` sigue vigente 200), `requirements.txt` limpio UTF-8 sin duplicados.
+- **API RF-08 resumen DONE (07/09/2026):** `contratos/views.py:45` `VistaResumenOptimizado` `IsAuthenticated` `aggregate Count/Sum/Avg` en BD con `idx_contrato_depto` + `VistaResumenNaive` con `sum()` en Python, `contratos/urls.py:1` `optimized/resumen/` + `naive/resumen/` → `api/optimized/resumen/?depto=Boyacá` verificado `Invoke-RestMethod` `Bearer` `optimizado True total 1 suma 18992400` y `optimizado False total 1` + `todos total 10 suma 224M` OK. Patrón 50KB vs 100MB validado.
 - **Pruebas shell (Python 3.14.5, Django 6.1, venv, PostgreSQL 18 local pgAdmin 5432):** `Contrato.objects.create` OK, `full_clean` rechaza `Decimal 123.456` y `"no es fecha"`, `migrate zero` → `relation does not exist` → `migrate` OK, `Entidad` + `Contrato(entidad=ent)` OK, `User.objects.get(email="alejo@test.com").password` → `pbkdf2_sha256$` verificado, `cargar_secop --limit 2` OK, `jbjy-vk9h` `Boyacá` con tilde OK.
 - **Calidad BD:** `SELECT indexname FROM pg_indexes WHERE tablename='contrato'` → 7 índices limpios — duplicados borrados, `trabajo_carga` con `ordering -creado_en`.
 - **IDE:** `.vscode/settings.json`×3 corregidos a `C:/...` forward-slash + `cSpell.language en,es` + `cspell.json` 40 palabras, `pyproject.toml` OK. Antigravity/VS Code reload OK.
@@ -39,11 +40,12 @@ Colombia publica 5.98M de contratos en SECOP II con 85 columnas planas que crece
 - No se toca ninguna carpeta sin "sí, te autorizo". Cada `makemigrations`, `migrate` o escritura de archivo se pide permiso y se verifica con ejecución.
 - Retroalimentación constante: se celebra el acierto (mayúscula de `Contrato`) y se corrige el detalle (tabla `contrato` no `contraro`, `__str__(self)` no "toma lo del archivo").
 
-## 6. Próximos pasos inmediatos (Sprint 1 CERRADO 8/8 22pts + Sprint 2 RF-06 base DONE 07/09)
+## 6. Próximos pasos inmediatos (Sprint 1 CERRADO 8/8 + Sprint 2 RF-06/08 DONE 07/09)
 1. **RF-03 Registro DONE (07/09)** — `RegistroSerializer` + `VistaRegistro` + `201/400` PBKDF2 verificado.
 2. **RF-04 Login DONE (07/09)** — `InicioSesionSerializer` + `VistaLogin` + `200` `eyJ...` / `400` verificado + `SIMPLE_JWT` `1h/1d` `HS256` `Bearer` `jwt.io` `exp-iat=3600` OK.
 3. **RF-05 Logout DONE (07/09)** — `CierreSesionSerializer` + `VistaLogout` `205` `Sesión cerrada` + `token_blacklist` `migrate` 0001-0013 OK.
-4. **RF-06 ETL base DONE (07/09)** — `TrabajoCarga` `0005` + `cargar_secop` `jbjy-vk9h` `limit 2` `Boyacá` + `202 Thread` `completado 2/2` verificado `shell count=6`. Siguiente: pulir `EDS` y `api/resumen` optimizado.
+4. **RF-06 ETL base + pulido .env DONE (07/09)** — `TrabajoCarga` `0005` + `cargar_secop` `jbjy-vk9h` `limit 2` `Boyacá` + `202 Thread` `completado 2/2` + `SODA_APP_TOKEN` `load_dotenv`.
+5. **RF-08 resumen DONE (07/09)** — `VistaResumenOptimizado` `aggregate` 50KB vs `VistaResumenNaive` `sum()` 100MB verificado `Boyacá 1` y `todos 10`. Siguiente: `RF-09 top contratistas` por monto.
 
 ## 7. Fuentes y artefactos (V2)
 - `Observatorio_SECOP_II_Definicion_Proyecto.pdf` (definición 6 páginas, base Guía 4)
@@ -97,4 +99,4 @@ Esta clave resume tu PDF largo en 8 reglas no negociables. No son opcionales par
 **Fuente completa:** `Informe_Stack_Django_React (1).pdf` en `Big data/` — Bloques 1-13 con historia Django/React, componentes, paradigmas (declarativa/funcional en React, OOP en Django), arquitecturas y comparación MERN/.NET/Spring.
 
 ---
-*Actualizado: 07/09/2026 — V2 + RF-01/25/02 + IDE fix + cSpell 40 palabras + RF-03/04/05 DONE + RF-06 ETL base DONE (TrabajoCarga 0005 + jbjy-vk9h + cargar_secop limit 2 + 202 Thread completado 2/2 + count=6 Boyacá) — Sprint 1 CERRADO 8/8 — Siguiente: RF-06 pulido + resumen optimizado — Clave OK.*
+*Actualizado: 07/09/2026 — V2 + RF-01/25/02 + IDE fix + cSpell 40 palabras + RF-03/04/05 DONE + RF-06 base+pulido DONE + RF-08 resumen DONE (optimizado True 1 vs naive False 1 y todos 10) — Sprint 1 CERRADO — Siguiente: RF-09 top contratistas — Clave OK.*

@@ -3,7 +3,9 @@ from rest_framework import status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.core.management import call_command
-from .models import TrabajoCarga
+from .models import TrabajoCarga, Contrato
+from django.db.models import Count, Sum, Avg
+
 
 def tarea_carga(trabajo_id, limite, offset, depto):
     try:
@@ -39,3 +41,33 @@ class VistaEstadoCarga(APIView):
             "offset_actual": trabajo.offset_actual,
             "mensaje_error": trabajo.mensaje_error
         })
+
+
+
+class VistaResumenOptimizado(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        depto = request.query_params.get("depto")
+        qs = Contrato.objects.all()
+        if depto:
+            qs = qs.filter(departamento=depto)
+        datos = qs.aggregate(
+            total=Count("id"),
+            suma_valor=Sum("valor_contrato"),
+            promedio_valor=Avg("valor_contrato")
+        )
+        return Response({"filtro": depto or "todos", "optimizado": True, **datos})
+
+class VistaResumenNaive(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        depto = request.query_params.get("depto")
+        contratos = Contrato.objects.all()
+        if depto:
+            contratos = [c for c in contratos if c.departamento == depto]
+        total = len(contratos)
+        suma = sum((c.valor_contrato or 0) for c in contratos)
+        promedio = suma / total if total else 0
+        return Response({"filtro": depto or "todos", "optimizado": False, "total": total, "suma_valor": suma, "promedio_valor": promedio})

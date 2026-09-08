@@ -52,6 +52,8 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
   - `POST /api/cargar/ 202` con `Thread` y `GET /api/cargar/<id>/` con `Bearer` devuelven `pendiente → completado 2/2` verificado en `shell` `Contrato.objects.count()=6`
 - **RF-06 — pulido .env — COMPLETADO (07/09/2026):**
   - `.env.example` y `.env` con `SODA_APP_TOKEN` plantilla vacía (RNF-02 sin hardcodear), `settings.py` con `load_dotenv()` y `python-dotenv==1.2.3`, `requirements.txt` limpio UTF-8, SODA v3 `api/v3/views/jbjy-vk9h/query.json` anotado (SODA 2.1 sigue vigente)
+- **RF-08 — resumen optimizado vs naive — COMPLETADO y VALIDADO (07/09/2026):**
+  - `contratos/views.py:45` `VistaResumenOptimizado` `aggregate Count/Sum/Avg` en BD con `idx_contrato_depto` vs `VistaResumenNaive` `sum()` en Python, `contratos/urls.py:1` `optimized/resumen/` + `naive/resumen/` → `GET /api/optimized/resumen/?depto=Boyacá` `Bearer` `optimizado True total 1 suma 18992400` y `GET /api/naive/resumen/?depto=Boyacá` `optimizado False total 1` + `todos total 10 suma 224M` verificado `Invoke-RestMethod` OK. Patrón 50KB vs 100MB `CONTEXT.md:12` validado
 
 ## Estructura de carpetas
 ```
@@ -157,4 +159,4 @@ No descargar 5.98M de golpe. SODA 2.1 exige paginación: `?$limit=50000&$offset=
 - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs, Grupo 8, Julio 2026 — SOLID, DRY, KISS, YAGNI, Clean Code, JWT/PBKDF2, CORS/CSRF, ORM, Git) — ver `CONTEXT.md:8` Clave Obligatoria
 
 ---
-*Última actualización: 07/09/2026 — V2 + RF-01/02/25 + IDE fix + cSpell 40 palabras + RF-03/04/05 DONE + RF-06 ETL base DONE (TrabajoCarga 0005 + jbjy-vk9h + cargar_secop limit 2 + 202 Thread completado 2/2 + count=6) — Sprint 1 CERRADO — Siguiente: ETL pulido + resumen optimizado — Autor: Steven Araque + Jarvis ⚡*
+*Última actualización: 07/09/2026 — V2 + RF-01/02/25 + IDE fix + cSpell 40 palabras + RF-03/04/05 DONE + RF-06 base+pulido DONE + RF-08 resumen DONE (optimizado True 1 vs naive False 1 y todos 10) — Sprint 1/2 avanzado — Siguiente: RF-09 top contratistas — Autor: Steven Araque + Jarvis ⚡*
