@@ -3,8 +3,8 @@ from rest_framework import status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.core.management import call_command
-from .models import TrabajoCarga, Contrato
-from django.db.models import Count, Sum, Avg
+from .models import TrabajoCarga
+from .services import servicio_contratos
 
 
 def tarea_carga(trabajo_id, limite, offset, depto):
@@ -46,48 +46,36 @@ class VistaEstadoCarga(APIView):
 
 class VistaResumenOptimizado(APIView):
     permission_classes = [permissions.IsAuthenticated]
-
     def get(self, request):
-        depto = request.query_params.get("depto")
-        anio = request.query_params.get("anio")
-        modalidad = request.query_params.get("modalidad")
-        qs = Contrato.objects.all()
-        if depto:
-            qs = qs.filter(departamento=depto)
-        if anio:
-            qs = qs.filter(fecha_firma__year=int(anio))
-        if modalidad:
-            qs = qs.filter(modalidad=modalidad)
-        datos = qs.aggregate(
-            total=Count("id"),
-            suma_valor=Sum("valor_contrato"),
-            promedio_valor=Avg("valor_contrato")
+        datos = servicio_contratos.resumen_optimizado(
+            depto=request.query_params.get("depto"),
+            anio=request.query_params.get("anio"),
+            modalidad=request.query_params.get("modalidad"),
         )
         return Response({
-            "filtro": {"depto": depto or "todos", "anio": anio or "todos", "modalidad": modalidad or "todos"},
+            "filtro": {
+                "depto": request.query_params.get("depto") or "todos",
+                "anio": request.query_params.get("anio") or "todos",
+                "modalidad": request.query_params.get("modalidad") or "todos",
+            },
             "optimizado": True, **datos
         })
 
 class VistaResumenNaive(APIView):
     permission_classes = [permissions.IsAuthenticated]
-
     def get(self, request):
-        depto = request.query_params.get("depto")
-        anio = request.query_params.get("anio")
-        modalidad = request.query_params.get("modalidad")
-        contratos = list(Contrato.objects.all())
-        if depto:
-            contratos = [c for c in contratos if c.departamento == depto]
-        if anio:
-            contratos = [c for c in contratos if c.fecha_firma and str(c.fecha_firma.year) == str(anio)]
-        if modalidad:
-            contratos = [c for c in contratos if c.modalidad == modalidad]
-        total = len(contratos)
-        suma = sum((c.valor_contrato or 0) for c in contratos)
-        promedio = suma / total if total else 0
+        datos = servicio_contratos.resumen_naive(
+            depto=request.query_params.get("depto"),
+            anio=request.query_params.get("anio"),
+            modalidad=request.query_params.get("modalidad"),
+        )
         return Response({
-            "filtro": {"depto": depto or "todos", "anio": anio or "todos", "modalidad": modalidad or "todos"},
-            "optimizado": False, "total": total, "suma_valor": suma, "promedio_valor": promedio
+            "filtro": {
+                "depto": request.query_params.get("depto") or "todos",
+                "anio": request.query_params.get("anio") or "todos",
+                "modalidad": request.query_params.get("modalidad") or "todos",
+            },
+            "optimizado": False, **datos
         })
 class VistaListarCargas(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -99,30 +87,17 @@ class VistaListarCargas(APIView):
 class VistaTopContratistasOptimizado(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
-        depto = request.query_params.get("depto")
-        limite = int(request.query_params.get("limit", 5))
-        qs = Contrato.objects.all()
-        if depto:
-            qs = qs.filter(departamento=depto)
-        datos = (qs.values("contratista_nit", "contratista_nombre")
-                   .annotate(total_contratos=Count("id"), suma_valor=Sum("valor_contrato"))
-                   .order_by("-suma_valor")[:limite])
-        return Response({"filtro": depto or "todos", "optimizado": True, "top": list(datos)})
+        top = servicio_contratos.top_contratistas_optimizado(
+            depto=request.query_params.get("depto"),
+            limite=int(request.query_params.get("limit", 5)),
+        )
+        return Response({"filtro": request.query_params.get("depto") or "todos", "optimizado": True, "top": top})
 
 class VistaTopContratistasNaive(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
-        depto = request.query_params.get("depto")
-        limite = int(request.query_params.get("limit", 5))
-        contratos = list(Contrato.objects.all())
-        if depto:
-            contratos = [c for c in contratos if c.departamento == depto]
-        acumulado = {}
-        for c in contratos:
-            k = (c.contratista_nit, c.contratista_nombre)
-            if k not in acumulado:
-                acumulado[k] = {"contratista_nit": k[0], "contratista_nombre": k[1], "total_contratos": 0, "suma_valor": 0}
-            acumulado[k]["total_contratos"] += 1
-            acumulado[k]["suma_valor"] += float(c.valor_contrato or 0)
-        top = sorted(acumulado.values(), key=lambda x: x["suma_valor"], reverse=True)[:limite]
-        return Response({"filtro": depto or "todos", "optimizado": False, "top": top})
+        top = servicio_contratos.top_contratistas_naive(
+            depto=request.query_params.get("depto"),
+            limite=int(request.query_params.get("limit", 5)),
+        )
+        return Response({"filtro": request.query_params.get("depto") or "todos", "optimizado": False, "top": top})

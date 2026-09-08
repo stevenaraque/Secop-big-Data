@@ -19,10 +19,11 @@ class RegistroSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        return User.objects.create_user(
-            username=validated_data["username"],
-            email=validated_data["email"],
-            password=validated_data["password"]
+        from .services import servicio_usuarios
+        return servicio_usuarios.registrar(
+            nombre_usuario=validated_data["username"],
+            correo=validated_data["email"],
+            contrasena=validated_data["password"],
         )
 
 
@@ -33,27 +34,19 @@ class InicioSesionSerializer(serializers.Serializer):
     refresh = serializers.CharField(read_only=True)
 
     def validate(self, data):
-        correo = data.get("correo")
-        contrasena = data.get("contrasena")
+        from .services import servicio_usuarios
         try:
-            usuario = User.objects.get(email=correo)
-        except User.DoesNotExist:
-            raise serializers.ValidationError("Credenciales inválidas.")
-        usuario_autenticado = authenticate(username=usuario.username, password=contrasena)
-        if not usuario_autenticado:
-            raise serializers.ValidationError("Credenciales inválidas.")
-        data["usuario"] = usuario_autenticado
-        return data
+            usuario = servicio_usuarios.autenticar(
+                correo=data.get("correo"), contrasena=data.get("contrasena")
+            )
+            data["usuario"] = usuario
+            return data
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
 
     def create(self, validated_data):
-        usuario = validated_data["usuario"]
-        refresh = RefreshToken.for_user(usuario)
-        return {
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
-            "nombre_usuario": usuario.username,
-            "correo": usuario.email,
-        }
+        from .services import servicio_usuarios
+        return servicio_usuarios.crear_tokens(validated_data["usuario"])
 class CierreSesionSerializer(serializers.Serializer):
     refresh = serializers.CharField()
 
@@ -62,12 +55,11 @@ class CierreSesionSerializer(serializers.Serializer):
     def validate(self, data):
         try:
             token = RefreshToken(data["refresh"])
-            data["token"] = token 
+            data["token"] = token
         except TokenError:
-            raise serializers.ValidationError("Token invalido o ya expirado.")
+            raise serializers.ValidationError("Token inválido o ya expirado.")
         return data
 
-
-
-    def save (self):
-        self.validated_data["token"].blacklist()
+    def save(self):
+        from .services import servicio_usuarios
+        servicio_usuarios.invalidar_refresh(self.validated_data["refresh"])
