@@ -120,10 +120,16 @@ class VistaListaContratos(ListAPIView):
         qs = Contrato.objects.all().order_by("id")
         depto = self.request.query_params.get("depto")
         modalidad = self.request.query_params.get("modalidad")
+        fecha_desde = self.request.query_params.get("fecha_desde")
+        fecha_hasta = self.request.query_params.get("fecha_hasta")
         if depto:
             qs = qs.filter(departamento=depto)
         if modalidad:
             qs = qs.filter(modalidad=modalidad)
+        if fecha_desde:
+            qs = qs.filter(fecha_firma__gte=fecha_desde)
+        if fecha_hasta:
+            qs = qs.filter(fecha_firma__lte=fecha_hasta)
         return qs
 
 class VistaDetalleContrato(RetrieveAPIView):
@@ -131,3 +137,5 @@ class VistaDetalleContrato(RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = "id_contrato"
     queryset = Contrato.objects.all()
+
+
