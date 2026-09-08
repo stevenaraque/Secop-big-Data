@@ -49,25 +49,43 @@ class VistaResumenOptimizado(APIView):
 
     def get(self, request):
         depto = request.query_params.get("depto")
+        anio = request.query_params.get("anio")
+        modalidad = request.query_params.get("modalidad")
         qs = Contrato.objects.all()
         if depto:
             qs = qs.filter(departamento=depto)
+        if anio:
+            qs = qs.filter(fecha_firma__year=int(anio))
+        if modalidad:
+            qs = qs.filter(modalidad=modalidad)
         datos = qs.aggregate(
             total=Count("id"),
             suma_valor=Sum("valor_contrato"),
             promedio_valor=Avg("valor_contrato")
         )
-        return Response({"filtro": depto or "todos", "optimizado": True, **datos})
+        return Response({
+            "filtro": {"depto": depto or "todos", "anio": anio or "todos", "modalidad": modalidad or "todos"},
+            "optimizado": True, **datos
+        })
 
 class VistaResumenNaive(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         depto = request.query_params.get("depto")
-        contratos = Contrato.objects.all()
+        anio = request.query_params.get("anio")
+        modalidad = request.query_params.get("modalidad")
+        contratos = list(Contrato.objects.all())
         if depto:
             contratos = [c for c in contratos if c.departamento == depto]
+        if anio:
+            contratos = [c for c in contratos if c.fecha_firma and str(c.fecha_firma.year) == str(anio)]
+        if modalidad:
+            contratos = [c for c in contratos if c.modalidad == modalidad]
         total = len(contratos)
         suma = sum((c.valor_contrato or 0) for c in contratos)
         promedio = suma / total if total else 0
-        return Response({"filtro": depto or "todos", "optimizado": False, "total": total, "suma_valor": suma, "promedio_valor": promedio})
+        return Response({
+            "filtro": {"depto": depto or "todos", "anio": anio or "todos", "modalidad": modalidad or "todos"},
+            "optimizado": False, "total": total, "suma_valor": suma, "promedio_valor": promedio
+        })

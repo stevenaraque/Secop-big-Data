@@ -52,8 +52,8 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
   - `POST /api/cargar/ 202` con `Thread` y `GET /api/cargar/<id>/` con `Bearer` devuelven `pendiente → completado 2/2` verificado en `shell` `Contrato.objects.count()=6`
 - **RF-06 — pulido .env — COMPLETADO (07/09/2026):**
   - `.env.example` y `.env` con `SODA_APP_TOKEN` plantilla vacía (RNF-02 sin hardcodear), `settings.py` con `load_dotenv()` y `python-dotenv==1.2.3`, `requirements.txt` limpio UTF-8, SODA v3 `api/v3/views/jbjy-vk9h/query.json` anotado (SODA 2.1 sigue vigente)
-- **RF-08 — resumen optimizado vs naive — COMPLETADO y VALIDADO (07/09/2026):**
-  - `contratos/views.py:45` `VistaResumenOptimizado` `aggregate Count/Sum/Avg` en BD con `idx_contrato_depto` vs `VistaResumenNaive` `sum()` en Python, `contratos/urls.py:1` `optimized/resumen/` + `naive/resumen/` → `GET /api/optimized/resumen/?depto=Boyacá` `Bearer` `optimizado True total 1 suma 18992400` y `GET /api/naive/resumen/?depto=Boyacá` `optimizado False total 1` + `todos total 10 suma 224M` verificado `Invoke-RestMethod` OK. Patrón 50KB vs 100MB `CONTEXT.md:12` validado
+- **RF-08 — resumen optimizado vs naive — COMPLETADO y VALIDADO completo (07/09/2026):**
+  - `contratos/views.py:45` `VistaResumenOptimizado` `aggregate Count/Sum/Avg` con `idx_contrato_depto/modalidad/fecha` vs `VistaResumenNaive` `sum()` Python, `contratos/urls.py:1` `optimized/resumen/` + `naive/resumen/` → `GET /api/optimized/resumen/?depto=Boyacá&anio=2025&modalidad=Contratación directa` `Bearer` `optimizado True total 0` + `naive False total 7` + `todos total 10 suma 224M` `filtro {depto,anio,modalidad}` verificado `Invoke-RestMethod` OK, `fecha_firma__year` + `departamento` + `modalidad` 3 filtros validado. Patrón 50KB vs 100MB `CONTEXT.md:12` validado
 
 ## Estructura de carpetas
 ```
