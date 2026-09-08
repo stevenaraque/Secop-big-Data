@@ -101,3 +101,33 @@ class VistaTopContratistasNaive(APIView):
             limite=int(request.query_params.get("limit", 5)),
         )
         return Response({"filtro": request.query_params.get("depto") or "todos", "optimizado": False, "top": top})
+
+from rest_framework.generics import ListAPIView, RetrieveAPIView
+from rest_framework.pagination import PageNumberPagination
+from .serializers import ContratoSerializer
+from .models import Contrato
+
+class PaginacionContratos(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+class VistaListaContratos(ListAPIView):
+    serializer_class = ContratoSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = PaginacionContratos
+    def get_queryset(self):
+        qs = Contrato.objects.all().order_by("id")
+        depto = self.request.query_params.get("depto")
+        modalidad = self.request.query_params.get("modalidad")
+        if depto:
+            qs = qs.filter(departamento=depto)
+        if modalidad:
+            qs = qs.filter(modalidad=modalidad)
+        return qs
+
+class VistaDetalleContrato(RetrieveAPIView):
+    serializer_class = ContratoSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = "id_contrato"
+    queryset = Contrato.objects.all()
