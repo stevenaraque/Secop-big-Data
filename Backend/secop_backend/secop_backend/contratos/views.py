@@ -94,3 +94,35 @@ class VistaListarCargas(APIView):
     def get(self, request):
         trabajos = TrabajoCarga.objects.all()[:20]
         return Response([{"id": t.id, "estado": t.estado, "registros_procesados": t.registros_procesados, "total_registros": t.total_registros, "creado_en": t.creado_en} for t in trabajos])
+
+
+class VistaTopContratistasOptimizado(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        depto = request.query_params.get("depto")
+        limite = int(request.query_params.get("limit", 5))
+        qs = Contrato.objects.all()
+        if depto:
+            qs = qs.filter(departamento=depto)
+        datos = (qs.values("contratista_nit", "contratista_nombre")
+                   .annotate(total_contratos=Count("id"), suma_valor=Sum("valor_contrato"))
+                   .order_by("-suma_valor")[:limite])
+        return Response({"filtro": depto or "todos", "optimizado": True, "top": list(datos)})
+
+class VistaTopContratistasNaive(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        depto = request.query_params.get("depto")
+        limite = int(request.query_params.get("limit", 5))
+        contratos = list(Contrato.objects.all())
+        if depto:
+            contratos = [c for c in contratos if c.departamento == depto]
+        acumulado = {}
+        for c in contratos:
+            k = (c.contratista_nit, c.contratista_nombre)
+            if k not in acumulado:
+                acumulado[k] = {"contratista_nit": k[0], "contratista_nombre": k[1], "total_contratos": 0, "suma_valor": 0}
+            acumulado[k]["total_contratos"] += 1
+            acumulado[k]["suma_valor"] += float(c.valor_contrato or 0)
+        top = sorted(acumulado.values(), key=lambda x: x["suma_valor"], reverse=True)[:limite]
+        return Response({"filtro": depto or "todos", "optimizado": False, "top": top})
