@@ -3,8 +3,15 @@ from rest_framework import status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.core.management import call_command
-from .models import TrabajoCarga
+from django.db.models import Count, Sum
+from .models import TrabajoCarga, Contrato
 from .services import servicio_contratos
+from django.db.models.functions import TruncMonth
+from rest_framework.generics import ListAPIView, RetrieveAPIView
+from rest_framework.pagination import PageNumberPagination
+from .serializers import ContratoSerializer
+
+
 
 
 def tarea_carga(trabajo_id, limite, offset, depto):
@@ -102,11 +109,6 @@ class VistaTopContratistasNaive(APIView):
         )
         return Response({"filtro": request.query_params.get("depto") or "todos", "optimizado": False, "top": top})
 
-from rest_framework.generics import ListAPIView, RetrieveAPIView
-from rest_framework.pagination import PageNumberPagination
-from .serializers import ContratoSerializer
-from .models import Contrato
-
 class PaginacionContratos(PageNumberPagination):
     page_size = 20
     page_size_query_param = "page_size"
@@ -139,3 +141,15 @@ class VistaDetalleContrato(RetrieveAPIView):
     queryset = Contrato.objects.all()
 
 
+class VistaSerieMensualOptimizado(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        depto = request.query_params.get("depto")
+        qs = Contrato.objects.all()
+        if depto:
+            qs = qs.filter(departamento=depto)
+        datos = (qs.annotate(mes=TruncMonth("fecha_firma"))
+                   .values("mes")
+                   .annotate(total=Count("id"), suma=Sum("valor_contrato"))
+                   .order_by("mes"))
+        return Response({"filtro": depto or "todos", "serie": list(datos)})
