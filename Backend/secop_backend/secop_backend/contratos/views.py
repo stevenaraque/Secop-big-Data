@@ -89,3 +89,8 @@ class VistaResumenNaive(APIView):
             "filtro": {"depto": depto or "todos", "anio": anio or "todos", "modalidad": modalidad or "todos"},
             "optimizado": False, "total": total, "suma_valor": suma, "promedio_valor": promedio
         })
+class VistaListarCargas(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        trabajos = TrabajoCarga.objects.all()[:20]
+        return Response([{"id": t.id, "estado": t.estado, "registros_procesados": t.registros_procesados, "total_registros": t.total_registros, "creado_en": t.creado_en} for t in trabajos])
