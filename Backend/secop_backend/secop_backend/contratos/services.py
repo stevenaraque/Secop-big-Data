@@ -7,10 +7,31 @@ class ServicioContratos:
     def __init__(self, modelo=Contrato):
         self.modelo = modelo
 
+    def _clave(self, s):
+        import unicodedata
+        s = unicodedata.normalize("NFD", (s or "").upper())
+        s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+        return " ".join("".join(c if c.isalpha() else " " for c in s).split())
+
+    def _variantes(self, depto):
+        # RF-16: el clic del mapa manda el nombre canónico con tilde,
+        # pero la BD tiene variantes (Boyaca/Boyacá). Filtra por todas.
+        if not depto:
+            return None
+        k = self._clave(depto)
+        todos = self.modelo.objects.values_list("departamento", flat=True).distinct()
+        vals = [v for v in todos if self._clave(v) == k]
+        return vals or [depto]
+
+    def _filtrar_depto(self, qs, depto):
+        vals = self._variantes(depto)
+        if vals:
+            qs = qs.filter(departamento__in=vals)
+        return qs
+
     def resumen_optimizado(self, depto=None, anio=None, modalidad=None):
         qs = self.modelo.objects.all()
-        if depto:
-            qs = qs.filter(departamento=depto)
+        qs = self._filtrar_depto(qs, depto)
         if anio:
             qs = qs.filter(fecha_firma__year=int(anio))
         if modalidad:
@@ -20,7 +41,8 @@ class ServicioContratos:
     def resumen_naive(self, depto=None, anio=None, modalidad=None):
         contratos = list(self.modelo.objects.all())
         if depto:
-            contratos = [c for c in contratos if c.departamento == depto]
+            k = self._clave(depto)
+            contratos = [c for c in contratos if self._clave(c.departamento) == k]
         if anio:
             contratos = [c for c in contratos if c.fecha_firma and str(c.fecha_firma.year) == str(anio)]
         if modalidad:
@@ -32,8 +54,7 @@ class ServicioContratos:
 
     def top_contratistas_optimizado(self, depto=None, limite=5):
         qs = self.modelo.objects.all()
-        if depto:
-            qs = qs.filter(departamento=depto)
+        qs = self._filtrar_depto(qs, depto)
         return list(
             qs.values("contratista_nit", "contratista_nombre")
             .annotate(total_contratos=Count("id"), suma_valor=Sum("valor_contrato"))
@@ -43,7 +64,8 @@ class ServicioContratos:
     def top_contratistas_naive(self, depto=None, limite=5):
         contratos = list(self.modelo.objects.all())
         if depto:
-            contratos = [c for c in contratos if c.departamento == depto]
+            k = self._clave(depto)
+            contratos = [c for c in contratos if self._clave(c.departamento) == k]
         acumulado = {}
         for c in contratos:
             k = (c.contratista_nit, c.contratista_nombre)

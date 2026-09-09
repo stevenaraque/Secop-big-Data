@@ -125,7 +125,8 @@ class VistaListaContratos(ListAPIView):
         fecha_desde = self.request.query_params.get("fecha_desde")
         fecha_hasta = self.request.query_params.get("fecha_hasta")
         if depto:
-            qs = qs.filter(departamento=depto)
+            # RF-16: tolera tildes (Boyacá cuenta Boyaca+Boyacá) y se combina con los demás filtros
+            qs = servicio_contratos._filtrar_depto(qs, depto)
         if modalidad:
             qs = qs.filter(modalidad=modalidad)
         if fecha_desde:
