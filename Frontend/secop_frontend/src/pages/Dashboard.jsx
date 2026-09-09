@@ -42,13 +42,13 @@ async function fetchContratos({ depto, page }, token) {
 export default function Dashboard({ token }) {
   const [depto, setDepto] = useState("Boyacá");
 
-  const { data: resumen, isLoading: cargando } = useQuery({
+  const { data: resumen, isLoading: cargando, isError: errorResumen } = useQuery({
     queryKey: ["resumen", depto],
     queryFn: () => fetchResumen(depto, token),
     enabled: !!token,
     staleTime: 1000 * 60 * 5,
   });
-  const { data: topData } = useQuery({
+  const { data: topData, isError: errorTop } = useQuery({
     queryKey: ["top", depto],
     queryFn: () => fetchTop(depto, token),
     enabled: !!token,
@@ -58,6 +58,7 @@ export default function Dashboard({ token }) {
     data: contratosPag,
     isLoading: cargandoTabla,
     isFetching,
+    isError: errorTabla,
   } = useQuery({
     queryKey: ["contratos", depto],
     queryFn: () => fetchContratos({ depto, page: 1 }, token),
@@ -111,7 +112,7 @@ export default function Dashboard({ token }) {
             <select
               value={depto}
               onChange={(e) => setDepto(e.target.value)}
-              className="h-9 rounded-full border border-zinc-200 bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600/20"
+              className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm transition-colors hover:border-zinc-300 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
             >
               <option value="">Todos · 10 contratos</option>
               <option value="Boyacá">Boyacá · 1 contrato</option>
@@ -122,9 +123,9 @@ export default function Dashboard({ token }) {
         </div>
       </header>
 
-      <main className="max-w-[1200px] mx-auto px-6 py-8 space-y-8">
-        <div>
-          <h1 className="text-3xl md:text-4xl tracking-tighter leading-none font-semibold">
+      <main className="max-w-[1200px] mx-auto px-6 py-8 space-y-6">
+        <section aria-label="Encabezado">
+          <h1 className="text-3xl md:text-4xl tracking-tighter leading-none font-semibold text-balance">
             Indicadores clave {depto !== "" ? `· ${depto}` : "· Nacional"}
           </h1>
           <p className="text-sm text-zinc-600 mt-2 max-w-[65ch] leading-relaxed">
@@ -132,14 +133,19 @@ export default function Dashboard({ token }) {
             filtro y los KPIs se recalculan con la caché de TanStack Query sin
             consultas duplicadas.
           </p>
-        </div>
+          {errorResumen && (
+            <p className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-2xl px-4 py-2">
+              No se pudo cargar el resumen. Revisa tu sesión e inténtalo de nuevo.
+            </p>
+          )}
+        </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <section aria-label="Indicadores" className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="rounded-2xl border border-zinc-200 bg-white p-5">
             <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500">
               Total contratos
             </p>
-            <p className="text-3xl tracking-tighter font-semibold mt-1">
+            <p className="text-3xl tracking-tighter font-semibold mt-1 tabular-nums">
               {resumen?.total ?? 0}
             </p>
             <p className="text-xs text-emerald-700 mt-1">
@@ -150,7 +156,7 @@ export default function Dashboard({ token }) {
             <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500">
               Total dinero
             </p>
-            <p className="text-3xl tracking-tighter font-semibold mt-1">
+            <p className="text-3xl tracking-tighter font-semibold mt-1 tabular-nums">
               ${Number(resumen?.suma_valor || 0).toLocaleString("es-CO")}
             </p>
             <p className="text-xs text-zinc-500 mt-1">
@@ -161,16 +167,28 @@ export default function Dashboard({ token }) {
             <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500">
               Valor promedio
             </p>
-            <p className="text-3xl tracking-tighter font-semibold mt-1">
+            <p className="text-3xl tracking-tighter font-semibold mt-1 tabular-nums">
               ${Number(resumen?.promedio_valor || 0).toLocaleString("es-CO")}
             </p>
             <p className="text-xs text-zinc-500 mt-1">
               AVG · se recalcula al cambiar filtro
             </p>
           </div>
-        </div>
+        </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <section aria-label="Mapa de contratación directa" className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+            <h2 className="text-sm font-semibold tracking-tight">
+              Mapa · % contratación directa
+            </h2>
+            <p className="text-[11px] text-zinc-500">
+              Rueda o pellizca para zoom · clic en un territorio filtra todo el dashboard
+            </p>
+          </div>
+          <MapaDirecta token={token} onSelectDepto={(n) => setDepto(n)} />
+        </section>
+
+        <section aria-label="Detalle" className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           <div className="lg:col-span-3 rounded-2xl border border-zinc-200 bg-white p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold tracking-tight">
@@ -201,11 +219,14 @@ export default function Dashboard({ token }) {
                 />
               </BarChart>
             </ResponsiveContainer>
-            <p className="text-[11px] text-zinc-500 mt-2">
-              {topData?.top?.[0]?.contratista_nombre || "—"} lidera con $
-              {Number(topData?.top?.[0]?.suma_valor || 0).toLocaleString(
-                "es-CO",
-              )}
+            <p className="text-[11px] text-zinc-500 mt-2 tabular-nums">
+              {errorTop
+                ? "No se pudo cargar el top. Inténtalo de nuevo."
+                : `${topData?.top?.[0]?.contratista_nombre || "—"} lidera con $`}
+              {!errorTop &&
+                Number(topData?.top?.[0]?.suma_valor || 0).toLocaleString(
+                  "es-CO",
+                )}
             </p>
           </div>
 
@@ -213,11 +234,21 @@ export default function Dashboard({ token }) {
             <h2 className="text-sm font-semibold tracking-tight">
               Contratos · tabla virtualizada 60 FPS
             </h2>
-            <p className="text-xs text-zinc-500 mt-1">
+            <p className="text-xs text-zinc-500 mt-1 tabular-nums">
               Solo las filas visibles al DOM. {contratosPag?.count ?? 0} totales
               · página 1 de {Math.ceil((contratosPag?.count || 0) / 20) || 1}{" "}
               {isFetching && "· actualizando..."}
             </p>
+            {errorTabla ? (
+              <p className="mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
+                No se pudo cargar la tabla. Revisa tu sesión.
+              </p>
+            ) : rows.length === 0 && !cargandoTabla ? (
+              <p className="mt-4 text-sm text-zinc-600 bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3">
+                Sin contratos para este filtro. Prueba con Todos.
+              </p>
+            ) : (
+            <>
             <div
               ref={parentRef}
               className="mt-4 h-[260px] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50"
@@ -259,12 +290,12 @@ export default function Dashboard({ token }) {
             {cargandoTabla && (
               <div className="mt-2 h-2 bg-zinc-100 animate-pulse rounded" />
             )}
+            </>
+            )}
           </div>
-        </div>
+        </section>
 
-        <MapaDirecta token={token} onSelectDepto={(n) => setDepto(n)} />
-
-        <p className="text-[11px] text-zinc-500">
+        <p className="text-[11px] text-zinc-500 border-t border-zinc-200 pt-4">
           Estado sincronizado con TanStack Query cache · cambia Boyacá a Todos y
           vuelve, no hay segunda petición.
         </p>
