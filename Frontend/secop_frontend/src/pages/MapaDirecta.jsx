@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { useQuery } from "@tanstack/react-query"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
@@ -6,12 +6,14 @@ import "./MapaRF15.css"
 
 const API = "http://127.0.0.1:8000/api"
 async function fetchMapa(token) {
-  const r = await fetch(`${API}/optimized/mapa-directa/`, { headers: { Authorization: `Bearer ${token}` } })
+  const r = await fetch(`${API}/optimized/mapa-directa/`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
   if (!r.ok) throw new Error("Error mapa")
   return r.json()
 }
 
-/* escala continua 0 -> rojo oscuro */
+/* escala continua papel -> rojo oscuro (de tu HTML) */
 const STOPS = [[0,[243,236,221]],[.25,[238,210,182]],[.5,[226,154,118]],[.7,[204,91,64]],[.85,[165,42,32]],[1,[101,13,16]]]
 function colorFor(t) {
   t = Math.max(0, Math.min(1, t))
@@ -24,159 +26,142 @@ function colorFor(t) {
   }
   return "rgb(101,13,16)"
 }
-const GRAD = `linear-gradient(90deg, ${STOPS.map(s=>`rgb(${s[1].join(",")}) ${Math.round(s[0]*100)}%`).join(",")})`
+
 const nf1 = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 1 })
 const nf0 = new Intl.NumberFormat("es-CO")
-const fmtPct = p => nf1.format(p) + " %"
-const fmtCOP = v => "$" + nf0.format(Math.round(Number(v) || 0))
-const norm = s => (s||"").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Z ]/g," ").replace(/\s+/g," ").trim()
+const fmtPct = (p) => nf1.format(Number(p) || 0) + " %"
+const fmtCOP = (v) => "$" + nf0.format(Math.round(Number(v) || 0))
+const norm = (s) => String(s || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z ]/g, " ").replace(/\s+/g, " ").trim()
+
+/* vinculación de nombres del GeoJSON (de tu HTML) */
+const KNOWN = ['AMAZONAS','ANTIOQUIA','ARAUCA','ATLANTICO','BOGOTA','BOLIVAR','BOYACA','CALDAS','CAQUETA',
+ 'CASANARE','CAUCA','CESAR','CHOCO','CORDOBA','CUNDINAMARCA','GUAINIA','GUAVIARE','HUILA','GUAJIRA',
+ 'MAGDALENA','META','NARINO','NORTE DE SANTANDER','PUTUMAYO','QUINDIO','RISARALDA','SAN ANDRES','SANTANDER',
+ 'SUCRE','TOLIMA','VALLE','VAUPES','VICHADA']
+const ALIAS = {'BOGOTA':'BOGOTA','SANTAFE DE BOGOTA':'BOGOTA','SANTA FE DE BOGOTA':'BOGOTA',
+ 'GUAJIRA':'GUAJIRA','NORTE SANTANDER':'NORTE DE SANTANDER','VALLE':'VALLE','VALLE DEL CAUCA':'VALLE',
+ 'SAN ANDRES Y PROVIDENCIA':'SAN ANDRES','ARCHIPIELAGO DE SAN ANDRES':'SAN ANDRES',
+ 'SAN ANDRES PROVIDENCIA Y SANTA CATALINA':'SAN ANDRES','SAN ANDRES Y PROVIDENCIA SANTA CATALINA':'SAN ANDRES'}
+function matchName(raw) {
+  const k = norm(raw)
+  if (!k) return null
+  if (ALIAS[k]) return ALIAS[k]
+  if (KNOWN.includes(k)) return k
+  const kk = k.replace(/ /g, "")
+  for (const n of KNOWN) { if (kk.includes(n.replace(/ /g, ""))) return n }
+  return null
+}
+function nameOf(props) {
+  if (!props) return null
+  const pref = ['NOMBRE_DPT','DPTO_CNMBR','DEPARTAMENTO','DPT_NOMBRE','NOMBDEP','NOMBRE','name','dpto','DPTO']
+  for (const p of pref) { if (props[p] != null) { const m = matchName(props[p]); if (m) return m } }
+  for (const k in props) { if (typeof props[k] === 'string') { const m = matchName(props[k]); if (m) return m } }
+  return null
+}
 
 export default function MapaDirecta({ token, onSelectDepto }) {
-  const wrapRef = useRef(null)
   const mapElRef = useRef(null)
   const mapRef = useRef(null)
   const layersRef = useRef(null)
-  const [q, setQ] = useState("")
-  const [sel, setSel] = useState(null)
-  const [geo, setGeo] = useState(null)
-  const [geoErr, setGeoErr] = useState(null)
-  const [ca, setCa] = useState([false, false, false, false])
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["mapa"], queryFn: () => fetchMapa(token),
-    enabled: !!token, staleTime: 1000 * 60 * 5,
+    queryKey: ["mapa"],
+    queryFn: () => fetchMapa(token),
+    enabled: !!token,
+    staleTime: 1000 * 60 * 5,
   })
 
-  /* GeoJSON real 33 territorios desde /public */
+  /* mapa base - vista completa siempre, con zoom habilitado */
   useEffect(() => {
-    let vivo = true
-    fetch("/colombia.geojson").then(r => {
-      if (!r.ok) throw new Error("GeoJSON " + r.status)
-      return r.json()
-    }).then(g => { if (vivo) setGeo(g) }).catch(e => { if (vivo) setGeoErr(String(e.message || e)) })
-    return () => { vivo = false }
-  }, [])
-
-  const reales = useMemo(() => {
-    const m = {}
-    for (const d of (data?.mapa || [])) m[norm(d.departamento)] = d
-    const bdc = m[norm("Distrito Capital de Bogotá")]
-    if (bdc) m[norm("Bogotá D.C.")] = bdc
-    return m
-  }, [data])
-
-  const filas = useMemo(() => {
-    if (!geo) return []
-    return geo.features.map((f, i) => {
-      const nombre = f.properties?.name || `T-${i}`
-      const hit = reales[norm(nombre)]
-      return hit
-        ? { id: i, n: nombre, pct: Number(hit.porcentaje_directa), total: hit.total, directas: hit.directas, monto: Number(hit.suma_total || 0), montoD: Number(hit.suma_directa || 0), real: true }
-        : { id: i, n: nombre, pct: null, total: 0, directas: 0, monto: 0, montoD: 0, real: false }
-    }).sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1))
-  }, [geo, reales])
-
-  const porId = useMemo(() => {
-    const m = {}
-    if (!geo) return m
-    geo.features.forEach((f, i) => { m[i] = filas.find(x => x.n === (f.properties?.name || "")) || { id: i, n: f.properties?.name, pct: null, real: false, total: 0, directas: 0, monto: 0 } })
-    return m
-  }, [geo, filas])
-
-  const marcar = (i, nota) => setCa(prev => {
-    if (prev[i]) return prev
-    const nx = prev.slice(); nx[i] = nota || true
-    return nx
-  })
-
-  useEffect(() => {
-    if (!wrapRef.current || mapRef.current || typeof L === "undefined") return
-    const map = L.map(mapElRef.current, { zoomControl: false, attributionControl: false, minZoom: 4, maxZoom: 12 }).setView([4.4, -73.2], 5)
-    L.control.zoom({ position: "topleft" }).addTo(map)
+    if (!mapElRef.current || mapRef.current) return
+    const map = L.map(mapElRef.current, { zoomControl: true, attributionControl: false, minZoom: 4, maxZoom: 12, scrollWheelZoom: true })
     map.fitBounds([[-4.6, -82.6], [13.9, -66.7]])
-    map.on("click", () => setSel(null))
+    map.setMaxBounds([[-24, -102], [24, -38]])
     mapRef.current = map
-    marcar(0, "Leaflet 1.9.4 · coroplético real 33 territorios")
+    setTimeout(() => { try { map.invalidateSize(); map.fitBounds([[-4.6, -82.6], [13.9, -66.7]]) } catch (_) { /* noop */ } }, 150)
     return () => { map.remove(); mapRef.current = null }
   }, [])
 
+  /* capa coroplética con datos reales */
+/* id estable del GeoJSON -> nombre normalizado (evita el problema de Ñ rota) */
+const POR_ID = { CONAR: 'NARINO', COPUT: 'PUTUMAYO', COCHO: 'CHOCO', COGUA: 'GUAINIA', COVAU: 'VAUPES', COAMA: 'AMAZONAS', COLAG: 'GUAJIRA', COCES: 'CESAR', CONSA: 'NORTE DE SANTANDER', COARA: 'ARAUCA', COBOY: 'BOYACA', COVID: 'VICHADA', COCAU: 'CAUCA', COVAC: 'VALLE', COANT: 'ANTIOQUIA', COCOR: 'CORDOBA', COSUC: 'SUCRE', COBOL: 'BOLIVAR', COATL: 'ATLANTICO', COMAG: 'MAGDALENA', COSAP: 'SAN ANDRES', COCAQ: 'CAQUETA', COHUI: 'HUILA', COGUV: 'GUAVIARE', COCAL: 'CALDAS', COCAS: 'CASANARE', COMET: 'META', CODC: 'BOGOTA', COSAN: 'SANTANDER', COTOL: 'TOLIMA', COQUI: 'QUINDIO', COCUN: 'CUNDINAMARCA', CORIS: 'RISARALDA' }
+function claveGeo(props) {
+  if (props?.id && POR_ID[props.id]) return POR_ID[props.id]
+  return matchName(nameOf(props) || props?.name || "")
+}
+
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !geo) return
-    if (layersRef.current) { map.removeLayer(layersRef.current); layersRef.current = null }
-    const layers = L.geoJSON(geo, {
-      style: f => {
-        const idx = geo.features.indexOf(f)
-        const d = porId[idx]
-        return { color: "#fdfaf1", weight: 1.1, fillColor: d && d.real ? colorFor(d.pct / 100) : "#d9cfba", fillOpacity: 1 }
-      },
-      onEachFeature: (f, layer) => {
-        const idx = geo.features.indexOf(f)
-        const d = porId[idx]
-        layer.bindTooltip("…", { sticky: true, direction: "top", className: "rf-tip", opacity: 1 })
-        layer.on("mouseover", () => {
-          layer.setStyle({ color: "#221a12", weight: 2 }); layer.bringToFront()
-          layer.setTooltipContent(d && d.real
-            ? `<div class="tt-name">${d.n}</div><div class="tt-row"><span>Monto</span><b>${fmtCOP(d.monto)} COP</b></div><div class="tt-row"><span>Directa</span><b>${fmtPct(d.pct)}</b></div><div class="tt-bar"><span style="width:${Math.min(100,d.pct)}%;background:${colorFor(d.pct/100)}"></span></div>`
-            : `<div class="tt-name">${d.n}</div><div class="tt-sub">sin datos en la muestra actual</div>`)
-          marcar(3, "tooltip con monto y % activo")
-        })
-        layer.on("mouseout", () => { layers.resetStyle(layer) })
-        layer.on("click", e => { L.DomEvent.stopPropagation(e); setSel(idx); if (onSelectDepto && d) onSelectDepto(d.n) })
-      },
-    }).addTo(map)
-    layersRef.current = layers
-    marcar(1, "escala continua 0–100% sobre polígonos reales")
-    marcar(2, "GeoJSON real 33 territorios (1.7MB) servido local")
-  }, [geo, porId])
+    if (!map) return
+    let vivo = true
+    fetch("/colombia.geojson")
+      .then((r) => { if (!r.ok) throw new Error("GeoJSON " + r.status); return r.json() })
+      .then((fc) => {
+        if (!vivo) return
+        const reales = {}
+        for (const d of (data?.mapa || [])) reales[norm(d.departamento)] = d
+        // Bogotá D.C. alias -> mismo dato que Distrito Capital
+        const bdc = reales[norm("Distrito Capital de Bogotá")] || reales[norm("Bogota D.C.")]
+        if (bdc) reales[norm("Bogotá D.C.")] = bdc
+        // alias VALLE y BOGOTA normalizados
+        if (reales[norm("Valle del Cauca")] && !reales["VALLE"]) reales["VALLE"] = reales[norm("Valle del Cauca")]
+        if (bdc && !reales["BOGOTA"]) reales["BOGOTA"] = bdc
 
-  useEffect(() => {
-    const layers = layersRef.current
-    if (!layers || !geo) return
-    layers.eachLayer(l => {
-      const idx = geo.features.indexOf(l.feature)
-      if (idx === sel) l.setStyle({ color: "#221a12", weight: 2.4 })
-      else layers.resetStyle(l)
-    })
-  }, [sel, geo])
-
-  const filtrados = q ? filas.filter(d => norm(d.n).includes(norm(q))) : filas
-  const selD = sel != null && geo ? porId[sel] : null
-  const realesCount = filas.filter(d => d.real).length
-  const nVerif = ca.filter(Boolean).length
+        if (layersRef.current) { map.removeLayer(layersRef.current); layersRef.current = null }
+        const layers = L.geoJSON(fc, {
+          style: (f) => {
+            const key = claveGeo(f.properties)
+            const hit = key ? reales[key] : null
+            return {
+              color: "#fdfaf1", weight: 1.1,
+              fillColor: hit ? colorFor(Number(hit.porcentaje_directa) / 100) : "#d9cfba",
+              fillOpacity: 1,
+            }
+          },
+          onEachFeature: (f, layer) => {
+            const key = claveGeo(f.properties)
+            const hit = key ? reales[key] : null
+            const geoName = hit?.departamento || f.properties?.name || "Territorio"
+            layer.bindTooltip("…", { sticky: true, direction: "top", className: "rf-tip" })
+            layer.on("mouseover", () => {
+              layer.setStyle({ color: "#221a12", weight: 2 })
+              layer.bringToFront()
+              layer.setTooltipContent(hit
+                ? `<div class="tt-name">${hit.departamento}</div>`
+                  + `<div class="tt-row"><span>Monto</span><b>${fmtCOP(hit.suma_total)} COP</b></div>`
+                  + `<div class="tt-row"><span>Directa</span><b>${fmtPct(hit.porcentaje_directa)}</b></div>`
+                  + `<div class="tt-bar"><span style="width:${Math.min(100, Number(hit.porcentaje_directa))}%;background:${colorFor(Number(hit.porcentaje_directa) / 100)}"></span></div>`
+                : `<div class="tt-name">${geoName}</div><div class="tt-sub">sin datos en la muestra actual</div>`)
+            })
+            layer.on("mouseout", () => { layers.resetStyle(layer) })
+            layer.on("click", (e) => {
+              L.DomEvent.stopPropagation(e)
+              if (hit && onSelectDepto) onSelectDepto(hit.departamento)
+            })
+          },
+        }).addTo(map)
+        layersRef.current = layers
+        try { map.fitBounds(layers.getBounds(), { padding: [20, 20] }) } catch (_) { /* noop */ }
+      })
+      .catch(() => { /* deja el aviso en pantalla */ })
+    return () => { vivo = false }
+  }, [data, onSelectDepto])
 
   if (!token) return null
-  if (isLoading || !geo) return <div className="rf15"><div style={{ padding: 18 }}>Cargando geografía real y datos…</div></div>
-  if (isError || geoErr) return <div className="rf15"><div style={{ padding: 18 }}>No se pudo cargar el mapa ({geoErr || "API"}). Revisa tu access.</div></div>
 
   return (
-    <div className="rf15" ref={wrapRef}>
-      <div className="topbar"><span className="tb-id">RF-15 · MAPA COROPLÉTICO REAL</span><span className="tb-sep">/</span><span className="chip">GEOJSON 33 · DATOS API</span><span className="tb-right"><span className="chip">{realesCount}/33 CON DATOS</span><span className="chip state"><span className="dot" />{nVerif}/4 CA</span></span></div>
-      <header>
-        <div className="rf-box"><div className="rf-num">RF-15</div><div className="rf-sub">FUNCIONAL · SPRINT 3</div></div>
-        <div className="head-mid">
-          <div className="kicker">ROJO OSCURO = ALTA CONTRATACIÓN DIRECTA</div>
-          <h1>Contratación directa por territorio</h1>
-          <p className="hist"><b>Historia —</b> “Como usuario, quiero ver un mapa que pinte los territorios según el % de contratación directa.” Clic filtra el dashboard.</p>
+    <div className="rf15-simple">
+      <div className="map-wrap">
+        <div id="rf15-map" ref={mapElRef} />
+        {(isLoading || isError) && (
+          <div className="map-status">{isLoading ? "Cargando mapa…" : "No se pudo cargar /api/optimized/mapa-directa/. Revisa tu access."}</div>
+        )}
+        <div className="legend">
+          <div className="t">% CONTRATACIÓN DIRECTA</div>
+          <div className="bar" style={{ background: `linear-gradient(90deg,${STOPS.map((s) => `rgb(${s[1].join(",")}) ${Math.round(s[0] * 100)}%`).join(",")})` }} />
+          <div className="tk"><span>0 %</span><span>50 %</span><span>100 %</span></div>
         </div>
-        <dl className="head-meta"><dt>FUENTE</dt><dd>/api/optimized/mapa-directa/</dd><dt>GEO</dt><dd>/colombia.geojson 33</dd><dt>DEPENDE</dt><dd>RF-12</dd></dl>
-      </header>
-      <main>
-        <section className="map-zone">
-          <div className="map-head"><span id="foco">{selD ? `FOCO · ${selD.n.toUpperCase()}` : "VISTA NACIONAL · COLOMBIA"}</span><button className="btn" onClick={() => setSel(null)}>VER TODO</button></div>
-          <div className="map-wrap"><div id="rf15-map" ref={mapElRef} />
-            <div className="legend"><div className="lg-t">ESCALA CONTINUA · % DIRECTA</div><div className="lg-bar" style={{ background: GRAD }} /><div className="lg-ticks"><span>0%</span><span>50%</span><span>100%</span></div><div className="lg-cap"><b>Rojo oscuro</b>: alto % directa frente a licitación.</div></div>
-          </div>
-        </section>
-        <aside>
-          <div className="search"><input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar territorio…" /></div>
-          <div className="ficha">
-            {selD ? (<><h2>{selD.n}</h2><div className="big"><span className="big-num">{selD.real ? fmtPct(selD.pct) : "—"}</span></div><div className="mgrid"><div className="mcell"><div className="m-l">CONTRATOS</div><div className="m-v">{selD.total}</div></div><div className="mcell"><div className="m-l">MONTO</div><div className="m-v">{fmtCOP(selD.monto)}</div></div></div><div className={`alerta ${selD.pct >= 85 ? "a-high" : selD.pct >= 65 ? "a-mid" : "a-low"}`}>{selD.real ? (selD.pct >= 85 ? "ALERTA ALTA · posible contratación a dedo" : "Patrón bajo vigilancia") : "Sin datos en la muestra"}</div></>) : (<><h2>Colombia</h2><p className="hist">Pasa el cursor para tooltip con monto y %. Clic para filtrar el dashboard.</p></>)}
-          </div>
-          <div className="rk-head">RANKING · % DIRECTA<em>{realesCount} CON DATOS</em></div>
-          <div className="rk-list">{filtrados.map((d, i) => (<button key={d.n} onClick={() => { setSel(geo.features.findIndex(f => (f.properties?.name || "") === d.n)); if (onSelectDepto) onSelectDepto(d.n) }} className={`rk-item ${selD && selD.n === d.n ? "sel" : ""}`}><span className="rk-n">{String(i + 1).padStart(2, "0")}</span><span><span className="rk-name">{d.n}</span></span><span className="rk-pct">{d.real ? fmtPct(d.pct) : "—"}</span></button>))}</div>
-        </aside>
-      </main>
+      </div>
     </div>
   )
 }
