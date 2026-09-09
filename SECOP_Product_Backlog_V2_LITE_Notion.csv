@@ -1,0 +1,43 @@
+﻿Requisito,Tipo,Historia,Estado,Prioridad,Estimacion,Responsable,Puntos,Tiempo,Sprint,Dependencia
+RF-01,F,Como administrador del sistema; quiero crear el modelo de datos para un Contrato con las columnas clave del dataset de contratación pública; para almacenar y consultar la información de forma estru...,Hecho,Alta,Alta,Steven,9,9 horas,Sprint 1,Ninguna
+RF-25,F,Como administrador del sistema; quiero crear un modelo separado de Entidad con sus propios atributos para analizar la contratación a nivel de la entidad de forma más rigurosa.,En progreso,Media,Media,Steven,5,5 horas,Sprint 1,RF-01
+RF-02,F,Como administrador del sistema; quiero ejecutar las migraciones de la base de datos para versionar el esquema y crear las tablas; de modo que el modelo quede listo antes de cargar datos.,Por hacer,Alta,Baja,Steven,1.5,1.5 horas,Sprint 1,RF-01
+RF-03,F,Como usuario; quiero registrarme en la plataforma con correo y contraseña para crear una cuenta de acceso al sistema.,Por hacer,Alta,Media,Steven,5,5 horas,Sprint 1,Ninguna
+RF-04,F,Como usuario; quiero iniciar sesión con mi correo y contraseña para acceder a las funcionalidades del sistema.,Por hacer,Alta,Media,Steven,5,5 horas,Sprint 1,RF-03
+RF-05,F,Como usuario; quiero cerrar sesión para invalidar mi token de acceso y proteger mi cuenta.,Por hacer,Media,Baja,Steven,2.5,2.5 horas,Sprint 1,RF-04
+RNF-01,NF,Como sistema; debo proteger la autenticación y el API contra accesos no autorizados para salvaguardar la información de contratación.,Por hacer,Alta,Alta,Steven,1,1 hora,Sprint 1,RF-04
+RNF-02,NF,Como sistema; debo disponer de las variables de configuración separadas del código para funcionar en distintos entornos sin exponer secretos.,Por hacer,Alta,Baja,Steven,1,1 hora,Sprint 1,RF-01
+RF-06,F,Como administrador del sistema; quiero iniciar la ingesta masiva de contratos desde la fuente pública de datos para poblar la base de datos con la información real.,Por hacer,Alta,Alta,Steven,8,8 horas,Sprint 2,RF-02
+RF-07,F,Como administrador del sistema; quiero monitorear el progreso de una ingesta en curso para saber cuándo termina y detectar errores.,Por hacer,Alta,Media,Steven,4,4 horas,Sprint 2,RF-06
+RF-08,F,Como usuario; quiero consultar un resumen agregado de la contratación filtrado por departamento; año y modalidad para obtener métricas rápidas del gasto público.,Por hacer,Alta,Media,Steven,4,4 horas,Sprint 2,RF-06
+RF-09,F,Como usuario; quiero consultar el top de contratistas por monto contratado para identificar los mayores receptores de contratación en un territorio.,Por hacer,Alta,Media,Steven,4,4 horas,Sprint 2,RF-08
+RF-10,F,Como usuario; quiero ver el detalle completo de un contrato individual para auditar su información específica.,Por hacer,Alta,Baja,Steven,2,2 horas,Sprint 2,RF-11
+RF-11,F,Como usuario; quiero consultar la lista de contratos paginada para navegar por los registros sin cargar todos a la vez.,Por hacer,Alta,Media,Steven,4,4 horas,Sprint 2,RF-08
+RNF-03,NF,Como sistema; debo ejecutar las consultas agregadas en la base de datos en lugar del cliente para garantizar tiempos de respuesta aceptables.,Por hacer,Alta,Media,Steven,1,1 hora,Sprint 2,RF-08
+RNF-04,NF,Como sistema; debo validar la calidad de los datos durante la ingesta para evitar registros corruptos en la base de datos.,Por hacer,Alta,Media,Steven,1,1 hora,Sprint 2,RF-06
+RNF-05,NF,Como sistema; debo reanudar una ingesta interrumpida desde el último offset procesado para evitar pérdida o duplicación de registros.,Por hacer,Media,Media,Steven,1,1 hora,Sprint 2,RF-07
+RNF-06,NF,Como sistema; debo limitar la cantidad de peticiones al API para proteger el servicio de abusos y sobrecarga.,Por hacer,Media,Media,Steven,1.5,1.5 horas,Sprint 2,RF-08
+RNF-13,NF,Como sistema; debo ser escalable para soportar el crecimiento del volumen de datos sin necesidad de rediseñar la arquitectura.,Por hacer,Media,Media,Steven,2.5,2.5 horas,Sprint 2,RF-06
+RF-12,F,Como usuario; quiero ver un dashboard con indicadores clave del gasto público para tener una visión general de la contratación.,Por hacer,Alta,Alta,Yesid,6.5,6.5 horas,Sprint 3,RF-08
+RF-13,F,Como usuario; quiero filtrar la tabla de contratos por departamento; modalidad y rango de fechas para explorar el conjunto de datos de forma dirigida.,Por hacer,Alta,Media,Yesid,1,1 hora,Sprint 3,RF-12
+RF-14,F,Como usuario; quiero ver la serie mensual de contratación para observar la tendencia del gasto a lo largo del tiempo.,Por hacer,Media,Media,Yesid,3,3 horas,Sprint 3,RF-12
+RF-15,F,Como usuario; quiero ver un mapa de Colombia que pinte los territorios según el porcentaje de contratación directa para detectar zonas con posible contratación a dedo.,Por hacer,Alta,Alta,Yesid,6.5,6.5 horas,Sprint 3,RF-12
+RF-16,F,Como usuario; quiero seleccionar un territorio del mapa para actualizar todos los indicadores del dashboard a ese territorio y profundizar su análisis.,Por hacer,Media,Media,Yesid,3.5,3.5 horas,Sprint 3,RF-15
+RF-18,F,Como usuario; quiero realizar una búsqueda global de contratos; empresas y entidades para encontrar información rápidamente sin navegar manualmente.,Por hacer,Alta,Alta,Yesid,6.5,6.5 horas,Sprint 3,RF-12
+RNF-07,NF,Como sistema; debo mantener una interfaz fluida a 60 cuadros por segundo para no degradar la experiencia con grandes volúmenes de datos.,Por hacer,Alta,Media,Yesid,1,1 hora,Sprint 3,RF-12
+RNF-08,NF,Como sistema; debo registrar un registro de auditoría de las acciones relevantes de los usuarios para trazabilidad y control.,Por hacer,Media,Media,Yesid,1,1 hora,Sprint 3,RF-08
+RNF-14,NF,Como sistema; debo ser mantenible mediante patrones de diseño y desacoplamiento para facilitar los cambios futuros.,Por hacer,Media,Media,Yesid,1,1 hora,Sprint 3,RF-01
+RF-17,F,Como usuario; quiero ver un grafo de conexiones entre entidades y contratistas para detectar si una persona o empresa concentra contratos en un municipio.,Por hacer,Alta,Alta,Yesid,6,6 horas,Sprint 4,RF-12
+RF-19,F,Como usuario; quiero ver alertas de banderas rojas de concentración de contratación para detectar posibles irregularidades en el gasto público.,Por hacer,Alta,Media,Yesid,1,1 hora,Sprint 4,RF-13
+RF-20,F,Como usuario; quiero ver la alerta de predominio de contratación directa para detectar posibles casos de fraccionamiento de contratos.,Por hacer,Media,Baja,Yesid,1,1 hora,Sprint 4,RF-19
+RF-21,F,Como usuario; quiero exportar los resultados de un análisis a un archivo para compartir la información con otros interesados.,Por hacer,Media,Media,Yesid,1,1 hora,Sprint 4,RF-13
+RF-22,F,Como usuario; quiero recuperar mi contraseña cuando la olvide para volver a acceder a mi cuenta.,Por hacer,Media,Media,Yesid,1,1 hora,Sprint 4,RF-04
+RF-23,F,Como administrador del sistema; quiero gestionar el catálogo de datos y monitorear los procesos mediante un panel de administración para mantener la plataforma sin escribir SQL.,Por hacer,Media,Media,Yesid,3,3 horas,Sprint 4,RF-07
+RF-24,F,Como administrador del sistema; quiero configurar los umbrales de las alertas de banderas rojas para ajustar los criterios de detección según la política de la organización.,Por hacer,Media,Baja,Yesid,1,1 hora,Sprint 4,RF-19
+RF-26,F,Como administrador del sistema; quiero programar la actualización periódica de los datos de contratación para mantener la información al día sin intervención manual.,Por hacer,Media,Alta,Yesid,5,5 horas,Sprint 4,RF-06
+RF-27,F,Como usuario; quiero consultar las estadísticas de contratación por entidad para conocer el desempeño y la concentración de cada entidad.,Por hacer,Media,Media,Yesid,3,3 horas,Sprint 4,RF-25
+RF-28,F,Como usuario; quiero ver una lista de todas las entidades con su información para explorar el catálogo de entidades de contratación.,Por hacer,Media,Baja,Yesid,1,1 hora,Sprint 4,RF-25
+RNF-09,NF,Como sistema; debo mantener una copia de respaldo de los datos ingestados para recuperarlos ante fallas o pérdidas.,Por hacer,Media,Media,Yesid,1,1 hora,Sprint 4,RF-06
+RNF-10,NF,Como sistema; debo desplegarse de forma reproducible y documentada para reducir errores de configuración en producción.,Por hacer,Media,Media,Yesid,1,1 hora,Sprint 4,RF-02
+RNF-11,NF,Como sistema; debo ser accesible mediante teclado y con contraste adecuado para que personas con distintas capacidades puedan usarlo.,Por hacer,Media,Baja,Yesid,1,1 hora,Sprint 4,RF-12
+RNF-12,NF,Como sistema; debo ser compatible con los navegadores modernos principales para permitir el acceso de la mayoría de usuarios.,Por hacer,Media,Baja,Yesid,1,1 hora,Sprint 4,RF-12
