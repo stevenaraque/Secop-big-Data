@@ -47,6 +47,7 @@ Colombia publica 5.98M de contratos en SECOP II con 85 columnas planas que crece
 - Explicación en párrafos cortos, no en bullet infinito. Cada paso va con el código literal para copiar en el chat y el por qué en párrafo aparte.
 - No se toca ninguna carpeta sin "sí, te autorizo". Cada `makemigrations`, `migrate` o escritura de archivo se pide permiso y se verifica con ejecución.
 - Retroalimentación constante: se celebra el acierto (mayúscula de `Contrato`) y se corrige el detalle (tabla `contrato` no `contraro`, `__str__(self)` no "toma lo del archivo").
+- Todo error que salga se documenta en `ERRORES.md` con causa y solución. Sin excepción.
 
 ## 6. Próximos pasos inmediatos (Sprint 1 CERRADO 8/8 + Sprint 2 RF-06/08 DONE 07/09)
 1. **RF-03 Registro DONE (07/09)** — `RegistroSerializer` + `VistaRegistro` + `201/400` PBKDF2 verificado.
