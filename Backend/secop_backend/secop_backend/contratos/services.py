@@ -74,6 +74,38 @@ class ServicioContratos:
             acumulado[k]["total_contratos"] += 1
             acumulado[k]["suma_valor"] += float(c.valor_contrato or 0)
         return sorted(acumulado.values(), key=lambda x: x["suma_valor"], reverse=True)[:limite]
+    
+    def buscar(self, q, limite=10):
+        q = (q or "").strip()
+        if len(q) < 2:
+            return {"contratos": [], "empresas": [], "entidades": []}
+        base = (
+            Q(contratista_nombre__icontains=q)
+            | Q(contratista_nit__icontains=q)
+            | Q(nombre_entidad__icontains=q)
+            | Q(descripcion_del_proceso__icontains=q)
+        )
+        contratos = list(
+            self.modelo.objects.filter(base).values(
+                "id_contrato", "contratista_nombre", "nombre_entidad", "departamento"
+            )[:limite]
+        )
+        empresas = list(
+            self.modelo.objects.filter(base)
+            .values("contratista_nit", "contratista_nombre")
+            .annotate(total=Count("id"))
+            .order_by("-total")[:limite]
+        )
+        entidades = list(
+            self.modelo.objects.filter(base)
+            .values("nombre_entidad", "departamento")
+            .annotate(total=Count("id"))
+            .order_by("-total")[:limite]
+        )
+        return {"contratos": contratos, "empresas": empresas, "entidades": entidades}
+    
+    
+    
     def mapa_directa_optimizado(self):
         import unicodedata
         datos = list(

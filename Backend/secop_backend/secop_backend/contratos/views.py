@@ -161,3 +161,12 @@ class VistaMapaDirectaOptimizado(APIView):
     def get(self, request):
         datos = servicio_contratos.mapa_directa_optimizado()
         return Response ({"mapa": datos})
+
+
+class VistaBuscar(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        q = request.query_params.get("q", "")
+        datos = servicio_contratos.buscar(q=q)
+        return Response({"q": q, **datos})
+        

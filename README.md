@@ -69,6 +69,8 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
   - `Frontend/secop_frontend/src/pages/MapaDirecta.jsx:1` Leaflet 1.9.4 + `STOPS` papel→rojo oscuro + `POR_ID` 33 territorios (evita Ñ rota) + tooltip monto/% + `fitBounds` vista completa + zoom rueda/botones + clic filtra dashboard (RF-16), `MapaRF15.css` transparente solo territorios, `Dashboard.jsx` organizado en secciones KPIs→mapa→detalle con `tabular-nums` y estados error/vacío, verificado `npm run build` 356ms + `manage.py check` 0 issues + visual Ctrl+F5 OK
 - **RF-16 — clic en mapa filtra dashboard — COMPLETADO y VALIDADO (09/09/2026):**
   - `MapaDirecta.jsx` selección con `selKeyRef` + resaltado borde oscuro 2.4 + `VER TODO` + clic en mar limpia (`setDepto("")`), `Dashboard.jsx` `deptoActivo` sincroniza mapa↔select, dropdown dinámico desde `mapa-directa` (7 territorios con conteo, antes solo 4 fijos), `services.py` `_variantes/_filtrar_depto` tolera tildes (`Boyacá` cuenta `Boyaca+Boyacá` → resumen `total 2`) y `views.py` lista combina `depto` con `modalidad/fechas`, verificado `check` 0 issues + `build` 369ms + clic Meta/Boyacá con KPIs recalculados OK. Errores del día en `ERRORES.md`
+- **RF-18 — búsqueda global — COMPLETADO y VALIDADO (09/09/2026):**
+  - `contratos/services.py` `buscar` `Q icontains` en `contratista_nombre/nit` + `nombre_entidad` + `descripcion` con `LIMIT 10` por grupo + `contratos/views.py` `VistaBuscar` `IsAuthenticated` + `contratos/urls.py` `buscar/`, `Frontend/secop_frontend/src/pages/Buscador.jsx` debounce 300ms + `AbortController` + vacío sin error integrado arriba del Dashboard, verificado `metric` 200/435B 1 petición + `zzz` 200/51B + `check` 0 issues + `build` OK
 
 ## Estructura de carpetas
 ```
@@ -174,4 +176,4 @@ No descargar 5.98M de golpe. SODA 2.1 exige paginación: `?$limit=50000&$offset=
 - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs, Grupo 8, Julio 2026 — SOLID, DRY, KISS, YAGNI, Clean Code, JWT/PBKDF2, CORS/CSRF, ORM, Git) — ver `CONTEXT.md:8` Clave Obligatoria
 
 ---
-*Última actualización: 09/09/2026 — V2 + RF-01/02/25 + IDE fix + cSpell + RF-03/04/05 DONE + RF-06 base+pulido DONE + RF-08/09/11/10/13 DONE + RF-07 DONE + RF-12 DONE + RF-14 serie mensual DONE + RF-15 mapa DONE + RF-16 clic-filtra DONE (resaltado + dropdown dinámico + tildes) — Sprint 3 avanzado — Siguiente: RF-18 búsqueda global — Autor: Steven Araque + Jarvis ⚡*
+*Última actualización: 09/09/2026 — V2 + RF-01/02/25 + IDE fix + cSpell + RF-03/04/05 DONE + RF-06 base+pulido DONE + RF-08/09/11/10/13 DONE + RF-07 DONE + RF-12 DONE + RF-14 serie mensual DONE + RF-15 mapa DONE + RF-16 clic-filtra DONE + RF-18 búsqueda DONE (metric 1-1-1, zzz vacío) — Sprint 3 avanzado — Siguiente: RNF-07 60FPS / RF-17 grafo — Autor: Steven Araque + Jarvis ⚡*

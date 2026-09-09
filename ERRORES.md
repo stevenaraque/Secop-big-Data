@@ -71,5 +71,13 @@ Solución: options dinámicas desde `mapa-directa` ordenadas con conteo.
 Causa: ternario con dos hermanos sin fragmento tras agregar error/vacío.
 Solución: envolver en `<>...</>` y quitar `)}` sobrante. Verificado `npm run build` 369ms.
 
+## 16. `IndentationError` en `def buscar` (RF-18)
+Causa: método pegado con 8 espacios en vez de 4.
+Solución: `def` a 4 espacios, cuerpo a 8. `check` 0 issues.
+
+## 17. Eco `"q": 1` fijo + `permissions_classes` con s (RF-18)
+Causa: `return Response({"q": 1, ...})` hardcodeado y typo en `permission_classes` que desactivaba el `IsAuthenticated`.
+Solución: `{"q": q, **datos}` y `permission_classes`. El buscador quedaba abierto sin Bearer.
+
 ---
 *Actualizado: 09/09/2026 — RF-15/16 — Steven Araque + Jarvis*
