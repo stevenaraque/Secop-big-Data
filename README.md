@@ -67,6 +67,8 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
 - **RF-15 — mapa contratación directa — COMPLETADO y VALIDADO (09/09/2026):**
   - `contratos/services.py:55` `mapa_directa_optimizado` `GROUP BY departamento` + `Count filter directa` + `Sum` con fusión por clave normalizada (Boyaca+Boyacá → total 2, 50%) y nombres bonitos con tilde + `contratos/views.py:158` `VistaMapaDirectaOptimizado` + `contratos/urls.py:15` `optimized/mapa-directa/` verificado `Invoke-RestMethod` `Bearer` `Bogotá 3/66.67%` + `Boyacá 2/50%` + `Meta/Antioquia/Cesar/Valle/Bolívar 100%` OK
   - `Frontend/secop_frontend/src/pages/MapaDirecta.jsx:1` Leaflet 1.9.4 + `STOPS` papel→rojo oscuro + `POR_ID` 33 territorios (evita Ñ rota) + tooltip monto/% + `fitBounds` vista completa + zoom rueda/botones + clic filtra dashboard (RF-16), `MapaRF15.css` transparente solo territorios, `Dashboard.jsx` organizado en secciones KPIs→mapa→detalle con `tabular-nums` y estados error/vacío, verificado `npm run build` 356ms + `manage.py check` 0 issues + visual Ctrl+F5 OK
+- **RF-16 — clic en mapa filtra dashboard — COMPLETADO y VALIDADO (09/09/2026):**
+  - `MapaDirecta.jsx` selección con `selKeyRef` + resaltado borde oscuro 2.4 + `VER TODO` + clic en mar limpia (`setDepto("")`), `Dashboard.jsx` `deptoActivo` sincroniza mapa↔select, dropdown dinámico desde `mapa-directa` (7 territorios con conteo, antes solo 4 fijos), `services.py` `_variantes/_filtrar_depto` tolera tildes (`Boyacá` cuenta `Boyaca+Boyacá` → resumen `total 2`) y `views.py` lista combina `depto` con `modalidad/fechas`, verificado `check` 0 issues + `build` 369ms + clic Meta/Boyacá con KPIs recalculados OK. Errores del día en `ERRORES.md`
 
 ## Estructura de carpetas
 ```
@@ -172,4 +174,4 @@ No descargar 5.98M de golpe. SODA 2.1 exige paginación: `?$limit=50000&$offset=
 - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs, Grupo 8, Julio 2026 — SOLID, DRY, KISS, YAGNI, Clean Code, JWT/PBKDF2, CORS/CSRF, ORM, Git) — ver `CONTEXT.md:8` Clave Obligatoria
 
 ---
-*Última actualización: 09/09/2026 — V2 + RF-01/02/25 + IDE fix + cSpell + RF-03/04/05 DONE + RF-06 base+pulido DONE + RF-08/09/11/10/13 DONE + RF-07 DONE + RF-12 DONE + RF-14 serie mensual DONE + RF-15 mapa DONE (fusión Boyacá 2/50%, Bogotá 3/66.67%, zoom + tooltip) — Sprint 3 avanzado — Siguiente: RF-16 clic-mapa filtra — Autor: Steven Araque + Jarvis ⚡*
+*Última actualización: 09/09/2026 — V2 + RF-01/02/25 + IDE fix + cSpell + RF-03/04/05 DONE + RF-06 base+pulido DONE + RF-08/09/11/10/13 DONE + RF-07 DONE + RF-12 DONE + RF-14 serie mensual DONE + RF-15 mapa DONE + RF-16 clic-filtra DONE (resaltado + dropdown dinámico + tildes) — Sprint 3 avanzado — Siguiente: RF-18 búsqueda global — Autor: Steven Araque + Jarvis ⚡*
