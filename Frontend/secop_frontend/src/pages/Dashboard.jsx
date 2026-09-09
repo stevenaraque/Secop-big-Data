@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import MapaDirecta from "./MapaDirecta.jsx";
+import Buscador from "./Buscador.jsx";
 
 const API = "http://127.0.0.1:8000/api";
 
@@ -49,7 +50,11 @@ async function fetchContratos({ depto, page }, token) {
 export default function Dashboard({ token }) {
   const [depto, setDepto] = useState("Boyacá");
 
-  const { data: resumen, isLoading: cargando, isError: errorResumen } = useQuery({
+  const {
+    data: resumen,
+    isLoading: cargando,
+    isError: errorResumen,
+  } = useQuery({
     queryKey: ["resumen", depto],
     queryFn: () => fetchResumen(depto, token),
     enabled: !!token,
@@ -144,6 +149,7 @@ export default function Dashboard({ token }) {
 
       <main className="max-w-[1200px] mx-auto px-6 py-8 space-y-6">
         <section aria-label="Encabezado">
+          <Buscador token={token} />
           <h1 className="text-3xl md:text-4xl tracking-tighter leading-none font-semibold text-balance">
             Indicadores clave {depto !== "" ? `· ${depto}` : "· Nacional"}
           </h1>
@@ -154,12 +160,16 @@ export default function Dashboard({ token }) {
           </p>
           {errorResumen && (
             <p className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-2xl px-4 py-2">
-              No se pudo cargar el resumen. Revisa tu sesión e inténtalo de nuevo.
+              No se pudo cargar el resumen. Revisa tu sesión e inténtalo de
+              nuevo.
             </p>
           )}
         </section>
 
-        <section aria-label="Indicadores" className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <section
+          aria-label="Indicadores"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4"
+        >
           <div className="rounded-2xl border border-zinc-200 bg-white p-5">
             <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500">
               Total contratos
@@ -195,19 +205,30 @@ export default function Dashboard({ token }) {
           </div>
         </section>
 
-        <section aria-label="Mapa de contratación directa" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section
+          aria-label="Mapa de contratación directa"
+          className="rounded-2xl border border-zinc-200 bg-white p-5"
+        >
           <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
             <h2 className="text-sm font-semibold tracking-tight">
               Mapa · % contratación directa
             </h2>
             <p className="text-[11px] text-zinc-500">
-              Rueda o pellizca para zoom · clic en un territorio filtra todo el dashboard
+              Rueda o pellizca para zoom · clic en un territorio filtra todo el
+              dashboard
             </p>
           </div>
-          <MapaDirecta token={token} deptoActivo={depto} onSelectDepto={(n) => setDepto(n)} />
+          <MapaDirecta
+            token={token}
+            deptoActivo={depto}
+            onSelectDepto={(n) => setDepto(n)}
+          />
         </section>
 
-        <section aria-label="Detalle" className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <section
+          aria-label="Detalle"
+          className="grid grid-cols-1 lg:grid-cols-5 gap-4"
+        >
           <div className="lg:col-span-3 rounded-2xl border border-zinc-200 bg-white p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold tracking-tight">
@@ -267,49 +288,50 @@ export default function Dashboard({ token }) {
                 Sin contratos para este filtro. Prueba con Todos.
               </p>
             ) : (
-            <>
-            <div
-              ref={parentRef}
-              className="mt-4 h-[260px] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50"
-            >
-              <div
-                style={{
-                  height: `${virtualizer.getTotalSize()}px`,
-                  position: "relative",
-                }}
-              >
-                {virtualizer.getVirtualItems().map((v) => {
-                  const row = rows[v.index];
-                  return (
-                    <div
-                      key={row.id_contrato}
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        transform: `translateY(${v.start}px)`,
-                      }}
-                      className="h-[44px] grid grid-cols-[1.2fr_0.8fr_0.9fr] items-center px-3 border-b border-zinc-200 bg-white text-xs"
-                    >
-                      <span className="truncate font-medium">
-                        {row.id_contrato}
-                      </span>
-                      <span className="truncate text-zinc-600">
-                        {row.contratista_nombre}
-                      </span>
-                      <span className="text-right font-mono">
-                        ${Number(row.valor_contrato).toLocaleString("es-CO")}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            {cargandoTabla && (
-              <div className="mt-2 h-2 bg-zinc-100 animate-pulse rounded" />
-            )}
-            </>
+              <>
+                <div
+                  ref={parentRef}
+                  className="mt-4 h-[260px] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50"
+                >
+                  <div
+                    style={{
+                      height: `${virtualizer.getTotalSize()}px`,
+                      position: "relative",
+                    }}
+                  >
+                    {virtualizer.getVirtualItems().map((v) => {
+                      const row = rows[v.index];
+                      return (
+                        <div
+                          key={row.id_contrato}
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            transform: `translateY(${v.start}px)`,
+                          }}
+                          className="h-[44px] grid grid-cols-[1.2fr_0.8fr_0.9fr] items-center px-3 border-b border-zinc-200 bg-white text-xs"
+                        >
+                          <span className="truncate font-medium">
+                            {row.id_contrato}
+                          </span>
+                          <span className="truncate text-zinc-600">
+                            {row.contratista_nombre}
+                          </span>
+                          <span className="text-right font-mono">
+                            $
+                            {Number(row.valor_contrato).toLocaleString("es-CO")}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                {cargandoTabla && (
+                  <div className="mt-2 h-2 bg-zinc-100 animate-pulse rounded" />
+                )}
+              </>
             )}
           </div>
         </section>
