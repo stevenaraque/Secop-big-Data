@@ -153,3 +153,10 @@ class VistaSerieMensualOptimizado(APIView):
                    .annotate(total=Count("id"), suma=Sum("valor_contrato"))
                    .order_by("mes"))
         return Response({"filtro": depto or "todos", "serie": list(datos)})
+
+
+class VistaMapaDirectaOptimizado(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        datos = servicio_contratos.mapa_directa_optimizado()
+        return Response ({"mapa": datos})

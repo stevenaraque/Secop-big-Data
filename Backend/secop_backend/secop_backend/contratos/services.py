@@ -1,4 +1,4 @@
-from django.db.models import Count, Sum, Avg
+from django.db.models import Count, Sum, Avg, Q
 from .models import Contrato
 
 class ServicioContratos:
@@ -52,5 +52,20 @@ class ServicioContratos:
             acumulado[k]["total_contratos"] += 1
             acumulado[k]["suma_valor"] += float(c.valor_contrato or 0)
         return sorted(acumulado.values(), key=lambda x: x["suma_valor"], reverse=True)[:limite]
-
+    def mapa_directa_optimizado(self):
+        datos = list(
+            self.modelo.objects.values("departamento")
+            .annotate(
+                total=Count("id"),
+                directas=Count("id", filter=Q(modalidad__in=["Contratación directa", "Contratacion directa"])),
+                suma_total=Sum("valor_contrato"),
+                suma_directa=Sum("valor_contrato", filter=Q(modalidad__in=["Contratación directa", "Contratacion directa"])),
+            )
+            .order_by("-total")
+        )
+        for d in datos:
+            d["porcentaje_directa"] = round(d["directas"] * 100 / d["total"], 2) if d["total"] else 0
+            d["suma_total"] = float(d["suma_total"] or 0)
+            d["suma_directa"] = float(d["suma_directa"] or 0)
+        return datos
 servicio_contratos = ServicioContratos()

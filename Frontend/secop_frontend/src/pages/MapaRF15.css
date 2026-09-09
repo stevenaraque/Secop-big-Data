@@ -1,0 +1,86 @@
+/* RF-15 integrado — editorial paper/ink, scoping .rf15 para no romper el Dashboard */
+.rf15{
+  --paper:#f6f1e6; --paper2:#efe8d8;
+  --ink:#221a12; --ink2:#6a5f4d; --ink3:#a3977f;
+  --line:#ddd3bd; --line2:#c9bd9f;
+  --red:#8f1d18; --red-dark:#5c0d0d; --amber:#c98a1b;
+  --f-sans:"Archivo","Segoe UI",system-ui,-apple-system,Helvetica,Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono","SF Mono",Consolas,monospace;
+  background:var(--paper); color:var(--ink);
+  font-family:var(--f-sans); font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  border:1.5px solid var(--ink); border-radius:16px; overflow:hidden;
+}
+.rf15 *{box-sizing:border-box}
+.rf15 .display{letter-spacing:-.01em}
+.rf15 svg.ic{width:1em;height:1em;vertical-align:-.12em;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.rf15 .topbar{
+  background:var(--ink); color:#efe6d3;
+  font-family:var(--f-mono); font-size:10.5px; letter-spacing:.08em;
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:9px 18px;
+}
+.rf15 .tb-id{font-weight:600; letter-spacing:.14em}
+.rf15 .tb-sep{opacity:.35}
+.rf15 .chip{border:1px solid rgba(239,230,211,.3); border-radius:999px; padding:2.5px 10px; white-space:nowrap}
+.rf15 .chip.state{display:inline-flex; align-items:center; gap:7px; border-color:var(--amber); color:#ecc27a}
+.rf15 .chip.state .dot{width:7px; height:7px; border-radius:50%; background:var(--amber); animation:rf15pulse 1.6s infinite}
+@keyframes rf15pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.rf15 .tb-right{margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+
+.rf15 header{display:flex; gap:22px; align-items:flex-end; flex-wrap:wrap; padding:26px 24px 20px; border-bottom:2px solid var(--ink); background:var(--paper)}
+.rf15 .rf-box{background:var(--ink); color:#f3ecdc; padding:12px 16px 10px; flex:0 0 auto}
+.rf15 .rf-num{font-weight:900; font-size:30px; line-height:1}
+.rf15 .rf-sub{font-family:var(--f-mono); font-size:9px; letter-spacing:.22em; margin-top:6px; color:#c9bda2}
+.rf15 .head-mid{min-width:240px; flex:1 1 380px}
+.rf15 .kicker{font-family:var(--f-mono); font-size:10px; letter-spacing:.2em; color:var(--red); font-weight:600; margin-bottom:8px}
+.rf15 h1{font-size:clamp(24px,3vw,36px); font-weight:800; line-height:1.02; margin:0}
+.rf15 .hist{max-width:680px; margin-top:10px; color:var(--ink2); font-size:13.5px; line-height:1.6}
+.rf15 .hist b{color:var(--ink)}
+.rf15 .head-meta{margin-left:auto; display:grid; grid-template-columns:auto auto; gap:4px 18px; font-family:var(--f-mono); font-size:11px}
+.rf15 .head-meta dt{color:var(--ink3)} .rf15 .head-meta dd{font-weight:600; text-align:right; margin:0}
+
+.rf15 main{display:grid; grid-template-columns:minmax(0,1fr) 340px; background:var(--paper)}
+@media (max-width:920px){ .rf15 main{grid-template-columns:1fr} }
+.rf15 .map-zone{border-right:2px solid var(--ink); display:flex; flex-direction:column; min-width:0}
+@media (max-width:920px){ .rf15 .map-zone{border-right:none; border-bottom:2px solid var(--ink)} }
+.rf15 .map-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:9px 14px; border-bottom:1px solid var(--line); font-family:var(--f-mono); font-size:10px; letter-spacing:.1em; color:var(--ink2)}
+.rf15 .btn{margin-left:auto; font-family:var(--f-mono); font-size:10px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); padding:6px 11px; cursor:pointer}
+.rf15 .btn:hover:not(:disabled){background:var(--ink); color:#f3ecdc}
+.rf15 .btn:disabled{opacity:.35; cursor:default}
+.rf15 .map-wrap{position:relative; flex:1; min-height:460px; height:480px}
+.rf15 #rf15-map{position:absolute; inset:0; background:#f0e9da; z-index:1}
+.rf15 .leaflet-container{font-family:var(--f-sans); background:#f0e9da}
+.rf15 .legend{position:absolute; left:12px; bottom:12px; z-index:800; width:230px; background:rgba(246,241,230,.95); border:1.5px solid var(--ink); box-shadow:4px 4px 0 rgba(34,26,18,.16); padding:10px 12px}
+.rf15 .lg-t{font-family:var(--f-mono); font-size:9px; letter-spacing:.16em; color:var(--ink2); margin-bottom:7px}
+.rf15 .lg-bar{height:10px; border:1px solid rgba(34,26,18,.42)}
+.rf15 .lg-ticks{display:flex; justify-content:space-between; font-family:var(--f-mono); font-size:9px; color:var(--ink3); margin-top:3px}
+.rf15 .lg-cap{font-size:11px; color:var(--ink2); margin-top:6px} .rf15 .lg-cap b{color:var(--red-dark)}
+.rf15 .loader{position:absolute; z-index:1100; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(240,233,218,.72); transition:opacity .4s}
+.rf15 .loader.hide{opacity:0; pointer-events:none} .rf15 .loader.done{display:none}
+.rf15 .loader-card{width:min(430px,calc(100% - 40px)); background:var(--paper); border:1.5px solid var(--ink); box-shadow:6px 6px 0 rgba(34,26,18,.18); padding:14px 16px}
+.rf15 #rf15-pipe{list-style:none; margin:0; padding:0}
+.rf15 #rf15-pipe li{display:flex; gap:10px; padding:6px 0; border-bottom:1px dashed var(--line); font-size:12px}
+.rf15 .rf-tip{background:#221a12!important; color:#f3ecdc!important; border:none!important; border-radius:0!important; padding:10px 12px!important; min-width:190px}
+.rf15 .tt-name{font-weight:800; font-size:13px; margin-bottom:4px}
+.rf15 .tt-row{display:flex; justify-content:space-between; gap:14px; margin-top:3px}
+.rf15 .tt-row span{font-family:var(--f-mono); font-size:9px; color:#9d9176; text-transform:uppercase}
+.rf15 .tt-row b{font-family:var(--f-mono); font-size:11px; color:#f3ecdc}
+.rf15 .tt-bar{height:5px; background:rgba(243,236,220,.16); margin-top:7px} .rf15 .tt-bar span{display:block; height:100%}
+.rf15 aside{display:flex; flex-direction:column; min-width:0; background:var(--paper)}
+.rf15 .search{position:relative; padding:12px 14px 8px}
+.rf15 .search input{width:100%; font-family:var(--f-mono); font-size:12px; padding:8px 12px 8px 34px; border:1.5px solid var(--ink); background:#fbf7ec; outline:none}
+.rf15 .ficha{padding:6px 14px 14px; border-bottom:1.5px solid var(--line2)}
+.rf15 .ficha h2{font-size:24px; font-weight:800; margin:0}
+.rf15 .big{display:flex; align-items:baseline; gap:10px; margin-top:12px}
+.rf15 .big-num{font-family:var(--f-mono); font-size:42px; font-weight:600; line-height:1}
+.rf15 .alerta{display:flex; gap:10px; border:1.5px solid; padding:9px 11px; margin-top:12px; font-size:12px}
+.rf15 .a-high{background:var(--red); border-color:var(--red); color:#f8f2e4}
+.rf15 .a-mid{border-color:var(--red); color:var(--red)} .rf15 .a-low{border-color:var(--line2); color:var(--ink2)}
+.rf15 .mgrid{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line2); border:1px solid var(--line2); margin-top:12px}
+.rf15 .mcell{background:var(--paper); padding:8px 10px} .rf15 .m-l{font-family:var(--f-mono); font-size:8px; color:var(--ink3)} .rf15 .m-v{font-family:var(--f-mono); font-size:13px; font-weight:600}
+.rf15 .rk-head{display:flex; gap:8px; padding:12px 14px 8px; font-family:var(--f-mono); font-size:10px; color:var(--ink2)}
+.rf15 .rk-list{flex:1; min-height:150px; max-height:340px; overflow-y:auto; border-top:1px solid var(--line)}
+.rf15 .rk-item{display:grid; grid-template-columns:24px 1fr 54px; gap:8px; align-items:center; padding:6px 14px; border-bottom:1px dashed var(--line); cursor:pointer; background:transparent; border-left:none; border-right:none; border-top:none; width:100%; text-align:left; font:inherit; color:inherit}
+.rf15 .rk-item:hover{background:#eee6d0} .rf15 .rk-item.sel{background:var(--ink); color:#f3ecdc}
+.rf15 .rk-n{font-family:var(--f-mono); font-size:9px; color:var(--ink3)} .rf15 .rk-pct{font-family:var(--f-mono); font-size:11px; font-weight:600; text-align:right}
