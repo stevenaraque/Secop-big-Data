@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
@@ -59,10 +59,20 @@ function nameOf(props) {
   return null
 }
 
-export default function MapaDirecta({ token, onSelectDepto }) {
+export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
   const mapElRef = useRef(null)
   const mapRef = useRef(null)
   const layersRef = useRef(null)
+  const selKeyRef = useRef(null)
+  const [selNombre, setSelNombre] = useState(null)
+  const onSelectRef = useRef(onSelectDepto)
+  onSelectRef.current = onSelectDepto
+
+  // Sincroniza el resaltado cuando el filtro cambia desde el select del header
+  useEffect(() => {
+    selKeyRef.current = norm(deptoActivo || "")
+    setSelNombre(deptoActivo || null)
+  }, [deptoActivo])
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["mapa"],
@@ -78,6 +88,12 @@ export default function MapaDirecta({ token, onSelectDepto }) {
     map.fitBounds([[-4.6, -82.6], [13.9, -66.7]])
     map.setMaxBounds([[-24, -102], [24, -38]])
     mapRef.current = map
+    map.on("click", () => {
+      // Clic en el mar: limpia la selección (RF-16)
+      selKeyRef.current = ""
+      setSelNombre(null)
+      if (onSelectRef.current) onSelectRef.current("")
+    })
     setTimeout(() => { try { map.invalidateSize(); map.fitBounds([[-4.6, -82.6], [13.9, -66.7]]) } catch (_) { /* noop */ } }, 150)
     return () => { map.remove(); mapRef.current = null }
   }, [])
@@ -112,8 +128,9 @@ function claveGeo(props) {
           style: (f) => {
             const key = claveGeo(f.properties)
             const hit = key ? reales[key] : null
+            const esSel = key && selKeyRef.current && key === selKeyRef.current
             return {
-              color: "#fdfaf1", weight: 1.1,
+              color: esSel ? "#221a12" : "#fdfaf1", weight: esSel ? 2.4 : 1.1,
               fillColor: hit ? colorFor(Number(hit.porcentaje_directa) / 100) : "#d9cfba",
               fillOpacity: 1,
             }
@@ -133,10 +150,24 @@ function claveGeo(props) {
                   + `<div class="tt-bar"><span style="width:${Math.min(100, Number(hit.porcentaje_directa))}%;background:${colorFor(Number(hit.porcentaje_directa) / 100)}"></span></div>`
                 : `<div class="tt-name">${geoName}</div><div class="tt-sub">sin datos en la muestra actual</div>`)
             })
-            layer.on("mouseout", () => { layers.resetStyle(layer) })
+            layer.on("mouseout", () => {
+              layers.resetStyle(layer)
+              // Reaplica el resaltado si este era el seleccionado
+              const key = claveGeo(f.properties)
+              if (key && selKeyRef.current && key === selKeyRef.current) {
+                layer.setStyle({ color: "#221a12", weight: 2.4 })
+              }
+            })
             layer.on("click", (e) => {
               L.DomEvent.stopPropagation(e)
-              if (hit && onSelectDepto) onSelectDepto(hit.departamento)
+              if (!hit) return
+              // RF-16: fija selección, resalta y actualiza el filtro global
+              selKeyRef.current = norm(hit.departamento)
+              setSelNombre(hit.departamento)
+              layers.eachLayer((l) => { layers.resetStyle(l) })
+              layer.setStyle({ color: "#221a12", weight: 2.4 })
+              layer.bringToFront()
+              if (onSelectRef.current) onSelectRef.current(hit.departamento)
             })
           },
         }).addTo(map)
@@ -145,7 +176,7 @@ function claveGeo(props) {
       })
       .catch(() => { /* deja el aviso en pantalla */ })
     return () => { vivo = false }
-  }, [data, onSelectDepto])
+  }, [data])
 
   if (!token) return null
 
@@ -153,6 +184,18 @@ function claveGeo(props) {
     <div className="rf15-simple">
       <div className="map-wrap">
         <div id="rf15-map" ref={mapElRef} />
+        {(selNombre || deptoActivo) && (
+          <button
+            className="map-clear"
+            onClick={() => {
+              selKeyRef.current = ""
+              setSelNombre(null)
+              if (onSelectRef.current) onSelectRef.current("")
+            }}
+          >
+            VER TODO
+          </button>
+        )}
         {(isLoading || isError) && (
           <div className="map-status">{isLoading ? "Cargando mapa…" : "No se pudo cargar /api/optimized/mapa-directa/. Revisa tu access."}</div>
         )}

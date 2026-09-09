@@ -29,6 +29,13 @@ async function fetchTop(depto, token) {
   if (!r.ok) throw new Error("Error top");
   return r.json();
 }
+async function fetchMapa(token) {
+  const r = await fetch(`${API}/optimized/mapa-directa/`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!r.ok) throw new Error("Error mapa");
+  return r.json();
+}
 async function fetchContratos({ depto, page }, token) {
   const params = new URLSearchParams({ page, page_size: 20 });
   if (depto) params.set("depto", depto);
@@ -54,6 +61,16 @@ export default function Dashboard({ token }) {
     enabled: !!token,
     staleTime: 1000 * 60 * 5,
   });
+  // RF-16: opciones del dropdown salen del mapa para que todo clic tenga su option
+  const { data: mapaData } = useQuery({
+    queryKey: ["mapa"],
+    queryFn: () => fetchMapa(token),
+    enabled: !!token,
+    staleTime: 1000 * 60 * 5,
+  });
+  const territorios = [...(mapaData?.mapa || [])].sort((a, b) =>
+    String(a.departamento).localeCompare(String(b.departamento), "es"),
+  );
   const {
     data: contratosPag,
     isLoading: cargandoTabla,
@@ -114,10 +131,12 @@ export default function Dashboard({ token }) {
               onChange={(e) => setDepto(e.target.value)}
               className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm transition-colors hover:border-zinc-300 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
             >
-              <option value="">Todos · 10 contratos</option>
-              <option value="Boyacá">Boyacá · 1 contrato</option>
-              <option value="Antioquia">Antioquia</option>
-              <option value="Distrito Capital de Bogotá">Bogotá</option>
+              <option value="">Todos · Nacional</option>
+              {territorios.map((t) => (
+                <option key={t.departamento} value={t.departamento}>
+                  {t.departamento} · {t.total}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -185,7 +204,7 @@ export default function Dashboard({ token }) {
               Rueda o pellizca para zoom · clic en un territorio filtra todo el dashboard
             </p>
           </div>
-          <MapaDirecta token={token} onSelectDepto={(n) => setDepto(n)} />
+          <MapaDirecta token={token} deptoActivo={depto} onSelectDepto={(n) => setDepto(n)} />
         </section>
 
         <section aria-label="Detalle" className="grid grid-cols-1 lg:grid-cols-5 gap-4">
