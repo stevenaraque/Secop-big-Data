@@ -53,6 +53,7 @@ class ServicioContratos:
             acumulado[k]["suma_valor"] += float(c.valor_contrato or 0)
         return sorted(acumulado.values(), key=lambda x: x["suma_valor"], reverse=True)[:limite]
     def mapa_directa_optimizado(self):
+        import unicodedata
         datos = list(
             self.modelo.objects.values("departamento")
             .annotate(
@@ -63,9 +64,45 @@ class ServicioContratos:
             )
             .order_by("-total")
         )
+        def arreglar(s):
+            # Corrige mojibake tipo BogotÃ¡ -> Bogotá (UTF-8 leído como latin1)
+            if s and "Ã" in s:
+                try:
+                    return s.encode("latin1").decode("utf8")
+                except Exception:
+                    pass
+            return s
+        def clave(s):
+            s = arreglar(s or "")
+            s = unicodedata.normalize("NFD", s.upper())
+            s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+            return " ".join("".join(c if c.isalpha() else " " for c in s).split())
+        # Nombre bonito para mostrar en tooltip
+        bonitos = {
+            "DISTRITO CAPITAL DE BOGOTA": "Distrito Capital de Bogotá",
+            "BOYACA": "Boyacá",
+            "BOLIVAR": "Bolívar",
+            "ATLANTICO": "Atlántico",
+            "CORDOBA": "Córdoba",
+            "CAQUETA": "Caquetá",
+            "CHOCO": "Chocó",
+            "GUAINIA": "Guainía",
+            "VAUPES": "Vaupés",
+            "NARINO": "Nariño",
+            "QUINDIO": "Quindío",
+        }
+        combinado = {}
         for d in datos:
+            k = clave(d["departamento"])
+            if k not in combinado:
+                combinado[k] = {"departamento": bonitos.get(k, arreglar(d["departamento"])), "total": 0, "directas": 0, "suma_total": 0.0, "suma_directa": 0.0}
+            c = combinado[k]
+            c["total"] += d["total"] or 0
+            c["directas"] += d["directas"] or 0
+            c["suma_total"] += float(d["suma_total"] or 0)
+            c["suma_directa"] += float(d["suma_directa"] or 0)
+        salida = list(combinado.values())
+        for d in salida:
             d["porcentaje_directa"] = round(d["directas"] * 100 / d["total"], 2) if d["total"] else 0
-            d["suma_total"] = float(d["suma_total"] or 0)
-            d["suma_directa"] = float(d["suma_directa"] or 0)
-        return datos
+        return sorted(salida, key=lambda x: -x["total"])
 servicio_contratos = ServicioContratos()
