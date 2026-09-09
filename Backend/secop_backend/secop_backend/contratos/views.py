@@ -170,3 +170,4 @@ class VistaBuscar(APIView):
         datos = servicio_contratos.buscar(q=q)
         return Response({"q": q, **datos})
         
+        
