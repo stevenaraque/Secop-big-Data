@@ -169,5 +169,20 @@ class VistaBuscar(APIView):
         q = request.query_params.get("q", "")
         datos = servicio_contratos.buscar(q=q)
         return Response({"q": q, **datos})
+
+
+class VistaBanderasConcentracion(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        umbral = request.query_params.get("umbral", 30)
+        depto = request.query_params.get("depto")
+        try:
+            umbral = float(umbral)
+        except (TypeError, ValueError):
+            return Response({"detalle": "Umbral inválido, use un número entre 0 y 100."}, status=400)
+        if not 0 < umbral <= 100:
+            return Response({"detalle": "Umbral inválido, use un número entre 0 y 100."}, status=400)
+        datos = servicio_contratos.banderas_concentracion(umbral=umbral, depto=depto)
+        return Response(datos)
         
         
