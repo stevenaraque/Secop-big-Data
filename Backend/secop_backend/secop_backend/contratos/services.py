@@ -103,9 +103,36 @@ class ServicioContratos:
             .order_by("-total")[:limite]
         )
         return {"contratos": contratos, "empresas": empresas, "entidades": entidades}
-    
-    
-    
+
+    def banderas_concentracion(self, umbral=30, depto=None):
+        qs = self.modelo.objects.all()
+        qs = self._filtrar_depto(qs, depto)
+        totales = {
+            r["nombre_entidad"]: float(r["total"] or 0)
+            for r in qs.values("nombre_entidad").annotate(total=Sum("valor_contrato"))
+        }
+        por_contratista = (
+            qs.values("nombre_entidad", "contratista_nit", "contratista_nombre")
+            .annotate(monto=Sum("valor_contrato"), contratos=Count("id"))
+        )
+        banderas = []
+        for r in por_contratista:
+            total_ent = totales.get(r["nombre_entidad"]) or 0
+            if not total_ent:
+                continue
+            pct = float(r["monto"] or 0) * 100 / total_ent
+            if pct >= float(umbral):
+                banderas.append({
+                    "contratista_nit": r["contratista_nit"],
+                    "contratista_nombre": r["contratista_nombre"],
+                    "entidad": r["nombre_entidad"],
+                    "porcentaje": round(pct, 2),
+                    "monto": float(r["monto"] or 0),
+                    "contratos": r["contratos"],
+                })
+        banderas.sort(key=lambda x: x["porcentaje"], reverse=True)
+        return {"umbral": float(umbral), "total": len(banderas), "banderas": banderas}
+
     def mapa_directa_optimizado(self):
         import unicodedata
         datos = list(

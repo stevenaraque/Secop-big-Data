@@ -79,5 +79,13 @@ Solución: `def` a 4 espacios, cuerpo a 8. `check` 0 issues.
 Causa: `return Response({"q": 1, ...})` hardcodeado y typo en `permission_classes` que desactivaba el `IsAuthenticated`.
 Solución: `{"q": q, **datos}` y `permission_classes`. El buscador quedaba abierto sin Bearer.
 
+## 18. `No es posible conectar con el servidor remoto` al probar (RF-19)
+Causa: `runserver` apagado de la sesión anterior.
+Solución: encenderlo en ventana aparte antes de probar:
+```powershell
+cd "C:\Users\PC_03\OneDrive\Desktop\Big data\Backend\secop_backend"
+venv\Scripts\python.exe secop_backend\manage.py runserver
+```
+
 ---
 *Actualizado: 09/09/2026 — RF-15/16 — Steven Araque + Jarvis*
