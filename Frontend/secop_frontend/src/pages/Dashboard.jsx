@@ -12,6 +12,7 @@ import {
 import MapaDirecta from "./MapaDirecta.jsx";
 import Buscador from "./Buscador.jsx";
 import Banderas from "./Banderas.jsx";
+import PredominioDirecta from "./PredominioDirecta.jsx";
 
 const API = "http://127.0.0.1:8000/api";
 
@@ -153,6 +154,9 @@ export default function Dashboard({ token }) {
           <Buscador token={token} />
           <div className="mt-6">
             <Banderas token={token} depto={depto} />
+          </div>
+          <div className="mt-6">
+            <PredominioDirecta token={token} depto={depto} />
           </div>
           <h1 className="text-3xl md:text-4xl tracking-tighter leading-none font-semibold text-balance">
             Indicadores clave {depto !== "" ? `· ${depto}` : "· Nacional"}

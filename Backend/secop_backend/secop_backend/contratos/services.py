@@ -1,5 +1,5 @@
 from django.db.models import Count, Sum, Avg, Q
-from .models import Contrato
+from .models import Contrato, UmbralAlerta
 
 class ServicioContratos:
     """Service Layer para SECOP - evita vistas gordas y centraliza ORM (Repository + Service)"""
@@ -133,6 +133,39 @@ class ServicioContratos:
         banderas.sort(key=lambda x: x["porcentaje"], reverse=True)
         return {"umbral": float(umbral), "total": len(banderas), "banderas": banderas}
 
+    def predominio_directa(self, umbral=80, depto=None):
+        # RF-20: bandera por entidad si % directa supera umbral. Qué: GROUP BY entidad en BD. Por qué: detectar fraccionamiento.
+        qs = self.modelo.objects.all()
+        qs = self._filtrar_depto(qs, depto)
+        directas_q = Q(modalidad__in=["Contratación directa", "Contratacion directa"])
+        filas = (
+            qs.values("nombre_entidad")
+            .annotate(
+                total=Count("id"),
+                directas=Count("id", filter=directas_q),
+                suma_total=Sum("valor_contrato"),
+                suma_directa=Sum("valor_contrato", filter=directas_q),
+            )
+            .order_by("-total")
+        )
+        banderas = []
+        for r in filas:
+            total = r["total"] or 0
+            if not total:
+                continue
+            pct = float(r["directas"] or 0) * 100 / total
+            if pct >= float(umbral):
+                banderas.append({
+                    "entidad": r["nombre_entidad"],
+                    "porcentaje_directa": round(pct, 2),
+                    "total": total,
+                    "directas": r["directas"],
+                    "suma_total": float(r["suma_total"] or 0),
+                    "suma_directa": float(r["suma_directa"] or 0),
+                })
+        banderas.sort(key=lambda x: x["porcentaje_directa"], reverse=True)
+        return {"umbral": float(umbral), "total": len(banderas), "banderas": banderas}
+
     def mapa_directa_optimizado(self):
         import unicodedata
         datos = list(
@@ -186,4 +219,41 @@ class ServicioContratos:
         for d in salida:
             d["porcentaje_directa"] = round(d["directas"] * 100 / d["total"], 2) if d["total"] else 0
         return sorted(salida, key=lambda x: -x["total"])
+
+    # RF-24: umbrales persistentes
+    UMBRALES_DEFECTO = {
+        "concentracion": (30, "Bandera si contratista supera % del presupuesto de la entidad"),
+        "predominio_directa": (80, "Bandera si entidad supera % en contratación directa"),
+    }
+
+    def obtener_umbral(self, nombre, defecto=None):
+        nombre = (nombre or "").strip()
+        if nombre in self.UMBRALES_DEFECTO and defecto is None:
+            defecto = self.UMBRALES_DEFECTO[nombre][0]
+        obj, creado = UmbralAlerta.objects.get_or_create(
+            nombre=nombre,
+            defaults={"valor": defecto if defecto is not None else 30,
+                      "descripcion": self.UMBRALES_DEFECTO.get(nombre, ("", ""))[1]},
+        )
+        return float(obj.valor)
+
+    def listar_umbrales(self):
+        # Asegura que existan los 2 base y los devuelve ordenados
+        for nombre, (valor, desc) in self.UMBRALES_DEFECTO.items():
+            UmbralAlerta.objects.get_or_create(nombre=nombre, defaults={"valor": valor, "descripcion": desc})
+        return list(UmbralAlerta.objects.all().order_by("nombre").values("nombre", "valor", "descripcion", "actualizado_en"))
+
+    def actualizar_umbral(self, nombre, valor):
+        nombre = (nombre or "").strip()
+        try:
+            v = float(valor)
+        except (TypeError, ValueError):
+            raise ValueError("Umbral inválido, use un número entre 0 y 100.")
+        if not 0 < v <= 100:
+            raise ValueError("Umbral inválido, use un número entre 0 y 100.")
+        obj, _ = UmbralAlerta.objects.get_or_create(nombre=nombre, defaults={"valor": v})
+        obj.valor = v
+        obj.save()
+        return {"nombre": obj.nombre, "valor": float(obj.valor)}
+
 servicio_contratos = ServicioContratos()
