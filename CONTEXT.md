@@ -108,4 +108,4 @@ Esta clave resume tu PDF largo en 8 reglas no negociables. No son opcionales par
 **Fuente completa:** `Informe_Stack_Django_React (1).pdf` en `Big data/` — Bloques 1-13 con historia Django/React, componentes, paradigmas (declarativa/funcional en React, OOP en Django), arquitecturas y comparación MERN/.NET/Spring.
 
 ---
-*Actualizado: 07/09/2026 — V2 + RF-01/25/02 + IDE fix + cSpell 40 palabras + RF-03/04/05 DONE + RF-06 base+pulido DONE + RF-08 resumen DONE (optimizado True 1 vs naive False 1 y todos 10) — Sprint 1 CERRADO — Siguiente: RF-09 top contratistas — Clave OK.*
+*Actualizado: 10/09/2026 — V2 + RF-01/25/02 + RF-03/04/05 DONE + RF-06 base+pulido DONE + RF-08/09/11/10/13 DONE + RF-07 DONE + RF-12 DONE + RF-14 DONE + RF-15 mapa DONE + RF-16 clic-filtra DONE + RF-18 búsqueda DONE + RF-19 banderas DONE + RF-20 predominio DONE (80→8, 50→8, Boyacá→1, abc 400, check 0, build 362ms) — Sprint 4 — Siguiente: RF-24 umbrales admin — Clave OK.*

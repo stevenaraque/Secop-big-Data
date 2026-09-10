@@ -72,3 +72,17 @@ class TrabajoCarga(models.Model):
 
     def __str__(self):
         return f"Carga {self.id} - {self.estado} {self.registros_procesados}/{self.total_registros}"
+
+
+class UmbralAlerta(models.Model):
+    # RF-24: umbrales configurables persistidos. Qué: evita hardcodear 30/80. Por qué: admin ajusta sin reinicio.
+    nombre = models.CharField(max_length=50, unique=True)
+    valor = models.DecimalField(max_digits=5, decimal_places=2)
+    descripcion = models.CharField(max_length=255, blank=True, default="")
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "umbral_alerta"
+
+    def __str__(self):
+        return f"{self.nombre} = {self.valor}%"
