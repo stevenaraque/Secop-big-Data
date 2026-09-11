@@ -15,6 +15,7 @@ import Banderas from "./Banderas.jsx";
 import PredominioDirecta from "./PredominioDirecta.jsx";
 import Umbrales from "./Umbrales.jsx";
 import Entidades from "./Entidades.jsx";
+import Grafo from "./Grafo.jsx";
 
 const API = "http://127.0.0.1:8000/api";
 
@@ -165,6 +166,9 @@ export default function Dashboard({ token }) {
           </div>
           <div className="mt-6">
             <Entidades token={token} />
+          </div>
+          <div className="mt-6">
+            <Grafo token={token} depto={depto} />
           </div>
           <h1 className="text-3xl md:text-4xl tracking-tighter leading-none font-semibold text-balance">
             Indicadores clave {depto !== "" ? `· ${depto}` : "· Nacional"}

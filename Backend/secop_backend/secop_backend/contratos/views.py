@@ -268,5 +268,16 @@ class VistaEstadisticasEntidad(APIView):
             fecha_hasta=request.query_params.get("fecha_hasta"),
         )
         return Response(datos)
+
+
+class VistaGrafoRed(APIView):
+    # RF-17: red entidad→contratista para force-graph. Qué: top montos con límite. Por qué: 500k nodos congelan el navegador.
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        datos = servicio_contratos.grafo_red(
+            limite=request.query_params.get("limit", 50),
+            depto=request.query_params.get("depto"),
+        )
+        return Response(datos)
         
         

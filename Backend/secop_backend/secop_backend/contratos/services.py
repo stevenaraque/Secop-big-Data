@@ -297,4 +297,49 @@ class ServicioContratos:
         return {"entidad": info, "total_contratos": total, "total_contratado": float(agg["suma"] or 0),
                 "por_modalidad": por_modalidad, "top_contratistas": top}
 
+    COLORES_MODALIDAD = {
+        "Contratación directa": "#dc2626",
+        "Contratacion directa": "#dc2626",
+        "Licitación pública": "#059669",
+        "Licitacion publica": "#059669",
+        "Concurso de méritos": "#2563eb",
+        "Selección abreviada": "#d97706",
+        "Mínima cuantía": "#7c3aed",
+    }
+
+    def grafo_red(self, limite=50, depto=None):
+        # RF-17: nodos entidad/contratista + aristas contrato. Qué: top montos para no congelar.
+        # Por qué: el grosor muestra monto y el color la modalidad de un vistazo.
+        import math
+        try:
+            limite = int(limite)
+        except (TypeError, ValueError):
+            limite = 50
+        limite = max(1, min(limite, 200))
+        qs = self.modelo.objects.all().order_by("-valor_contrato")
+        qs = self._filtrar_depto(qs, depto)
+        filas = list(qs.values("nombre_entidad", "nit_entidad", "contratista_nit",
+                               "contratista_nombre", "modalidad", "valor_contrato")[:limite])
+        if not filas:
+            return {"nodos": [], "aristas": [], "total": 0}
+        max_monto = max(float(f["valor_contrato"] or 0) for f in filas) or 1.0
+        nodos, vistos = [], set()
+        aristas = []
+        for i, f in enumerate(filas):
+            ent_id = "E:" + (f["nit_entidad"] or f["nombre_entidad"] or "?")
+            con_id = "C:" + (f["contratista_nit"] or f["contratista_nombre"] or "?")
+            if ent_id not in vistos:
+                vistos.add(ent_id)
+                nodos.append({"id": ent_id, "tipo": "entidad", "nombre": f["nombre_entidad"]})
+            if con_id not in vistos:
+                vistos.add(con_id)
+                nodos.append({"id": con_id, "tipo": "contratista", "nombre": f["contratista_nombre"]})
+            monto = float(f["valor_contrato"] or 0)
+            grosor = round(1 + 7 * (math.log1p(monto) / math.log1p(max_monto)), 2)
+            aristas.append({"source": ent_id, "target": con_id, "monto": monto,
+                            "modalidad": f["modalidad"],
+                            "color": self.COLORES_MODALIDAD.get((f["modalidad"] or "").strip(), "#6b7280"),
+                            "grosor": grosor})
+        return {"nodos": nodos, "aristas": aristas, "total": len(aristas)}
+
 servicio_contratos = ServicioContratos()

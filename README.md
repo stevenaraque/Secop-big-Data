@@ -81,6 +81,8 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
   - `contratos/serializers.py` `EntidadSerializer`, `contratos/views.py` `VistaListaEntidades` orden `nombre_entidad` + `?q=` nombre/NIT + `PaginacionEntidades` 20 máx 100 + 400 fuera de rango, `contratos/urls.py` `entidades/`, `Frontend/.../Entidades.jsx` tabla + buscador + paginación en `Dashboard.jsx`
 - **RF-27 — estadísticas por entidad — COMPLETADO y VALIDADO (11/09/2026):**
   - `contratos/services.py` `estadisticas_por_entidad(nit/id/depto/fechas)` por MODELO con fallback texto ETL + `total/total_contratado/por_modalidad/top5`, `contratos/views.py` `VistaEstadisticasEntidad`, `contratos/urls.py` `por-entidad/`, clic en entidad muestra stats + 0 sin error si no existe, verificado `q=TUNJA` 1 + `nit=891800123` 1/75M directa + `NOEXISTE` 0 + `page=9999` 400 + `check` 0 + `build` 2.23s OK
+- **RF-17 — grafo de conexiones — COMPLETADO y VALIDADO (11/09/2026):**
+  - `contratos/services.py` `grafo_red(limit=50/depto)` top montos máx 200 + `grosor log` + `color por modalidad` (roja directa, verde licitación), `contratos/views.py` `VistaGrafoRed`, `contratos/urls.py` `grafo/`, `Frontend/.../Grafo.jsx` `react-force-graph-2d` con zoom/drag/pan + tooltip monto + input límite en `Dashboard.jsx`, verificado limit 5→5 aristas/10 nodos + `check` 0 + `build` 4.73s OK
 
 ## Estructura de carpetas
 ```
@@ -186,4 +188,4 @@ No descargar 5.98M de golpe. SODA 2.1 exige paginación: `?$limit=50000&$offset=
 - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs, Grupo 8, Julio 2026 — SOLID, DRY, KISS, YAGNI, Clean Code, JWT/PBKDF2, CORS/CSRF, ORM, Git) — ver `CONTEXT.md:8` Clave Obligatoria
 
 ---
-*Última actualización: 11/09/2026 — V2 + RF-01/02/25 + RF-03/04/05 DONE + RF-06 DONE + RF-08/09/11/10/13 DONE + RF-07 DONE + RF-12 DONE + RF-14 DONE + RF-15 mapa DONE + RF-16 clic-filtra DONE + RF-18 búsqueda DONE + RF-19 banderas DONE + RF-20 predominio DONE + RF-24 umbrales DONE + RF-28 entidades DONE + RF-27 por-entidad DONE (891800123 1/75M, NOEXISTE 0) — Sprint 4 — Siguiente: RF-17 grafo — Autor: Steven Araque + Jarvis ⚡*
+*Última actualización: 11/09/2026 — V2 + RF-01/02/25 + RF-03/04/05 DONE + RF-06 DONE + RF-08/09/11/10/13 DONE + RF-07 DONE + RF-12 DONE + RF-14 DONE + RF-15 mapa DONE + RF-16 clic-filtra DONE + RF-18 búsqueda DONE + RF-19 banderas DONE + RF-20 predominio DONE + RF-24 umbrales DONE + RF-28 entidades DONE + RF-27 por-entidad DONE + RF-17 grafo DONE (5 aristas/10 nodos, zoom/drag) — Sprint 4 — Siguiente: RF-21 exportar — Autor: Steven Araque*

@@ -100,5 +100,9 @@ $tok
 Causa: se espera HTTP 400 con `{"detalle":"Página fuera de rango."}` o `{"detalle":"Umbral inválido..."}`.
 Solución: ninguna, es la validación funcionando. No tocar código ni BD.
 
+## 21. Aristas grises en el grafo NO es error (RF-17)
+Causa: solo directa (rojo) y licitación (verde) tienen color propio; régimen especial y demás van en gris `#6b7280` a propósito.
+Solución: ninguna. Si quieres más colores, agrégalos en `COLORES_MODALIDAD` de `contratos/services.py`.
+
 ---
-*Actualizado: 11/09/2026 — RF-20/24/27/28 — Steven Araque + Jarvis*
+*Actualizado: 11/09/2026 — RF-17/20/24/27/28 — Steven Araque*
