@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import VistaIniciarCarga, VistaEstadoCarga, VistaResumenOptimizado, VistaResumenNaive, VistaListarCargas, VistaTopContratistasOptimizado, VistaTopContratistasNaive, VistaListaContratos, VistaDetalleContrato, VistaSerieMensualOptimizado, VistaMapaDirectaOptimizado, VistaBuscar, VistaBanderasConcentracion, VistaPredominioDirecta, VistaListarUmbrales, VistaActualizarUmbral, VistaListaEntidades, VistaEstadisticasEntidad, VistaGrafoRed, VistaExportarContratos
+from .views import VistaIniciarCarga, VistaEstadoCarga, VistaResumenOptimizado, VistaResumenNaive, VistaListarCargas, VistaTopContratistasOptimizado, VistaTopContratistasNaive, VistaListaContratos, VistaDetalleContrato, VistaSerieMensualOptimizado, VistaMapaDirectaOptimizado, VistaBuscar, VistaBanderasConcentracion, VistaPredominioDirecta, VistaListarUmbrales, VistaActualizarUmbral, VistaListaEntidades, VistaEstadisticasEntidad, VistaGrafoRed, VistaExportarContratos, VistaActualizarPeriodica, VistaUltimaActualizacion, VistaConfigActualizacion, VistaCrearBackup, VistaListarBackups, VistaDescargarBackup
 
 urlpatterns = [
     path("cargar/", VistaIniciarCarga.as_view(), name="iniciar_carga"),
@@ -22,5 +22,11 @@ urlpatterns = [
     path("por-entidad/", VistaEstadisticasEntidad.as_view(), name="por_entidad"),
     path("grafo/", VistaGrafoRed.as_view(), name="grafo"),
     path("exportar/", VistaExportarContratos.as_view(), name="exportar"),
+    path("cargar/actualizar-periodica/", VistaActualizarPeriodica.as_view(), name="actualizar_periodica"),
+    path("cargar/ultima-actualizacion/", VistaUltimaActualizacion.as_view(), name="ultima_actualizacion"),
+    path("cargar/config-actualizacion/", VistaConfigActualizacion.as_view(), name="config_actualizacion"),
+    path("cargar/backup/", VistaCrearBackup.as_view(), name="crear_backup"),
+    path("cargar/backup/listar/", VistaListarBackups.as_view(), name="listar_backups"),
+    path("cargar/backup/<int:pk>/descargar/", VistaDescargarBackup.as_view(), name="descargar_backup"),
 
 ]

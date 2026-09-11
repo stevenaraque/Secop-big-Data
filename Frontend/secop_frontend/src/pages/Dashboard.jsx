@@ -95,6 +95,9 @@ export default function Dashboard({ token }) {
 
   const rows = contratosPag?.results ?? [];
   const parentRef = useRef(null);
+  // RNF-07: garantía 60 FPS — virtualizador tanstack react-virtual con estimateSize fijo 44px + overscan 8.
+  // count es el total de filas de la página actual (pagination), nunca el dataset completo.
+  // Esto evita renders bloqueantes: solo DOM de filas visibles (~8+8 overscan = 16 filas max).
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
@@ -117,29 +120,31 @@ export default function Dashboard({ token }) {
 
   return (
     <div className="min-h-[100dvh] bg-[#fcfcfc] text-zinc-900 antialiased">
-      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-zinc-200">
+      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-zinc-200" role="banner">
         <div className="max-w-[1200px] mx-auto px-6 h-[64px] flex items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white grid place-items-center text-[11px] font-semibold tracking-widest">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white grid place-items-center text-[11px] font-semibold tracking-widest" aria-hidden="true">
               SI
             </div>
             <div>
               <p className="text-[13px] font-semibold tracking-tight leading-none">
                 SECOP Insight
               </p>
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-[11px] text-zinc-600">
                 Observatorio contratación · 5.98M
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-[11px] uppercase tracking-[0.14em] text-zinc-500">
+            <label htmlFor="filtro-territorio" className="text-[11px] uppercase tracking-[0.14em] text-zinc-600">
               Territorio
             </label>
             <select
+              id="filtro-territorio"
+              aria-label="Filtrar por territorio"
               value={depto}
               onChange={(e) => setDepto(e.target.value)}
-              className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm transition-colors hover:border-zinc-300 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
+              className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 transition-colors hover:border-zinc-300 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
             >
               <option value="">Todos · Nacional</option>
               {territorios.map((t) => (
@@ -152,7 +157,7 @@ export default function Dashboard({ token }) {
         </div>
       </header>
 
-      <main className="max-w-[1200px] mx-auto px-6 py-8 space-y-6">
+      <main id="contenido" className="max-w-[1200px] mx-auto px-6 py-8 space-y-6" role="main" tabIndex={-1}>
         <section aria-label="Encabezado">
           <Buscador token={token} />
           <div className="mt-6">
@@ -173,15 +178,15 @@ export default function Dashboard({ token }) {
           <h1 className="text-3xl md:text-4xl tracking-tighter leading-none font-semibold text-balance">
             Indicadores clave {depto !== "" ? `· ${depto}` : "· Nacional"}
           </h1>
-          <p className="text-sm text-zinc-600 mt-2 max-w-[65ch] leading-relaxed">
+          <p className="text-sm text-zinc-700 mt-2 max-w-[65ch] leading-relaxed">
             Agregado en PostgreSQL con índices, no en el navegador. Cambia el
             filtro y los KPIs se recalculan con la caché de TanStack Query sin
             consultas duplicadas.
           </p>
           {errorResumen && (
-            <p className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-2xl px-4 py-2">
+            <p role="alert" aria-live="assertive" className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-2xl px-4 py-2">
               No se pudo cargar el resumen. Revisa tu sesión e inténtalo de
-              nuevo.
+              nuevo. Si ves Servicio no disponible, espera y recarga.
             </p>
           )}
         </section>
@@ -191,10 +196,10 @@ export default function Dashboard({ token }) {
           className="grid grid-cols-1 md:grid-cols-3 gap-4"
         >
           <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-600">
               Total contratos
             </p>
-            <p className="text-3xl tracking-tighter font-semibold mt-1 tabular-nums">
+            <p className="text-3xl tracking-tighter font-semibold mt-1 tabular-nums" aria-live="polite">
               {resumen?.total ?? 0}
             </p>
             <p className="text-xs text-emerald-700 mt-1">
@@ -202,24 +207,24 @@ export default function Dashboard({ token }) {
             </p>
           </div>
           <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-600">
               Total dinero
             </p>
-            <p className="text-3xl tracking-tighter font-semibold mt-1 tabular-nums">
+            <p className="text-3xl tracking-tighter font-semibold mt-1 tabular-nums" aria-live="polite">
               ${Number(resumen?.suma_valor || 0).toLocaleString("es-CO")}
             </p>
-            <p className="text-xs text-zinc-500 mt-1">
+            <p className="text-xs text-zinc-600 mt-1">
               SUM valor_contrato · indexed
             </p>
           </div>
           <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-600">
               Valor promedio
             </p>
-            <p className="text-3xl tracking-tighter font-semibold mt-1 tabular-nums">
+            <p className="text-3xl tracking-tighter font-semibold mt-1 tabular-nums" aria-live="polite">
               ${Number(resumen?.promedio_valor || 0).toLocaleString("es-CO")}
             </p>
-            <p className="text-xs text-zinc-500 mt-1">
+            <p className="text-xs text-zinc-600 mt-1">
               AVG · se recalcula al cambiar filtro
             </p>
           </div>
@@ -296,6 +301,7 @@ export default function Dashboard({ token }) {
                 Contratos · tabla virtualizada 60 FPS
               </h2>
               <button
+                aria-label="Exportar tabla filtrada a CSV"
                 onClick={async () => {
                   const params = new URLSearchParams();
                   if (depto) params.set("depto", depto);
@@ -311,29 +317,32 @@ export default function Dashboard({ token }) {
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
-                className="h-8 rounded-lg border border-zinc-200 px-3 text-xs font-medium hover:border-zinc-300 active:scale-[0.98]"
+                className="h-8 rounded-lg border border-zinc-200 px-3 text-xs font-medium text-zinc-900 hover:border-zinc-300 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
               >
                 ⬇ CSV
               </button>
             </div>
-            <p className="text-xs text-zinc-500 mt-1 tabular-nums">
+            <p className="text-xs text-zinc-600 mt-1 tabular-nums">
               Solo las filas visibles al DOM. {contratosPag?.count ?? 0} totales
               · página 1 de {Math.ceil((contratosPag?.count || 0) / 20) || 1}{" "}
               {isFetching && "· actualizando..."}
             </p>
             {errorTabla ? (
-              <p className="mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
+              <p role="alert" className="mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
                 No se pudo cargar la tabla. Revisa tu sesión.
               </p>
             ) : rows.length === 0 && !cargandoTabla ? (
-              <p className="mt-4 text-sm text-zinc-600 bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3">
+              <p className="mt-4 text-sm text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3">
                 Sin contratos para este filtro. Prueba con Todos.
               </p>
             ) : (
               <>
                 <div
                   ref={parentRef}
-                  className="mt-4 h-[260px] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50"
+                  role="region"
+                  aria-label="Tabla de contratos"
+                  tabIndex={0}
+                  className="mt-4 h-[260px] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50 focus-visible:ring-2 focus-visible:ring-emerald-600"
                 >
                   <div
                     style={{

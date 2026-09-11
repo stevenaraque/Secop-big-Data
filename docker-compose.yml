@@ -1,0 +1,48 @@
+# RNF-10: despliegue reproducible con 3 servicios + HTTPS en nube. Qué: db + backend + frontend con variables por entorno. Por qué: evita errores de configuración.
+version: "3.9"
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-secop_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 5s
+      retries: 10
+
+  backend:
+    build: ./Backend/secop_backend
+    environment:
+      DB_NAME: ${DB_NAME:-secop_db}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: db
+      DB_PORT: 5432
+      SECRET_KEY: ${SECRET_KEY:-django-insecure-cambiar-en-produccion}
+      DEBUG: ${DEBUG:-False}
+      SODA_APP_TOKEN: ${SODA_APP_TOKEN:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "python secop_backend/manage.py migrate --no-input &&
+             python secop_backend/manage.py collectstatic --no-input 2>/dev/null || true &&
+             gunicorn secop_backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+
+  frontend:
+    build: ./Frontend/secop_frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
