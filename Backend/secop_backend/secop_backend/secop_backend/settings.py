@@ -155,6 +155,7 @@ REST_FRAMEWORK = {
         "anon": "20/min",
         "user": "100/min",
     },
+    "EXCEPTION_HANDLER": "contratos.exceptions.secop_exception_handler",
 }
 
 SIMPLE_JWT = {
@@ -168,11 +169,7 @@ SIMPLE_JWT = {
 }
 
 
-# Email
+# Email — RF-22 recuperación usa console en dev (imprime enlace en terminal)
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
-
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'noreply@secop-insight.local'

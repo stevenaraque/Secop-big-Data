@@ -19,12 +19,33 @@ from .serializers import ContratoSerializer, EntidadSerializer
 
 def tarea_carga(trabajo_id, limite, offset, depto):
     try:
-        call_command("cargar_secop", limit=limite, offset=offset, depto=depto, trabajo_id=trabajo_id)
+        call_command("cargar_secop", limit=limite, offset=offset, depto=depto, trabajo_id=trabajo_id, origen="manual")
     except Exception as e:
         trabajo = TrabajoCarga.objects.get(id=trabajo_id)
         trabajo.estado = "error"
         trabajo.mensaje_error = str(e)
         trabajo.save()
+
+
+def tarea_carga_periodica(trabajo_id, limite, offset, depto):
+    # RF-26: reutiliza misma lógica paginada con origen periodica + evita duplicados
+    try:
+        call_command("cargar_secop", limit=limite, offset=offset, depto=depto, trabajo_id=trabajo_id, origen="periodica")
+    except Exception as e:
+        trabajo = TrabajoCarga.objects.get(id=trabajo_id)
+        trabajo.estado = "error"
+        trabajo.mensaje_error = str(e)
+        trabajo.save()
+        # también actualizar config a error
+        try:
+            from .models import ConfigActualizacion
+            from django.utils import timezone
+            cfg, _ = ConfigActualizacion.objects.get_or_create(id=1, defaults={"intervalo_horas": 24})
+            cfg.ultima_ejecucion = timezone.now()
+            cfg.ultimo_estado = "error"
+            cfg.save(update_fields=["ultima_ejecucion", "ultimo_estado", "actualizado_en"])
+        except Exception:
+            pass
 
 class VistaIniciarCarga(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -34,6 +55,11 @@ class VistaIniciarCarga(APIView):
         offset = int(request.data.get("offset", 0))
         depto = request.data.get("depto")
         trabajo = TrabajoCarga.objects.create(estado="pendiente", offset_actual=offset)
+        # RNF-08: auditoría carga
+        try:
+            servicio_contratos.registrar_auditoria(usuario=request.user, accion="carga", detalle=f"carga manual limite {limite} offset {offset} depto {depto or ''}")
+        except Exception:
+            pass
         t = threading.Thread(target=tarea_carga, args=(trabajo.id, limite, offset, depto), daemon=True)
         t.start()
         return Response({"id": trabajo.id, "estado": trabajo.estado}, status=status.HTTP_202_ACCEPTED)
@@ -46,10 +72,14 @@ class VistaEstadoCarga(APIView):
         return Response({
             "id": trabajo.id,
             "estado": trabajo.estado,
+            "origen": trabajo.origen,
             "total_registros": trabajo.total_registros,
             "registros_procesados": trabajo.registros_procesados,
+            "nuevos_registros": trabajo.nuevos_registros,
             "offset_actual": trabajo.offset_actual,
-            "mensaje_error": trabajo.mensaje_error
+            "mensaje_error": trabajo.mensaje_error,
+            "creado_en": trabajo.creado_en,
+            "actualizado_en": trabajo.actualizado_en,
         })
 
 
@@ -228,6 +258,11 @@ class VistaActualizarUmbral(APIView):
             datos = servicio_contratos.actualizar_umbral(nombre, valor)
         except ValueError as e:
             return Response({"detalle": str(e)}, status=400)
+        # RNF-08: auditoría config
+        try:
+            servicio_contratos.registrar_auditoria(usuario=request.user, accion="config_umbral", detalle=f"{nombre}={valor}")
+        except Exception:
+            pass
         return Response(datos)
     def patch(self, request, nombre):
         return self.put(request, nombre)
@@ -287,6 +322,11 @@ class VistaExportarContratos(APIView):
     # RF-21: descarga el filtrado actual en CSV. Qué: mismos filtros de la tabla + BOM. Por qué: Excel abre tildes y el punto decimal no se rompe.
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
+        # RNF-08: auditoría exportar
+        try:
+            servicio_contratos.registrar_auditoria(usuario=request.user, accion="exportar", detalle=f"exportar depto={request.query_params.get('depto','')} modalidad={request.query_params.get('modalidad','')}")
+        except Exception:
+            pass
         qs = Contrato.objects.all().order_by("id")
         depto = request.query_params.get("depto")
         modalidad = request.query_params.get("modalidad")
@@ -312,6 +352,101 @@ class VistaExportarContratos(APIView):
                         c.modalidad, c.estado_contrato, str(c.valor_contrato or ""),
                         c.fecha_firma.isoformat() if c.fecha_firma else "",
                         c.contratista_nit, c.contratista_nombre])
+        return resp
+
+
+class VistaActualizarPeriodica(APIView):
+    # RF-26: dispara actualización periódica reutilizando paginación SODA sin duplicar. Qué: Thread + TrabajoCarga periodica. Por qué: mantiene datos al día sin intervención.
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request):
+        limite = int(request.data.get("limit", 50))
+        offset = int(request.data.get("offset", 0))
+        depto = request.data.get("depto")
+        try:
+            trabajo = servicio_contratos.programar_actualizacion_periodica(limite=limite, offset=offset, depto=depto)
+            try:
+                servicio_contratos.registrar_auditoria(usuario=request.user, accion="carga", detalle=f"periodica limite {limite} offset {offset}")
+            except Exception:
+                pass
+        except ValueError as e:
+            return Response({"detalle": str(e)}, status=status.HTTP_409_CONFLICT)
+        t = threading.Thread(target=tarea_carga_periodica, args=(trabajo.id, limite, offset, depto), daemon=True)
+        t.start()
+        return Response({"id": trabajo.id, "estado": trabajo.estado, "origen": trabajo.origen, "offset_actual": trabajo.offset_actual}, status=status.HTTP_202_ACCEPTED)
+
+
+class VistaUltimaActualizacion(APIView):
+    # RF-26 C3/C4: registra fecha/hora y estado de última actualización. Qué: GET config + ultimo trabajo. Por qué: trazabilidad.
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        datos = servicio_contratos.ultima_actualizacion()
+        return Response(datos)
+
+
+class VistaConfigActualizacion(APIView):
+    # RF-26: programar intervalo periódica. Qué: GET/PUT intervalo_horas + activo. Por qué: admin configura sin código.
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        cfg = servicio_contratos.obtener_config_actualizacion()
+        return Response({"intervalo_horas": cfg.intervalo_horas, "activo": cfg.activo, "ultima_ejecucion": cfg.ultima_ejecucion, "ultimo_estado": cfg.ultimo_estado})
+
+    def put(self, request):
+        intervalo = request.data.get("intervalo_horas")
+        activo = request.data.get("activo")
+        # activo puede venir como string "true"/"false" desde JSON
+        if isinstance(activo, str):
+            activo = activo.lower() in ("true", "1", "yes")
+        try:
+            cfg = servicio_contratos.actualizar_config_actualizacion(intervalo_horas=intervalo, activo=activo)
+        except ValueError as e:
+            return Response({"detalle": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"intervalo_horas": cfg.intervalo_horas, "activo": cfg.activo, "ultima_ejecucion": cfg.ultima_ejecucion, "ultimo_estado": cfg.ultimo_estado})
+
+    def patch(self, request):
+        return self.put(request)
+
+
+class VistaCrearBackup(APIView):
+    # RNF-09: respaldo manual. Qué: POST crea JSON dump + retención 7 días. Por qué: recuperar ante pérdida.
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request):
+        try:
+            reg = servicio_contratos.crear_backup()
+            try:
+                servicio_contratos.registrar_auditoria(usuario=request.user, accion="backup", detalle=f"backup {reg.id} {reg.registros} regs")
+            except Exception:
+                pass
+        except ValueError as e:
+            return Response({"detalle": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"id": reg.id, "archivo": reg.archivo, "tamano_bytes": reg.tamaño_bytes, "tamaño_bytes": reg.tamaño_bytes, "registros": reg.registros, "estado": reg.estado, "creado_en": reg.creado_en}, status=status.HTTP_201_CREATED)
+
+
+class VistaListarBackups(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        return Response({"backups": servicio_contratos.listar_backups()})
+
+
+class VistaDescargarBackup(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request, pk):
+        from .models import BackupRegistro
+        from pathlib import Path
+        try:
+            reg = BackupRegistro.objects.get(id=pk)
+        except BackupRegistro.DoesNotExist:
+            return Response({"detalle": "Backup no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        p = Path(reg.archivo)
+        if not p.exists():
+            return Response({"detalle": "Archivo no encontrado en disco."}, status=status.HTTP_404_NOT_FOUND)
+        resp = HttpResponse(p.read_bytes(), content_type="application/json; charset=utf-8")
+        resp["Content-Disposition"] = f'attachment; filename="{p.name}"'
         return resp
         
         

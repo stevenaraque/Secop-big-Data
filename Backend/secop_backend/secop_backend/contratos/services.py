@@ -342,4 +342,133 @@ class ServicioContratos:
                             "grosor": grosor})
         return {"nodos": nodos, "aristas": aristas, "total": len(aristas)}
 
+    # RF-26: actualización periódica reutilizando paginación
+    def obtener_config_actualizacion(self):
+        from .models import ConfigActualizacion
+        cfg, _ = ConfigActualizacion.objects.get_or_create(id=1, defaults={"intervalo_horas": 24, "activo": False})
+        return cfg
+
+    def actualizar_config_actualizacion(self, intervalo_horas=None, activo=None):
+        from .models import ConfigActualizacion
+        cfg = self.obtener_config_actualizacion()
+        if intervalo_horas is not None:
+            try:
+                iv = int(intervalo_horas)
+            except (TypeError, ValueError):
+                raise ValueError("Intervalo inválido, use horas entre 1 y 720.")
+            if not 1 <= iv <= 720:
+                raise ValueError("Intervalo inválido, use horas entre 1 y 720.")
+            cfg.intervalo_horas = iv
+        if activo is not None:
+            cfg.activo = bool(activo)
+        cfg.save()
+        return cfg
+
+    def programar_actualizacion_periodica(self, limite=50, offset=0, depto=None):
+        """Crea TrabajoCarga periódica. Qué: reutiliza bulk_create con ignore_conflicts. Por qué: sin duplicar."""
+        from .models import TrabajoCarga, ConfigActualizacion
+        from django.utils import timezone
+        # Validar que no haya una en_progreso periódica activa (no mezclar)
+        if TrabajoCarga.objects.filter(estado="en_progreso", origen="periodica").exists():
+            raise ValueError("Ya hay una actualización periódica en curso.")
+        trabajo = TrabajoCarga.objects.create(estado="pendiente", origen="periodica", offset_actual=offset, total_registros=0)
+        # Actualizar config última ejecución pendiente
+        cfg = self.obtener_config_actualizacion()
+        cfg.ultima_ejecucion = timezone.now()
+        cfg.ultimo_estado = "pendiente"
+        cfg.save(update_fields=["ultima_ejecucion", "ultimo_estado", "actualizado_en"])
+        return trabajo
+
+    def ultima_actualizacion(self):
+        from .models import TrabajoCarga, ConfigActualizacion
+        cfg = self.obtener_config_actualizacion()
+        ultimo = TrabajoCarga.objects.order_by("-creado_en").first()
+        return {
+            "config": {
+                "intervalo_horas": cfg.intervalo_horas,
+                "activo": cfg.activo,
+                "ultima_ejecucion": cfg.ultima_ejecucion.isoformat() if cfg.ultima_ejecucion else None,
+                "ultimo_estado": cfg.ultimo_estado,
+            },
+            "ultimo_trabajo": {
+                "id": ultimo.id if ultimo else None,
+                "estado": ultimo.estado if ultimo else None,
+                "origen": ultimo.origen if ultimo else None,
+                "registros_procesados": ultimo.registros_procesados if ultimo else 0,
+                "nuevos_registros": ultimo.nuevos_registros if ultimo else 0,
+                "total_registros": ultimo.total_registros if ultimo else 0,
+                "offset_actual": ultimo.offset_actual if ultimo else 0,
+                "creado_en": ultimo.creado_en.isoformat() if ultimo and ultimo.creado_en else None,
+                "actualizado_en": ultimo.actualizado_en.isoformat() if ultimo and ultimo.actualizado_en else None,
+                "mensaje_error": ultimo.mensaje_error if ultimo else None,
+            } if ultimo else None,
+        }
+
+    # RNF-09: backup 7 días con retención
+    def crear_backup(self):
+        """Crea JSON dump de contratos + registra y purga >7 días. Qué: respaldo. Por qué: recuperar ante pérdida."""
+        import json
+        import os
+        from pathlib import Path
+        from datetime import timedelta
+        from django.conf import settings
+        from django.utils import timezone
+        from .models import BackupRegistro
+
+        base = Path(settings.BASE_DIR) / "backups"
+        base.mkdir(parents=True, exist_ok=True)
+        ts = timezone.now().strftime("%Y%m%d_%H%M%S")
+        archivo = base / f"secop_backup_{ts}.json"
+        # dump contratos (solo campos clave para no pesar 5M en dev)
+        datos = list(self.modelo.objects.all().values(
+            "id_contrato", "nombre_entidad", "nit_entidad", "departamento", "ciudad",
+            "valor_contrato", "fecha_firma", "modalidad", "contratista_nit", "contratista_nombre"
+        ).order_by("id")[:100000])  # cap 100k para no colapsar en 5M
+        # convertir Decimals/dates a str
+        for r in datos:
+            if r["valor_contrato"] is not None:
+                r["valor_contrato"] = str(r["valor_contrato"])
+            if r["fecha_firma"] is not None:
+                r["fecha_firma"] = r["fecha_firma"].isoformat()
+        try:
+            with open(archivo, "w", encoding="utf-8") as f:
+                json.dump(datos, f, ensure_ascii=False, indent=2)
+            tamaño = archivo.stat().st_size
+            reg = BackupRegistro.objects.create(archivo=str(archivo), tamaño_bytes=tamaño, registros=len(datos), estado="completado")
+            # retención 7 días: borrar archivos y registros viejos
+            limite = timezone.now() - timedelta(days=7)
+            viejos = BackupRegistro.objects.filter(creado_en__lt=limite)
+            for v in viejos:
+                try:
+                    Path(v.archivo).unlink(missing_ok=True)
+                except Exception:
+                    pass
+                v.delete()
+            return reg
+        except Exception as e:
+            reg = BackupRegistro.objects.create(archivo=str(archivo), tamaño_bytes=0, registros=0, estado="error", mensaje_error=str(e))
+            raise ValueError(f"Backup falló: {e}") from e
+
+    def listar_backups(self, limite=20):
+        from .models import BackupRegistro
+        # devolver tamano_bytes ASCII para evitar ñ en JSON keys (PowerShell)
+        rows = list(BackupRegistro.objects.all().order_by("-creado_en").values("id", "archivo", "tamaño_bytes", "registros", "estado", "creado_en")[:limite])
+        for r in rows:
+            r["tamano_bytes"] = r.pop("tamaño_bytes")
+        return rows
+
+    # RNF-08: auditoría
+    def registrar_auditoria(self, usuario, accion, detalle=""):
+        from .models import Auditoria
+        # nunca loguear contraseñas
+        detalle = (detalle or "")[:500].replace("contrasena", "***").replace("password", "***")
+        usuario_str = ""
+        if hasattr(usuario, "username"):
+            usuario_str = usuario.username
+        elif isinstance(usuario, str):
+            usuario_str = usuario
+        else:
+            usuario_str = str(usuario)[:150]
+        return Auditoria.objects.create(usuario=usuario_str, accion=accion, detalle=detalle)
+
 servicio_contratos = ServicioContratos()

@@ -58,9 +58,15 @@ class TrabajoCarga(models.Model):
         ("completado", "Completado"),
         ("error", "Error"),
     ]
+    ORIGENES = [
+        ("manual", "Manual"),
+        ("periodica", "Periódica"),
+    ]
     estado = models.CharField(max_length=20, choices=ESTADOS, default="pendiente")
+    origen = models.CharField(max_length=20, choices=ORIGENES, default="manual")
     total_registros = models.IntegerField(default=0)
     registros_procesados = models.IntegerField(default=0)
+    nuevos_registros = models.IntegerField(default=0)
     offset_actual = models.IntegerField(default=0)
     mensaje_error = models.TextField(blank=True, null=True)
     creado_en = models.DateTimeField(auto_now_add=True)
@@ -71,7 +77,70 @@ class TrabajoCarga(models.Model):
         ordering = ["-creado_en"]
 
     def __str__(self):
-        return f"Carga {self.id} - {self.estado} {self.registros_procesados}/{self.total_registros}"
+        return f"Carga {self.id} [{self.origen}] {self.estado} {self.registros_procesados}/{self.total_registros}"
+
+
+class ConfigActualizacion(models.Model):
+    """RF-26: programación periódica. Qué: intervalo + activo. Por qué: mantener datos al día sin intervención."""
+
+    intervalo_horas = models.IntegerField(default=24)
+    activo = models.BooleanField(default=False)
+    ultima_ejecucion = models.DateTimeField(null=True, blank=True)
+    ultimo_estado = models.CharField(max_length=20, blank=True, default="")
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "config_actualizacion"
+
+    def __str__(self):
+        return f"Actualización cada {self.intervalo_horas}h activo={self.activo}"
+
+
+class BackupRegistro(models.Model):
+    """RNF-09: respaldo 7 días. Qué: archivo + retención. Por qué: recuperar ante pérdida."""
+
+    ESTADOS = [
+        ("completado", "Completado"),
+        ("error", "Error"),
+    ]
+    archivo = models.CharField(max_length=255)
+    tamaño_bytes = models.IntegerField(default=0)
+    registros = models.IntegerField(default=0)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default="completado")
+    mensaje_error = models.TextField(blank=True, null=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "backup_registro"
+        ordering = ["-creado_en"]
+
+    def __str__(self):
+        return f"Backup {self.id} {self.creado_en.date()} {self.registros} regs {self.tamaño_bytes}B"
+
+
+class Auditoria(models.Model):
+    """RNF-08: trazabilidad. Qué: usuario/acción/fecha/detalle sin exponer contraseñas. Por qué: auditoría."""
+
+    ACCIONES = [
+        ("login", "Login"),
+        ("logout", "Logout"),
+        ("exportar", "Exportar"),
+        ("config_umbral", "Config umbral"),
+        ("backup", "Backup"),
+        ("carga", "Carga"),
+    ]
+    usuario = models.CharField(max_length=150, blank=True, default="")
+    accion = models.CharField(max_length=20, choices=ACCIONES)
+    detalle = models.CharField(max_length=500, blank=True, default="")
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "auditoria"
+        ordering = ["-fecha"]
+
+    def __str__(self):
+        return f"{self.fecha} {self.usuario} {self.accion}"
 
 
 class UmbralAlerta(models.Model):

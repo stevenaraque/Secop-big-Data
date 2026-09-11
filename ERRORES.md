@@ -104,5 +104,41 @@ Solución: ninguna, es la validación funcionando. No tocar código ni BD.
 Causa: solo directa (rojo) y licitación (verde) tienen color propio; régimen especial y demás van en gris `#6b7280` a propósito.
 Solución: ninguna. Si quieres más colores, agrégalos en `COLORES_MODALIDAD` de `contratos/services.py`.
 
+## 22. `MAILERS` en vez de `EMAIL_BACKEND` (RF-22)
+Causa: `settings.py:174` tenía `MAILERS = { 'default': { 'BACKEND': ... } }` que Django ignora; `send_mail` no imprimía en consola.
+Solución: cambiar a `EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'` + `DEFAULT_FROM_EMAIL`. Verificado shell imprime `Subject: Recupera tu contraseña`.
+
+## 23. Política de contraseña no validada en registro (RF-22)
+Causa: `RegistroSerializer` solo tenía `min_length 8`, aceptaba `password123` sin mayúscula.
+Solución: agregar `validate_contrasena` + `validate_nueva_contrasena` que llaman `_validar_politica_contrasena` (8+ may/min/número) en `users/services.py:1`. Verificado `400 La contraseña debe tener al menos una mayúscula.` etc., y `201 Valida123A` OK.
+
+## 24. `migrate` sin `makemigrations users` para TokenRecuperacion (RF-22)
+Causa: se creó `users/models.py:1` `TokenRecuperacion` pero no se generó migración; `relation token_recuperacion does not exist`.
+Solución: `makemigrations users` → `0001_initial.py` + `migrate` OK. Índices `token_recuperacion_pkey + token_key + idx_token_expira` verificados vía `pg_indexes`.
+
+## 25. `DisallowedHost: testserver` en Client anon (RF-23)
+Causa: `ALLOWED_HOSTS = []` bloquea `testserver` del `Client()` aunque `DEBUG=True`.
+Solución: en shell poner `settings.ALLOWED_HOSTS=['*']` antes de `Client()`, o agregar `testserver` a `ALLOWED_HOSTS`. En prod `runserver` con `DEBUG True` permite `127.0.0.1` sin tocar.
+
+## 26. VistaEstadoCarga sin `origen`/`nuevos_registros` (RF-26)
+Causa: `VistaEstadoCarga` solo devolvía `estado/total/procesados/offset`, el poll no veía `0 nuevos`.
+Solución: agregar `origen`, `nuevos_registros`, `creado_en`, `actualizado_en` en `contratos/views.py:62`. Verificado `poll completado nuevos 0`.
+
+## 27. `SODA without $order=:id` duplica en periódica (RF-26)
+Causa: `cargar_secop` usaba solo `$limit/$offset` sin `$order=:id`; SODA devuelve orden inestable y offset 0 traía ids distintos cada vez, `ignore_conflicts` no evitaba duplicados porque eran ids nuevos.
+Solución: agregar `params["$order"]=":id"` en `cargar_secop.py:34` + contar `existentes set` + `nuevos=len-existentes`. Verificado `segunda misma carga 0 nuevos count 17==17`, `offset 1 nuevos 1`.
+
+## 28. `Ya hay una actualización periódica en curso` es 409 no error (RF-26)
+Causa: se lanza segunda `POST /cargar/actualizar-periodica/` mientras hay `estado en_progreso origen periodica`.
+Solución: ninguna, es `409 {"detalle":"Ya hay..."}` esperado. Esperar a `completado` y reintentar.
+
+## 29. `deploy.ps1` con `—` y `param` no primero (RNF-10)
+Causa: comentario con `—` (em dash) antes de `param` y rutas relativas desde `Template` no desde `Big data`, `Copy-Item` fallaba con `PathNotFound`.
+Solución: quitar `—`, poner `param` primero con `$PSScriptRoot` + `Join-Path $Root ...` y usar `& "..\venv\Scripts\python.exe"`. Verificado `deploy.ps1 4/4 OK` `migrate 0` `check 0` `build 406ms`.
+
+## 30. `tamaño_bytes` con `ñ` en JSON se ve `tama��o_bytes` en PowerShell (RNF-09)
+Causa: `BackupRegistro.tamaño_bytes` con `ñ` en key JSON se manglea en `Invoke-WebRequest` por codepage.
+Solución: devolver ambas keys `tamano_bytes` (ASCII) y `tamaño_bytes` en `VistaCrearBackup` y mapear en `listar_backups` `r["tamano_bytes"]=r.pop("tamaño_bytes")`. PowerShell ahora lee `tamano_bytes 7912` OK.
+
 ---
-*Actualizado: 11/09/2026 — RF-17/20/24/27/28 — Steven Araque*
+*Actualizado: 11/09/2026 — RNF-10 deploy reproducible (Dockerfile, compose, gunicorn) — Steven Araque*

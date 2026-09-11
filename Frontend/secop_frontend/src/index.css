@@ -1,5 +1,5 @@
 :root {
-  --text: #6b6375;
+  --text: #374151; /* RNF-11: 7:1 contraste sobre #fff (mejora 4.5:1 mínimo) antes #6b6375 4.3:1 */
   --text-h: #08060d;
   --bg: #fff;
   --border: #e5e4e7;
@@ -28,6 +28,36 @@
   @media (max-width: 1024px) {
     font-size: 16px;
   }
+}
+
+/* RNF-11: foco visible 2px emerald para navegación teclado — Qué: ring. Por qué: WCAG 2.4.7 */
+*:focus-visible {
+  outline: 2px solid #059669;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+a:focus-visible,
+button:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid #059669;
+  outline-offset: 2px;
+}
+/* skip link */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: #059669;
+  color: white;
+  padding: 8px 16px;
+  z-index: 100;
+  border-radius: 0 0 8px 0;
+  text-decoration: none;
+  font-size: 14px;
+}
+.skip-link:focus {
+  left: 0;
 }
 
 @media (prefers-color-scheme: dark) {
