@@ -51,6 +51,7 @@ Hola, compa. Esto es lo que hicimos esta semana para que puedas probarlo sin per
 - **RF-24 Umbrales configurables (listo):** abajo del dashboard hay un panel "Umbrales de alertas" con los dos valores actuales. Los cambias, le das Guardar y las tablas se recalculan solas, sin reiniciar nada. Se guardan en la tabla `umbral_alerta` de la BD.
 - **RF-28 Lista de entidades + RF-27 stats (listo):** más abajo hay un panel "Entidades" con buscador por nombre o NIT y paginación. Clic en una entidad y ves sus totales, por modalidad y top contratistas. Si no tiene contratos, dice 0 sin romperse.
 - **RF-17 Grafo (listo):** abajo del todo hay una red donde cada círculo verde es una entidad y cada azul un contratista. La línea entre ellos es un contrato: más gruesa = más plata, roja = directa y verde = licitación. Puedes arrastrar los círculos y hacer zoom con la rueda. Si pones muchos contratos se pone lento, baja el número con el input.
+- **RF-21 Exportar (listo):** junto a la tabla de contratos hay un botón ⬇ CSV que descarga lo que estés filtrando. Abre bien en Excel con tildes y punto decimal. Si el filtro no trae nada, descarga solo la cabecera.
 - **Cómo probarlo:** 1) prende el backend con `runserver`, 2) haz login y guarda el `access` en el navegador, 3) abre el dashboard, cambia los umbrales y mira cómo cambian las alertas. Con los 10 datos de prueba todo da 100%, es normal; con más datos verás % reales.
 - **Si algo falla:** mira `ERRORES.md`, ahí está cada error con su causa y solución.
 
@@ -75,6 +76,7 @@ Hola, compa. Esto es lo que hicimos esta semana para que puedas probarlo sin per
 - `SECOP_Backlog_Producto.xlsx` (backlog actualizado, pull 02/09)
 - `SECOP_Insight_Backlog_Notion.md` / `.csv` (58 pts refinado)
 - Dataset SODA 2.1 `jbjy-vk9h` — 5.98M × 85 cols, columnas verificadas vía `schema-column-preview`
+- Nota 11/09/2026 (Alejandro): el PDF `Informe_Stack_Django_React (1).pdf` de Guía 1 sigue como referencia activa, pero solo como investigación del stack (Django+React), no como documentación del proyecto SECOP Insight.
 
 ## 8. 🔑 Clave de Buenas Prácticas — Obligatoria para quien lea este proyecto
 > **Si vas a tocar este código, léelo sí o sí. Sin esto, el proyecto se rompe en 2 sprints. Fuente: `Informe_Stack_Django_React (1).pdf` (57 págs, Guía 1, Grupo 8, Julio 2026).**
@@ -119,4 +121,4 @@ Esta clave resume tu PDF largo en 8 reglas no negociables. No son opcionales par
 **Fuente completa:** `Informe_Stack_Django_React (1).pdf` en `Big data/` — Bloques 1-13 con historia Django/React, componentes, paradigmas (declarativa/funcional en React, OOP en Django), arquitecturas y comparación MERN/.NET/Spring.
 
 ---
-*Actualizado: 11/09/2026 — V2 + RF-01/25/02 + RF-03/04/05 DONE + RF-06 base+pulido DONE + RF-08/09/11/10/13 DONE + RF-07 DONE + RF-12 DONE + RF-14 DONE + RF-15 mapa DONE + RF-16 clic-filtra DONE + RF-18 búsqueda DONE + RF-19 banderas DONE + RF-20 predominio DONE + RF-24 umbrales DONE + RF-28 entidades DONE + RF-27 por-entidad DONE + RF-17 grafo DONE (force-graph zoom/drag, check 0, build 4.73s) — Sprint 4 — Siguiente: RF-21 exportar — Clave OK.*
+*Actualizado: 11/09/2026 — V2 + RF-01/25/02 + RF-03/04/05 DONE + RF-06 base+pulido DONE + RF-08/09/11/10/13 DONE + RF-07 DONE + RF-12 DONE + RF-14 DONE + RF-15 mapa DONE + RF-16 clic-filtra DONE + RF-18 búsqueda DONE + RF-19 banderas DONE + RF-20 predominio DONE + RF-24 umbrales DONE + RF-28 entidades DONE + RF-27 por-entidad DONE + RF-17 grafo DONE + RF-21 exportar DONE (Boyacá 2 filas, vacío solo cabecera, check 0, build 466ms) — Sprint 4 — Siguiente: RF-22 recuperar contraseña — Clave OK.*
