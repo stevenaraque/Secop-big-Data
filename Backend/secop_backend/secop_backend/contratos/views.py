@@ -174,14 +174,18 @@ class VistaBuscar(APIView):
 class VistaBanderasConcentracion(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
-        umbral = request.query_params.get("umbral", 30)
+        # RF-24: si no mandan ?umbral=, usa el persistido en BD (sin reinicio)
+        raw = request.query_params.get("umbral")
+        if raw is None or raw == "":
+            umbral = servicio_contratos.obtener_umbral("concentracion", 30)
+        else:
+            try:
+                umbral = float(raw)
+            except (TypeError, ValueError):
+                return Response({"detalle": "Umbral inválido, use un número entre 0 y 100."}, status=400)
+            if not 0 < umbral <= 100:
+                return Response({"detalle": "Umbral inválido, use un número entre 0 y 100."}, status=400)
         depto = request.query_params.get("depto")
-        try:
-            umbral = float(umbral)
-        except (TypeError, ValueError):
-            return Response({"detalle": "Umbral inválido, use un número entre 0 y 100."}, status=400)
-        if not 0 < umbral <= 100:
-            return Response({"detalle": "Umbral inválido, use un número entre 0 y 100."}, status=400)
         datos = servicio_contratos.banderas_concentracion(umbral=umbral, depto=depto)
         return Response(datos)
 
@@ -189,15 +193,40 @@ class VistaBanderasConcentracion(APIView):
 class VistaPredominioDirecta(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
-        umbral = request.query_params.get("umbral", 80)
+        # RF-24: si no mandan ?umbral=, usa el persistido en BD (sin reinicio)
+        raw = request.query_params.get("umbral")
+        if raw is None or raw == "":
+            umbral = servicio_contratos.obtener_umbral("predominio_directa", 80)
+        else:
+            try:
+                umbral = float(raw)
+            except (TypeError, ValueError):
+                return Response({"detalle": "Umbral inválido, use un número entre 0 y 100."}, status=400)
+            if not 0 < umbral <= 100:
+                return Response({"detalle": "Umbral inválido, use un número entre 0 y 100."}, status=400)
         depto = request.query_params.get("depto")
-        try:
-            umbral = float(umbral)
-        except (TypeError, ValueError):
-            return Response({"detalle": "Umbral inválido, use un número entre 0 y 100."}, status=400)
-        if not 0 < umbral <= 100:
-            return Response({"detalle": "Umbral inválido, use un número entre 0 y 100."}, status=400)
         datos = servicio_contratos.predominio_directa(umbral=umbral, depto=depto)
         return Response(datos)
+
+
+class VistaListarUmbrales(APIView):
+    # RF-24 C3: lista los umbrales actuales. Qué: GET persistido. Por qué: admin ve qué está vigente.
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        return Response({"umbrales": servicio_contratos.listar_umbrales()})
+
+
+class VistaActualizarUmbral(APIView):
+    # RF-24 C1/C2/C4: persiste en BD, aplica sin reinicio, valida 0<valor<=100 con 400.
+    permission_classes = [permissions.IsAuthenticated]
+    def put(self, request, nombre):
+        valor = request.data.get("valor")
+        try:
+            datos = servicio_contratos.actualizar_umbral(nombre, valor)
+        except ValueError as e:
+            return Response({"detalle": str(e)}, status=400)
+        return Response(datos)
+    def patch(self, request, nombre):
+        return self.put(request, nombre)
         
         
