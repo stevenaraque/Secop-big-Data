@@ -43,6 +43,15 @@ Colombia publica 5.98M de contratos en SECOP II con 85 columnas planas que crece
 - **IDE:** `.vscode/settings.json`×3 corregidos a `C:/...` forward-slash + `cSpell.language en,es` + `cspell.json` 40 palabras, `pyproject.toml` OK. Antigravity/VS Code reload OK.
 - **Frontend:** Scaffold Vite+React en `Frontend/secop_frontend/` sin dashboard aún (Sesión 3).
 
+## 4b. Para el equipo — qué hay nuevo (11/09/2026, en palabras simples)
+Hola, compa. Esto es lo que hicimos esta semana para que puedas probarlo sin perderte:
+- **Qué es el proyecto:** un observatorio que lee contratos de SECOP II y muestra alertas de posible concentración. Backend en Django + PostgreSQL, frontend en React. Se corre en local: backend en `http://127.0.0.1:8000`, frontend en `http://localhost:5173`.
+- **RF-19 Banderas de concentración (listo):** si un contratista se queda con más del X% del dinero de una entidad, sale en una tabla roja con contratista, entidad, % y monto. Por defecto X = 30%.
+- **RF-20 Predominio de directa (listo):** si una entidad hace más del X% de sus contratos por contratación directa, sale en una tabla amarilla con entidad, % directa y montos. Por defecto X = 80%.
+- **RF-24 Umbrales configurables (listo):** abajo del dashboard hay un panel "Umbrales de alertas" con los dos valores actuales. Los cambias, le das Guardar y las tablas se recalculan solas, sin reiniciar nada. Se guardan en la tabla `umbral_alerta` de la BD.
+- **Cómo probarlo:** 1) prende el backend con `runserver`, 2) haz login y guarda el `access` en el navegador, 3) abre el dashboard, cambia los umbrales y mira cómo cambian las alertas. Con los 10 datos de prueba todo da 100%, es normal; con más datos verás % reales.
+- **Si algo falla:** mira `ERRORES.md`, ahí está cada error con su causa y solución.
+
 ## 5. Cómo enseñamos (acuerdo con Steven)
 - Explicación en párrafos cortos, no en bullet infinito. Cada paso va con el código literal para copiar en el chat y el por qué en párrafo aparte.
 - No se toca ninguna carpeta sin "sí, te autorizo". Cada `makemigrations`, `migrate` o escritura de archivo se pide permiso y se verifica con ejecución.
