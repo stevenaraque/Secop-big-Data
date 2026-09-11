@@ -291,9 +291,31 @@ export default function Dashboard({ token }) {
           </div>
 
           <div className="lg:col-span-2 rounded-2xl border border-zinc-200 bg-white p-5">
-            <h2 className="text-sm font-semibold tracking-tight">
-              Contratos · tabla virtualizada 60 FPS
-            </h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold tracking-tight">
+                Contratos · tabla virtualizada 60 FPS
+              </h2>
+              <button
+                onClick={async () => {
+                  const params = new URLSearchParams();
+                  if (depto) params.set("depto", depto);
+                  const r = await fetch(`${API}/exportar/?${params}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                  });
+                  if (!r.ok) return;
+                  const blob = await r.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `contratos${depto ? "-" + depto : ""}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="h-8 rounded-lg border border-zinc-200 px-3 text-xs font-medium hover:border-zinc-300 active:scale-[0.98]"
+              >
+                ⬇ CSV
+              </button>
+            </div>
             <p className="text-xs text-zinc-500 mt-1 tabular-nums">
               Solo las filas visibles al DOM. {contratosPag?.count ?? 0} totales
               · página 1 de {Math.ceil((contratosPag?.count || 0) / 20) || 1}{" "}

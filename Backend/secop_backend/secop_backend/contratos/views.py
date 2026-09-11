@@ -1,4 +1,6 @@
+import csv
 import threading
+from django.http import HttpResponse
 from rest_framework import status, permissions
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
@@ -279,5 +281,37 @@ class VistaGrafoRed(APIView):
             depto=request.query_params.get("depto"),
         )
         return Response(datos)
+
+
+class VistaExportarContratos(APIView):
+    # RF-21: descarga el filtrado actual en CSV. Qué: mismos filtros de la tabla + BOM. Por qué: Excel abre tildes y el punto decimal no se rompe.
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        qs = Contrato.objects.all().order_by("id")
+        depto = request.query_params.get("depto")
+        modalidad = request.query_params.get("modalidad")
+        fecha_desde = request.query_params.get("fecha_desde")
+        fecha_hasta = request.query_params.get("fecha_hasta")
+        if depto:
+            qs = servicio_contratos._filtrar_depto(qs, depto)
+        if modalidad:
+            qs = qs.filter(modalidad=modalidad)
+        if fecha_desde:
+            qs = qs.filter(fecha_firma__gte=fecha_desde)
+        if fecha_hasta:
+            qs = qs.filter(fecha_firma__lte=fecha_hasta)
+        resp = HttpResponse(content_type="text/csv; charset=utf-8")
+        resp["Content-Disposition"] = 'attachment; filename="contratos.csv"'
+        resp.write("\ufeff")
+        w = csv.writer(resp, lineterminator="\r\n")
+        w.writerow(["id_contrato", "nombre_entidad", "nit_entidad", "departamento", "ciudad",
+                    "modalidad", "estado_contrato", "valor_contrato", "fecha_firma",
+                    "contratista_nit", "contratista_nombre"])
+        for c in qs.iterator(chunk_size=2000):
+            w.writerow([c.id_contrato, c.nombre_entidad, c.nit_entidad, c.departamento, c.ciudad,
+                        c.modalidad, c.estado_contrato, str(c.valor_contrato or ""),
+                        c.fecha_firma.isoformat() if c.fecha_firma else "",
+                        c.contratista_nit, c.contratista_nombre])
+        return resp
         
         
