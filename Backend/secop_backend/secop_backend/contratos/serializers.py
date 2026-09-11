@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Contrato
+from .models import Contrato, Entidad
 
 class ContratoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,3 +9,8 @@ class ContratoSerializer(serializers.ModelSerializer):
             "departamento", "ciudad", "modalidad", "estado_contrato",
             "valor_contrato", "fecha_firma", "contratista_nit", "contratista_nombre"
         ]
+
+class EntidadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Entidad
+        fields = ["id", "nombre_entidad", "nit_entidad", "departamento", "ciudad", "sector"]

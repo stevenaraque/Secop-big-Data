@@ -49,6 +49,7 @@ Hola, compa. Esto es lo que hicimos esta semana para que puedas probarlo sin per
 - **RF-19 Banderas de concentración (listo):** si un contratista se queda con más del X% del dinero de una entidad, sale en una tabla roja con contratista, entidad, % y monto. Por defecto X = 30%.
 - **RF-20 Predominio de directa (listo):** si una entidad hace más del X% de sus contratos por contratación directa, sale en una tabla amarilla con entidad, % directa y montos. Por defecto X = 80%.
 - **RF-24 Umbrales configurables (listo):** abajo del dashboard hay un panel "Umbrales de alertas" con los dos valores actuales. Los cambias, le das Guardar y las tablas se recalculan solas, sin reiniciar nada. Se guardan en la tabla `umbral_alerta` de la BD.
+- **RF-28 Lista de entidades + RF-27 stats (listo):** más abajo hay un panel "Entidades" con buscador por nombre o NIT y paginación. Clic en una entidad y ves sus totales, por modalidad y top contratistas. Si no tiene contratos, dice 0 sin romperse.
 - **Cómo probarlo:** 1) prende el backend con `runserver`, 2) haz login y guarda el `access` en el navegador, 3) abre el dashboard, cambia los umbrales y mira cómo cambian las alertas. Con los 10 datos de prueba todo da 100%, es normal; con más datos verás % reales.
 - **Si algo falla:** mira `ERRORES.md`, ahí está cada error con su causa y solución.
 
@@ -117,4 +118,4 @@ Esta clave resume tu PDF largo en 8 reglas no negociables. No son opcionales par
 **Fuente completa:** `Informe_Stack_Django_React (1).pdf` en `Big data/` — Bloques 1-13 con historia Django/React, componentes, paradigmas (declarativa/funcional en React, OOP en Django), arquitecturas y comparación MERN/.NET/Spring.
 
 ---
-*Actualizado: 11/09/2026 — V2 + RF-01/25/02 + RF-03/04/05 DONE + RF-06 base+pulido DONE + RF-08/09/11/10/13 DONE + RF-07 DONE + RF-12 DONE + RF-14 DONE + RF-15 mapa DONE + RF-16 clic-filtra DONE + RF-18 búsqueda DONE + RF-19 banderas DONE + RF-20 predominio DONE + RF-24 umbrales DONE (modelo UmbralAlerta + 0006 OK, GET/PUT, panel sin reinicio, listar 30/80, guardar 58/59, abc 400, check 0, build 2.36s) — Sprint 4 — Siguiente: RF-27 por entidad / grafo — Clave OK.*
+*Actualizado: 11/09/2026 — V2 + RF-01/25/02 + RF-03/04/05 DONE + RF-06 base+pulido DONE + RF-08/09/11/10/13 DONE + RF-07 DONE + RF-12 DONE + RF-14 DONE + RF-15 mapa DONE + RF-16 clic-filtra DONE + RF-18 búsqueda DONE + RF-19 banderas DONE + RF-20 predominio DONE + RF-24 umbrales DONE + RF-28 entidades DONE + RF-27 por-entidad DONE (891800123 1/75M, NOEXISTE 0, check 0, build 2.23s) — Sprint 4 — Siguiente: RF-17 grafo — Clave OK.*
