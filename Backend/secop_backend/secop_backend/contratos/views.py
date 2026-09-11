@@ -1,15 +1,16 @@
 import threading
 from rest_framework import status, permissions
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.core.management import call_command
-from django.db.models import Count, Sum
-from .models import TrabajoCarga, Contrato
+from django.db.models import Count, Sum, Q
+from .models import TrabajoCarga, Contrato, Entidad
 from .services import servicio_contratos
 from django.db.models.functions import TruncMonth
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.pagination import PageNumberPagination
-from .serializers import ContratoSerializer
+from .serializers import ContratoSerializer, EntidadSerializer
 
 
 
@@ -228,5 +229,44 @@ class VistaActualizarUmbral(APIView):
         return Response(datos)
     def patch(self, request, nombre):
         return self.put(request, nombre)
+
+
+class PaginacionEntidades(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
+class VistaListaEntidades(ListAPIView):
+    # RF-28: catálogo paginado ordenado por nombre con búsqueda por nombre o NIT.
+    serializer_class = EntidadSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = PaginacionEntidades
+    def get_queryset(self):
+        qs = Entidad.objects.all().order_by("nombre_entidad")
+        q = (self.request.query_params.get("q") or "").strip()
+        if q:
+            qs = qs.filter(Q(nombre_entidad__icontains=q) | Q(nit_entidad__icontains=q))
+        return qs
+    def list(self, request, *args, **kwargs):
+        # Criterio 5: página fuera de rango responde 400 (DRF da 404 por defecto).
+        try:
+            return super().list(request, *args, **kwargs)
+        except NotFound:
+            return Response({"detalle": "Página fuera de rango."}, status=400)
+
+
+class VistaEstadisticasEntidad(APIView):
+    # RF-27: total, distribución por modalidad y top contratistas, con filtros depto/fechas.
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        datos = servicio_contratos.estadisticas_por_entidad(
+            nit=request.query_params.get("nit"),
+            entidad_id=request.query_params.get("id"),
+            depto=request.query_params.get("depto"),
+            fecha_desde=request.query_params.get("fecha_desde"),
+            fecha_hasta=request.query_params.get("fecha_hasta"),
+        )
+        return Response(datos)
         
         

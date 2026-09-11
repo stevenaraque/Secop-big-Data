@@ -1,5 +1,5 @@
 from django.db.models import Count, Sum, Avg, Q
-from .models import Contrato, UmbralAlerta
+from .models import Contrato, Entidad, UmbralAlerta
 
 class ServicioContratos:
     """Service Layer para SECOP - evita vistas gordas y centraliza ORM (Repository + Service)"""
@@ -255,5 +255,46 @@ class ServicioContratos:
         obj.valor = v
         obj.save()
         return {"nombre": obj.nombre, "valor": float(obj.valor)}
+
+    def estadisticas_por_entidad(self, nit=None, entidad_id=None, depto=None, fecha_desde=None, fecha_hasta=None):
+        # RF-27: stats por entidad agrupando por MODELO (criterio 3), con fallback a texto ETL sin FK.
+        # Qué: total + distribución modalidad + top contratistas. Por qué: ver desempeño y concentración por entidad.
+        entidad = None
+        if entidad_id:
+            try:
+                entidad = Entidad.objects.get(id=int(entidad_id))
+            except (Entidad.DoesNotExist, TypeError, ValueError):
+                entidad = None
+        if entidad is None and nit:
+            entidad = Entidad.objects.filter(nit_entidad=str(nit).strip()).first()
+        if entidad is not None:
+            qs = self.modelo.objects.filter(Q(entidad=entidad) | Q(nit_entidad=entidad.nit_entidad))
+            info = {"id": entidad.id, "nombre_entidad": entidad.nombre_entidad, "nit_entidad": entidad.nit_entidad,
+                    "departamento": entidad.departamento, "ciudad": entidad.ciudad, "sector": entidad.sector}
+        elif nit:
+            qs = self.modelo.objects.filter(Q(nit_entidad=str(nit).strip()))
+            primero = qs.order_by("id").first()
+            info = {"id": None, "nombre_entidad": primero.nombre_entidad if primero else "",
+                    "nit_entidad": str(nit).strip(), "departamento": "", "ciudad": "", "sector": ""}
+        else:
+            return {"entidad": None, "total_contratos": 0, "total_contratado": 0.0,
+                    "por_modalidad": [], "top_contratistas": []}
+        qs = self._filtrar_depto(qs, depto)
+        if fecha_desde:
+            qs = qs.filter(fecha_firma__gte=fecha_desde)
+        if fecha_hasta:
+            qs = qs.filter(fecha_firma__lte=fecha_hasta)
+        agg = qs.aggregate(total=Count("id"), suma=Sum("valor_contrato"))
+        total = agg["total"] or 0
+        if total == 0:
+            return {"entidad": info, "total_contratos": 0, "total_contratado": 0.0,
+                    "por_modalidad": [], "top_contratistas": []}
+        por_modalidad = list(qs.values("modalidad").annotate(total=Count("id"), suma=Sum("valor_contrato")).order_by("-total"))
+        por_modalidad = [{"modalidad": r["modalidad"], "total": r["total"], "suma": float(r["suma"] or 0)} for r in por_modalidad]
+        top = list(qs.values("contratista_nit", "contratista_nombre").annotate(total=Count("id"), suma=Sum("valor_contrato")).order_by("-suma")[:5])
+        top = [{"contratista_nit": r["contratista_nit"], "contratista_nombre": r["contratista_nombre"],
+                "total": r["total"], "suma": float(r["suma"] or 0)} for r in top]
+        return {"entidad": info, "total_contratos": total, "total_contratado": float(agg["suma"] or 0),
+                "por_modalidad": por_modalidad, "top_contratistas": top}
 
 servicio_contratos = ServicioContratos()

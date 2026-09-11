@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import VistaIniciarCarga, VistaEstadoCarga, VistaResumenOptimizado, VistaResumenNaive, VistaListarCargas, VistaTopContratistasOptimizado, VistaTopContratistasNaive, VistaListaContratos, VistaDetalleContrato, VistaSerieMensualOptimizado, VistaMapaDirectaOptimizado, VistaBuscar, VistaBanderasConcentracion, VistaPredominioDirecta, VistaListarUmbrales, VistaActualizarUmbral
+from .views import VistaIniciarCarga, VistaEstadoCarga, VistaResumenOptimizado, VistaResumenNaive, VistaListarCargas, VistaTopContratistasOptimizado, VistaTopContratistasNaive, VistaListaContratos, VistaDetalleContrato, VistaSerieMensualOptimizado, VistaMapaDirectaOptimizado, VistaBuscar, VistaBanderasConcentracion, VistaPredominioDirecta, VistaListarUmbrales, VistaActualizarUmbral, VistaListaEntidades, VistaEstadisticasEntidad
 
 urlpatterns = [
     path("cargar/", VistaIniciarCarga.as_view(), name="iniciar_carga"),
@@ -18,5 +18,7 @@ urlpatterns = [
     path("predominio-directa/", VistaPredominioDirecta.as_view(), name="predominio_directa"),
     path("umbrales/", VistaListarUmbrales.as_view(), name="listar_umbrales"),
     path("umbrales/<str:nombre>/", VistaActualizarUmbral.as_view(), name="actualizar_umbral"),
+    path("entidades/", VistaListaEntidades.as_view(), name="lista_entidades"),
+    path("por-entidad/", VistaEstadisticasEntidad.as_view(), name="por_entidad"),
 
 ]

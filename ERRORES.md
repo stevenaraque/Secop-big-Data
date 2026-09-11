@@ -87,5 +87,18 @@ cd "C:\Users\PC_03\OneDrive\Desktop\Big data\Backend\secop_backend"
 venv\Scripts\python.exe secop_backend\manage.py runserver
 ```
 
+## 19. `bad_authorization_header` al probar entidades (RF-27/28)
+Causa: `$tok` vacío porque se abrió otra PowerShell o no se hizo login en la misma ventana. El header llega como `Bearer ` sin token.
+Solución: login y pruebas en la MISMA ventana, y verificar que `$tok` imprima el `eyJ...` antes de seguir:
+```powershell
+$r = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/auth/login/" -ContentType "application/json" -Body '{"correo":"steven@gmail.com","contrasena":"123456789"}'
+$tok = $r.access
+$tok
+```
+
+## 20. El rojo de `page=9999` y `umbral=abc` NO es error (RF-24/27/28)
+Causa: se espera HTTP 400 con `{"detalle":"Página fuera de rango."}` o `{"detalle":"Umbral inválido..."}`.
+Solución: ninguna, es la validación funcionando. No tocar código ni BD.
+
 ---
-*Actualizado: 09/09/2026 — RF-15/16 — Steven Araque + Jarvis*
+*Actualizado: 11/09/2026 — RF-20/24/27/28 — Steven Araque + Jarvis*
