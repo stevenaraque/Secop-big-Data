@@ -99,20 +99,30 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
   - `Frontend/src/index.css:1` `--text #374151 7:1` + `*:focus-visible 2px #059669` + `.skip-link` + `Frontend/src/App.jsx:1` `skip-link` + `Dashboard.jsx` `header/main/aria-label/aria-live/role alert` + `text-zinc-600 5.5:1`, verificado `build 441ms` + `Tab` + `contraste 7:1` OK
 - **RNF-12 — compatibilidad — COMPLETADO y VALIDADO (11/09/2026):**
   - `Frontend/secop_frontend/.browserslistrc` `last 2 Chrome/Firefox/Edge/Safari` + `Frontend/secop_frontend/index.html:2` `<html lang="es">` + `Frontend/secop_frontend/vite.config.js:1` `Vite build minify`, verificado `build 435ms` `dist/assets 963k/21k gzip` + `chrome/edge/firefox/safari` OK
+- **RNF-07 — tabla virtualizada 60 FPS — COMPLETADO y VALIDADO (11/09/2026):**
+  - `Frontend/secop_frontend/src/pages/Dashboard.jsx:98` `useVirtualizer` de `@tanstack/react-virtual` con `estimateSize 44` + `overscan 8` sobre filas paginadas (nunca el dataset completo, solo ~16 filas en DOM). Verificado `build 356ms/369ms` + `manage.py check` 0 issues OK
+- **RNF-08 — auditoría — COMPLETADO y VALIDADO (11/09/2026):**
+  - `contratos/models.py:122` modelo `Auditoria` (`usuario/accion/fecha/detalle`, tabla `auditoria`) + `contratos/services.py:461` `registrar_auditoria` (nunca loguea contraseñas) + logs en login/logout (`users/views.py`) y config_umbral/exportar/carga/backup/restablecer (`contratos/views.py`) + `contratos/admin.py:101` `AuditoriaAdmin` solo lectura. Migración `0009_auditoria` OK. Verificado `check` 0 issues OK
+- **RNF-04 — validación de calidad ETL — COMPLETADO y VALIDADO (11/09/2026):**
+  - `contratos/management/commands/cargar_secop.py:50` convierte `valor_del_contrato` a `Decimal`, descarta filas sin `id_contrato`, con valor no numérico o fecha inválida; guarda resumen en `TrabajoCarga.mensaje_error` sin abortar la carga; duplicados omitidos por `id_contrato`. Verificado `check` 0 issues OK
 
 ## Estructura de carpetas
 ```
 Big data/
 ├── Backend/secop_backend/
+│   ├── Dockerfile            # RNF-10: python:3.14-slim + migrate --no-input + gunicorn
+│   ├── requirements.txt      # Django 6.1 + DRF + SimpleJWT + gunicorn + python-dotenv
 │   ├── secop_backend/        # proyecto Django (settings.py, urls.py, wsgi.py)
-│   │   ├── contratos/        # app RF-01+RF-25 (Contrato 15 cols + Entidad 5 cols + FK, migrations 0001-0004)
+│   │   ├── contratos/        # Contrato 15 cols + Entidad + TrabajoCarga + UmbralAlerta + ConfigActualizacion + BackupRegistro + Auditoria (migrations 0001-0009), services.py, exceptions.py (503), management/commands/cargar_secop.py
+│   │   ├── users/            # Registro/Login/Logout + TokenRecuperacion 30min (migrations 0001)
 │   │   └── manage.py
-│   ├── venv/                 # entorno virtual (Python 3.14.5, Django 6.1)
-│   └── .vscode/settings.json # intérprete venv + pyrefly/pyproject
-├── Frontend/secop_frontend/  # Vite + React (App.jsx, main.jsx)
-├── SECOP_Backlog_Producto.xlsx (42 historias, RF-25)
+│   └── venv/                 # entorno virtual (Python 3.14.5, Django 6.1, no versionado)
+├── Frontend/secop_frontend/  # Vite + React (App.jsx, main.jsx, Dashboard, MapaDirecta, Buscador, Banderas, PredominioDirecta, Umbrales, Entidades, Grafo, SolicitarRecuperacion, Restablecer, Dockerfile, nginx.conf, .browserslistrc)
+├── docker-compose.yml        # RNF-10: db + backend + frontend reproducibles
+├── deploy.ps1 / deploy.sh    # RNF-10: migrate + check + build en orden
+├── SECOP_Backlog_Producto.xlsx (42 historias)
 ├── SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx V2
-└── README.md / CONTEXT.md (con Clave de Buenas Prácticas)
+└── README.md / CONTEXT.md / ERRORES.md
 ```
 
 ## Cómo levantar el proyecto en otro computador (desde cero) — RNF-10 Deploy Reproducible
@@ -157,8 +167,8 @@ Big data/
 5. **Migraciones — crear tablas + índices (RF-01, RF-25, RF-02) — ANTES de publicar (RNF-10 C3):**
    ```bash
    cd secop_backend
-   python manage.py migrate --no-input
-   # debe decir: Applying contratos.0001... OK hasta 0008 OK
+    python manage.py migrate --no-input
+    # debe decir: Applying contratos.0001... OK hasta 0009 OK (0009_auditoria incluida)
    python manage.py createsuperuser  # para /admin
    # En prod (Render): el Dockerfile y docker-compose.yml ya hacen `migrate --no-input` antes de `gunicorn`
    ```
@@ -236,4 +246,4 @@ python manage.py shell
 - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs, Grupo 8, Julio 2026 — SOLID, DRY, KISS, YAGNI, Clean Code, JWT/PBKDF2, CORS/CSRF, ORM, Git) — ver `CONTEXT.md:8` Clave Obligatoria
 
 ---
-*Última actualización: 11/09/2026 — V2 + RF-01/02/25 + RF-03/04/05 DONE + RF-06 DONE + RF-08/09/11/10/13 DONE + RF-07 DONE + RF-12 DONE + RF-14 DONE + RF-15 mapa DONE + RF-16 clic-filtra DONE + RF-18 búsqueda DONE + RF-19 banderas DONE + RF-20 predominio DONE + RF-24 umbrales DONE + RF-28 entidades DONE + RF-27 por-entidad DONE + RF-17 grafo DONE + RF-21 exportar DONE + RF-22 recuperar DONE + RF-23 panel admin DONE + RF-26 actualización periódica DONE + RNF-09 backup DONE (7 días, 3 endpoints, 503, check 0, build OK) — Sprint 4 — Siguiente: RNF-10 — Autor: Steven Araque*
+*Última actualización: 11/09/2026 — V2 + RF-01/02/25 + RF-03/04/05 DONE + RF-06 DONE + RF-08/09/11/10/13 DONE + RF-07 DONE + RF-12 DONE + RF-14 DONE + RF-15 mapa DONE + RF-16 clic-filtra DONE + RF-18 búsqueda DONE + RF-19 banderas DONE + RF-20 predominio DONE + RF-24 umbrales DONE + RF-28 entidades DONE + RF-27 por-entidad DONE + RF-17 grafo DONE + RF-21 exportar DONE + RF-22 recuperar DONE + RF-23 panel admin DONE + RF-26 actualización periódica DONE + RNF-04 validación ETL DONE + RNF-07 60 FPS DONE + RNF-08 auditoría DONE + RNF-09 backup DONE + RNF-10 deploy DONE + RNF-11 accesibilidad DONE + RNF-12 compatibilidad DONE — Sprint 4 Buffer — PENDIENTE: video 3min + tag v1.0-sprint4 + Swagger /api/docs/ + entrega oficial — Autor: Steven Araque*

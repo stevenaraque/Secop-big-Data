@@ -32,3 +32,6 @@ build/
 
 # Postgres
 *.dump
+
+# Backups locales RNF-09 (se generan con POST /api/cargar/backup/, no se versionan)
+Backend/secop_backend/secop_backend/backups/*.json
