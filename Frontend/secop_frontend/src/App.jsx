@@ -1,4 +1,5 @@
 import Dashboard from "./pages/Dashboard.jsx";
+import Login from "./pages/Login.jsx";
 import SolicitarRecuperacion from "./pages/SolicitarRecuperacion.jsx";
 import Restablecer from "./pages/Restablecer.jsx";
 import "./App.css";
@@ -25,10 +26,23 @@ function App() {
         <SolicitarRecuperacion />
       </>
     );
+  if (path.includes("login"))
+    return (
+      <>
+        {skip}
+        <Login />
+      </>
+    );
+  // Sin token no hay dashboard: mandar al login en vez de página vacía.
+  const token = localStorage.getItem("access");
+  if (!token) {
+    window.location.replace("/login");
+    return null;
+  }
   return (
     <>
       {skip}
-      <Dashboard token={localStorage.getItem("access")} />
+      <Dashboard token={token} />
     </>
   );
 }

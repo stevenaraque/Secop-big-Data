@@ -55,6 +55,26 @@ async function fetchContratos({ depto, page }, token) {
 export default function Dashboard({ token }) {
   const [depto, setDepto] = useState("Boyacá");
 
+  // Cierra sesión: invalida el refresh en el backend (best-effort) y
+  // borra el local para que App.jsx mande a /login.
+  async function handleLogout() {
+    try {
+      await fetch(`${API}/auth/logout/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access")}`,
+        },
+        body: JSON.stringify({ refresh: localStorage.getItem("refresh") }),
+      });
+    } catch {
+      // igual salimos en local aunque el backend no responda
+    }
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    window.location.href = "/login";
+  }
+
   const {
     data: resumen,
     isLoading: cargando,
@@ -153,6 +173,14 @@ export default function Dashboard({ token }) {
                 </option>
               ))}
             </select>
+            <button
+              type="button"
+              aria-label="Cerrar sesión"
+              onClick={handleLogout}
+              className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-700 hover:border-zinc-300 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+            >
+              Salir
+            </button>
           </div>
         </div>
       </header>
