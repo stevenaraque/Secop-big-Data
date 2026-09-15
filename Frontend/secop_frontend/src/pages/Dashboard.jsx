@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   BarChart,
@@ -84,12 +84,16 @@ export default function Dashboard({ token }) {
     queryFn: () => fetchResumen(depto, token),
     enabled: !!token,
     staleTime: 1000 * 60 * 5,
+    // RF-16: conserva KPIs anteriores mientras carga el nuevo depto — evita
+    // desmontar el dashboard (y destruir el mapa Leaflet) en cada clic.
+    placeholderData: keepPreviousData,
   });
   const { data: topData, isError: errorTop } = useQuery({
     queryKey: ["top", depto],
     queryFn: () => fetchTop(depto, token),
     enabled: !!token,
     staleTime: 1000 * 60 * 5,
+    placeholderData: keepPreviousData,
   });
   // RF-16: opciones del dropdown salen del mapa para que todo clic tenga su option
   const { data: mapaData } = useQuery({
@@ -111,6 +115,7 @@ export default function Dashboard({ token }) {
     queryFn: () => fetchContratos({ depto, page: 1 }, token),
     enabled: !!token,
     staleTime: 1000 * 60 * 5,
+    placeholderData: keepPreviousData,
   });
 
   const rows = contratosPag?.results ?? [];
@@ -131,7 +136,10 @@ export default function Dashboard({ token }) {
         Inicia sesión para ver el dashboard. Guarda tu access en localStorage.
       </div>
     );
-  if (cargando)
+  // Esqueleto solo la primera vez (sin datos previos). Con keepPreviousData,
+  // cambiar de depto ya no desmonta la página: isLoading es false y se ve
+  // "actualizando..." mientras llega lo nuevo.
+  if (cargando && !resumen)
     return (
       <div className="max-w-[1200px] mx-auto p-8">
         <div className="h-24 animate-pulse bg-zinc-100 rounded-xl" />

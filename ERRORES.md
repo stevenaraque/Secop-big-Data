@@ -141,4 +141,9 @@ Causa: `BackupRegistro.tamaño_bytes` con `ñ` en key JSON se manglea en `Invoke
 Solución: devolver ambas keys `tamano_bytes` (ASCII) y `tamaño_bytes` en `VistaCrearBackup` y mapear en `listar_backups` `r["tamano_bytes"]=r.pop("tamaño_bytes")`. PowerShell ahora lee `tamano_bytes 7912` OK.
 
 ---
-*Actualizado: 11/09/2026 — RNF-10 deploy reproducible (Dockerfile, compose, gunicorn) — Steven Araque*
+## 31. Clic en mapa "recarga" toda la pagina (RF-16)
+Causa: `Dashboard.jsx` tenia `if (cargando) return <esqueleto/>`. Al cambiar `depto`, la nueva llave `["resumen", depto]` pone `isLoading` en true, el early return desmonta TODO (incluido Leaflet con `map.remove()`) y al llegar los datos se reconstruye desde cero: re-descarga GeoJSON, pierde zoom y parpadea.
+Solucion: `placeholderData: keepPreviousData` en resumen/top/contratos + esqueleto solo si `cargando && !resumen`. Ahora el clic conserva KPIs, sale "actualizando..." y el mapa no se destruye. Verificado `build 407ms` OK.
+
+---
+*Actualizado: 15/09/2026 — RF-16 clic sin recarga (keepPreviousData) + RF-04 login frontend — Steven Araque*
