@@ -44,6 +44,7 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
 | Panel admin | Contratos, entidades, cargas, umbrales, backups, auditoría |
 | Auditoría | Quién hizo qué y cuándo (login, exportar, cargas, backups, umbrales) |
 | Ops | Backup 7 días, deploy Docker reproducible, accesibilidad teclado, compatibilidad navegadores |
+| Swagger | `/api/schema/` OpenAPI 3.0.3 + `/api/docs/` UI interactiva 34 endpoints + Try it out + Bearer |
 
 ## Estructura de carpetas
 ```
@@ -189,4 +190,4 @@ python manage.py shell
   - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs, Grupo 8, Julio 2026 — SOLID, DRY, KISS, YAGNI, Clean Code, JWT/PBKDF2, CORS/CSRF, ORM, Git) — ver `CONTEXT.md:8` Clave Obligatoria
 
 ---
-*Última actualización: 16/09/2026 — panel ActualizacionMasiva + fix sin fecha + backlog 49 + BD 4669 contratos — Autor: Steven Araque*
+*Última actualización: 16/09/2026 — Swagger /api/docs/ + Tests 8 passing + panel ActualizacionMasiva + fix sin fecha + backlog 49 + BD 4669 contratos — Autor: Steven Araque*

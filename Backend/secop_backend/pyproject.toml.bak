@@ -1,0 +1,10 @@
+﻿[tool.pyrefly]
+python-interpreter = "C:/Users/PC_03/OneDrive/Desktop/Big data/Backend/secop_backend/venv/Scripts/python.exe"
+disable = true
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "secop_backend.settings"
+python_files = ["tests.py", "test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
