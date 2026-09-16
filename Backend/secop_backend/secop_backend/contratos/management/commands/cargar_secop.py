@@ -71,16 +71,17 @@ class Command(BaseCommand):
                 invalidas.append(f"valor no numérico '{raw_val}' id {idc}")
                 continue
             fecha_raw = fila.get("fecha_de_firma") or ""
-            fecha = None
-            if fecha_raw:
-                try:
-                    fecha = fecha_raw.split("T")[0]
-                    # validar fecha
-                    from datetime import date
-                    date.fromisoformat(fecha)
-                except Exception:
-                    invalidas.append(f"fecha inválida '{fecha_raw}' id {idc}")
-                    continue
+            if not fecha_raw:
+                invalidas.append(f"sin fecha id {idc}")
+                continue
+            try:
+                fecha = fecha_raw.split("T")[0]
+                # validar fecha
+                from datetime import date
+                date.fromisoformat(fecha)
+            except Exception:
+                invalidas.append(f"fecha inválida '{fecha_raw}' id {idc}")
+                continue
             a_crear.append(Contrato(
                 nombre_entidad=fila.get("nombre_entidad","")[:255],
                 nit_entidad=fila.get("nit_entidad","")[:50],

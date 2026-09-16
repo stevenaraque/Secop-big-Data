@@ -26,14 +26,15 @@ Observatorio ciudadano que ingiere contratos SECOP II desde `datos.gov.co` (data
 - **Gestión:** Notion (4 Sprints, 42 requisitos, 124 pts) + `EstructuraSesion_v2.xlsx` V2 (5 sesiones × 6h 6:00-11:30 = 30h, Día 1-5) + `SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx` V2 + `SECOP_Backlog_Producto.xlsx` (Product Backlog + 42 Historias con criterios)
 
 ## Estado
-Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transferencia)**. 42 RF + RNF-04/07/08/09/10/11/12 completados y verificados (`manage.py check` 0 issues, `npm run build` OK). Evidencia por requisito en `CONTEXT.md:4`, errores con causa y solución en `ERRORES.md`. Pendientes en Roadmap.
+Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transferencia)**. 49 requisitos (42 base + 7 frontend RF-29..RF-35) + RNF-04/07/08/09/10/11/12 completados y verificados (`manage.py check` 0 issues, `npm run build` OK). BD 16/09: 4669 contratos. Evidencia por requisito en `CONTEXT.md:4`, errores con causa y solución en `ERRORES.md`. Pendientes en Roadmap.
 
 ## Módulos (una línea cada uno, detalle en `CONTEXT.md:4`)
 | Módulo | Qué hace |
 |---|---|
 | Auth API | Registro, login, logout JWT + recuperar contraseña 30min un solo uso |
 | Login front | Página `/login`, redirect sin token, botón Salir con blacklist de refresh |
-| ETL | `cargar_secop` SODA 2.1 paginado + monitoreo + actualización periódica sin duplicados + validación de calidad |
+| ETL | `cargar_secop` SODA 2.1 paginado + monitoreo + actualización periódica sin duplicados + validación de calidad (descarta sin fecha) |
+| Actualización masiva front | Panel `ActualizacionMasiva.jsx` limite/offset/depto + polling 1s + última actualización (solo admin) |
 | API agregada | Resumen, top, serie mensual, mapa, búsqueda y stats por entidad en BD (endpoints naive vs optimized) |
 | Dashboard | KPIs + tabla virtualizada + exportar CSV con BOM |
 | Mapa | Coroplético % directa, clic filtra, limpia con VER TODO |
@@ -55,10 +56,10 @@ Big data/
 │   │   ├── users/            # Registro/Login/Logout + TokenRecuperacion 30min (migrations 0001)
 │   │   └── manage.py
 │   └── venv/                 # entorno virtual (Python 3.14.5, Django 6.1, no versionado)
-├── Frontend/secop_frontend/  # Vite + React (App.jsx, main.jsx, Dashboard, Login, MapaDirecta, Buscador, Banderas, PredominioDirecta, Umbrales, Entidades, Grafo, SolicitarRecuperacion, Restablecer, Dockerfile, nginx.conf, .browserslistrc)
+├── Frontend/secop_frontend/  # Vite + React (App.jsx, main.jsx, Dashboard, Login, MapaDirecta, Buscador, Banderas, PredominioDirecta, Umbrales, ActualizacionMasiva, Entidades, Grafo, SolicitarRecuperacion, Restablecer, Dockerfile, nginx.conf, .browserslistrc)
 ├── docker-compose.yml        # RNF-10: db + backend + frontend reproducibles
 ├── deploy.ps1 / deploy.sh    # RNF-10: migrate + check + build en orden
-├── SECOP_Backlog_Producto.xlsx (42 historias)
+├── SECOP_Backlog_Producto.xlsx (49 historias: 42 base + 7 frontend RF-29..RF-35)
 ├── SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx V2
 └── README.md / CONTEXT.md / ERRORES.md
 ```
@@ -188,4 +189,4 @@ python manage.py shell
   - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs, Grupo 8, Julio 2026 — SOLID, DRY, KISS, YAGNI, Clean Code, JWT/PBKDF2, CORS/CSRF, ORM, Git) — ver `CONTEXT.md:8` Clave Obligatoria
 
 ---
-*Última actualización: 15/09/2026 — README compacto (portada: qué / qué hace / cómo correr / dónde seguir; el diario por RF vive en `CONTEXT.md:4`) — Autor: Steven Araque*
+*Última actualización: 16/09/2026 — panel ActualizacionMasiva + fix sin fecha + backlog 49 + BD 4669 contratos — Autor: Steven Araque*
