@@ -154,7 +154,7 @@ Esta clave resume tu PDF largo en 8 reglas no negociables. No son opcionales par
 Fuente: `GFPI-F-135-Guia4-DesarrolloExplicación.pdf` (Escritorio, fuera del repo). RA: base de datos desde el modelo + componentes front + codificar según diseño + probar el software. Proceso A (desarrollo) + Proceso B (transferencia) en simultáneo.
 - **Proyecto de software OK:** 49 requisitos (42 base + 7 frontend RF-29..RF-35) operativos con Django + PostgreSQL + React decoupled. BD 16/09: 4669 contratos.
 - **Código fuente OK:** SOLID/DRY/patrones en §8, `check 0` + `build` OK.
-- **Repositorio CASI:** al día en GitHub salvo login frontend (15/09 en disco, sin pushear). Solo rama `main`, sin `feature/*` ni PRs (la guía pide gestión de ramas).
+- **Repositorio OK (16/09/2026):** al día en GitHub rama `feature/actualizacion-masiva` con PR #1 abierto. Commits limpios estilo `RF-XX descripción`. Push completado 16/09.
 - **Herramienta de gestión POR VERIFICAR:** Notion con 4 Sprints debe tener tareas/responsables/estados al día + login de hoy. El instructor la puede revisar en cualquier momento.
 - **Pruebas OK (16/09/2026):** 5 backend pytest (modelo, servicio, ETL) + 3 frontend vitest (Login) = 8 passing. Verificado `pytest -v` 5 passed + `npm test` 3 passed.
 - **Autoría historial RUIDO:** commits viejos a nombre de Doris Lopez (`dylc26604697@soy.sena.edu.co`); `git config` actual ya es steven araque.
@@ -165,4 +165,4 @@ Fuente: `GFPI-F-135-Guia4-DesarrolloExplicación.pdf` (Escritorio, fuera del rep
 - **Hallazgos estilo 15/09 (verificados, actualizado 16/09):** routing por `pathname` sin React Router; clases Tailwind sin Tailwind y sin definir (estilo visual muerto, `App.css` es plantilla Vite sin usar); profiler dual solo en backend (endpoints), no en pantalla; sin registro en UI; dashboard apila todo en una página; BD ya con 4669 contratos (tesis "se congela" ya medible, no teórica).
 
 ---
-*Actualizado: 16/09/2026 — V2 + RF-01/25/02 + RF-03/04/05 DONE + RF-06 base+pulido DONE + RF-08/09/11/10/13 DONE + RF-07 DONE + RF-12 DONE + RF-14 DONE + RF-15 mapa DONE + RF-16 clic-filtra DONE + RF-18 búsqueda DONE + RF-19 banderas DONE + RF-20 predominio DONE + RF-24 umbrales DONE + RF-28 entidades DONE + RF-27 por-entidad DONE + RF-17 grafo DONE + RF-21 exportar DONE + RF-22 recuperar DONE + RF-23 panel admin DONE + RF-26 actualización periódica DONE + panel ActualizacionMasiva frontend DONE + RNF-04 fix sin fecha DONE + backlog 49 (RF-29..RF-35 frontend) + BD 4669 contratos + Swagger /api/docs/ DONE + Tests 8 passing (5 pytest + 3 vitest) — Sprint 4 Buffer — PENDIENTE: push cambios 16/09 + ramas + video 3min + tag v1.0-sprint4 + Notion + entrega oficial (ver §9 Guía 4).*
+*Actualizado: 16/09/2026 — TODO DONE: V2 + 49 RF + Swagger + Tests 8 + ActualizacionMasiva + Fix fecha + Backlog Notion CSV 49 + BD 4669 + Push PR #1 — Sprint 4 Buffer — PENDIENTE SOLO: video 3min + tag v1.0-sprint4 + Notion import + entrega oficial (ver §9 Guía 4).*
