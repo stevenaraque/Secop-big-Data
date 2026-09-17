@@ -24,13 +24,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-c%9#8ri8idg7iwdey%h^m*sc+17@dq)jrxgds__kd^ce)@$fd^'
+# RNF-10 C4: secretos por env, nunca hardcodear. Qué: os.getenv. Por qué: evita filtración en repo.
+SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-cambiar-en-produccion-si-no-hay-env")
+DEBUG = os.getenv("DEBUG", "True") == "True"
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+# Hardening prod (activo solo si DEBUG=False): HTTPS + HSTS + cookies seguras
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
 
 
 # Application definition
@@ -44,6 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    'drf_spectacular',
     'rest_framework_simplejwt.token_blacklist',
     'contratos',
     'users',
@@ -156,6 +164,18 @@ REST_FRAMEWORK = {
         "user": "100/min",
     },
     "EXCEPTION_HANDLER": "contratos.exceptions.secop_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "SECOP Insight API",
+    "DESCRIPTION": "Observatorio de Contratación Pública SECOP II - API agregada y ETL",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SECURITY": [{"BearerAuth": []}],
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
+    "SERVE_AUTHENTICATION": [],
 }
 
 SIMPLE_JWT = {

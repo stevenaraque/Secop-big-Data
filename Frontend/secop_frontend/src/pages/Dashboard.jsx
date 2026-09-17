@@ -14,6 +14,7 @@ import Buscador from "./Buscador.jsx";
 import Banderas from "./Banderas.jsx";
 import PredominioDirecta from "./PredominioDirecta.jsx";
 import Umbrales from "./Umbrales.jsx";
+import ActualizacionMasiva from "./ActualizacionMasiva.jsx";
 import Entidades from "./Entidades.jsx";
 import Grafo from "./Grafo.jsx";
 
@@ -204,6 +205,9 @@ export default function Dashboard({ token }) {
           </div>
           <div className="mt-6">
             <Umbrales token={token} />
+          </div>
+          <div className="mt-6">
+            <ActualizacionMasiva token={token} />
           </div>
           <div className="mt-6">
             <Entidades token={token} />
