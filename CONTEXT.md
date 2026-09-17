@@ -165,4 +165,4 @@ Fuente: `GFPI-F-135-Guia4-DesarrolloExplicación.pdf` (Escritorio, fuera del rep
 - **Hallazgos estilo 15/09 (verificados, actualizado 16/09):** routing por `pathname` sin React Router; clases Tailwind sin Tailwind y sin definir (estilo visual muerto, `App.css` es plantilla Vite sin usar); profiler dual solo en backend (endpoints), no en pantalla; sin registro en UI; dashboard apila todo en una página; BD ya con 4669 contratos (tesis "se congela" ya medible, no teórica).
 
 ---
-*Actualizado: 16/09/2026 — TODO DONE: V2 + 49 RF + Swagger + Tests 8 + ActualizacionMasiva + Fix fecha + Backlog Notion CSV 49 + BD 4669 + Push PR #1 — Sprint 4 Buffer — PENDIENTE SOLO: video 3min + tag v1.0-sprint4 + Notion import + entrega oficial (ver §9 Guía 4).*
+*Actualizado: 17/09/2026 — P0-1 DONE: SECRET_KEY/DEBUG/ALLOWED_HOSTS por env + nueva key + hardening prod + .env/.env.example + check --deploy OK — Pendiente P0-2 Docker images, P0-3 Tailwind, P0-5 tag, video, Notion (ver §9).*
