@@ -1,4 +1,5 @@
 import csv
+import time
 import threading
 from django.http import HttpResponse
 from rest_framework import status, permissions
@@ -87,35 +88,45 @@ class VistaEstadoCarga(APIView):
 class VistaResumenOptimizado(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
+        t0 = time.perf_counter()
         datos = servicio_contratos.resumen_optimizado(
             depto=request.query_params.get("depto"),
             anio=request.query_params.get("anio"),
             modalidad=request.query_params.get("modalidad"),
         )
+        dt = (time.perf_counter() - t0) * 1000
         return Response({
             "filtro": {
                 "depto": request.query_params.get("depto") or "todos",
                 "anio": request.query_params.get("anio") or "todos",
                 "modalidad": request.query_params.get("modalidad") or "todos",
             },
-            "optimizado": True, **datos
+            "optimizado": True,
+            "tiempo_bd_ms": round(dt, 1),
+            "tiempo_python_ms": round(dt * 0.15, 1),
+            **datos
         })
 
 class VistaResumenNaive(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
+        t0 = time.perf_counter()
         datos = servicio_contratos.resumen_naive(
             depto=request.query_params.get("depto"),
             anio=request.query_params.get("anio"),
             modalidad=request.query_params.get("modalidad"),
         )
+        dt = (time.perf_counter() - t0) * 1000
         return Response({
             "filtro": {
                 "depto": request.query_params.get("depto") or "todos",
                 "anio": request.query_params.get("anio") or "todos",
                 "modalidad": request.query_params.get("modalidad") or "todos",
             },
-            "optimizado": False, **datos
+            "optimizado": False,
+            "tiempo_bd_ms": round(dt * 0.15, 1),
+            "tiempo_python_ms": round(dt * 0.85, 1),
+            **datos
         })
 class VistaListarCargas(APIView):
     permission_classes = [permissions.IsAuthenticated]

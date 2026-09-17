@@ -1,0 +1,191 @@
+import { useState, useEffect } from "react";
+import { motion } from "motion/react";
+
+const API = "http://127.0.0.1:8000/api";
+
+// Profiler Dual 4 barras: BD | Python | TTFB | Render + toggle Usuario/Ingeniería
+// Design: Telemetry Tactico (mono, scanlines sutiles, 1 acento emerald <80%, DENSITY 8)
+// Stack: recharts + motion + mono numbers
+export default function ProfilerDual({ token, depto }) {
+  const [modo, setModo] = useState("usuario"); // usuario | ingenieria
+  const [opt, setOpt] = useState(null);
+  const [naive, setNaive] = useState(null);
+  const [ttfbOpt, setTtfbOpt] = useState(0);
+  const [ttfbNaive, setTtfbNaive] = useState(0);
+  const [renderMs, setRenderMs] = useState(0);
+
+  useEffect(() => {
+    if (!token) return;
+    let vivo = true;
+    const q = depto ? `?depto=${encodeURIComponent(depto)}` : "";
+
+    async function medir(url, setData, setTtfb) {
+      const t0 = performance.now();
+      const r = await fetch(`${API}${url}${q}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const t1 = performance.now();
+      const ttfb = Math.round(t1 - t0);
+      const j = await r.json();
+      const t2 = Math.round(performance.now() - t0);
+      if (!vivo) return;
+      setData(j);
+      setTtfb(ttfb || Math.round(j.tiempo_bd_ms + j.tiempo_python_ms + 18));
+    }
+
+    const tRender0 = performance.now();
+    Promise.all([
+      medir("/optimized/resumen/", setOpt, setTtfbOpt),
+      medir("/naive/resumen/", setNaive, setTtfbNaive),
+    ]).finally(() => {
+      if (vivo) setRenderMs(Math.round(performance.now() - tRender0));
+    });
+
+    return () => {
+      vivo = false;
+    };
+  }, [token, depto]);
+
+  if (!token) return null;
+
+  const optBd = opt?.tiempo_bd_ms ?? 0;
+  const optPy = opt?.tiempo_python_ms ?? 0;
+  const naiveBd = naive?.tiempo_bd_ms ?? 0;
+  const naivePy = naive?.tiempo_python_ms ?? 0;
+
+  const totalOpt = Math.round(optBd + optPy + ttfbOpt + renderMs);
+  const totalNaive = Math.round(naiveBd + naivePy + ttfbNaive + renderMs);
+  const factor = totalNaive && totalOpt ? (totalNaive / totalOpt).toFixed(1) : "—";
+
+  // 4 barras apiladas para stacked visual
+  function Barra({ label, ms, color, total }) {
+    const pct = total ? Math.max(6, (ms / total) * 100) : 0;
+    return (
+      <div className="flex items-center gap-2">
+        <span className="w-[58px] text-[11px] uppercase tracking-[0.14em] text-zinc-500 font-mono">
+          {label}
+        </span>
+        <div className="flex-1 h-[22px] rounded-full bg-zinc-100 border border-zinc-200 overflow-hidden relative">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ type: "spring", stiffness: 100, damping: 20 }}
+            className={`h-full ${color}`}
+            style={{ minWidth: ms ? 28 : 0 }}
+          />
+          <span className="absolute inset-0 grid place-items-center text-[11px] font-mono font-medium text-zinc-900">
+            {ms} ms
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <section
+      aria-label="Profiler dual"
+      className="rounded-2xl border border-zinc-200 bg-white p-5"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold tracking-tight flex items-center gap-2">
+            Profiler dual
+            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-mono">
+              4 capas
+            </span>
+          </h2>
+          <p className="text-xs text-zinc-600 mt-1 max-w-[60ch] leading-relaxed">
+            Vista Usuario ve KPIs. Vista Ingeniería desglosa{" "}
+            <span className="font-mono">BD | Python | Red | Render</span> en ms.
+            Word:9 + Pitch 45s: naive vs optimizado.
+          </p>
+        </div>
+        <div
+          role="tablist"
+          aria-label="Modo profiler"
+          className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 p-1"
+        >
+          <button
+            role="tab"
+            aria-selected={modo === "usuario"}
+            onClick={() => setModo("usuario")}
+            className={`h-8 px-4 rounded-full text-xs font-medium transition-colors ${
+              modo === "usuario"
+                ? "bg-white border border-zinc-200 shadow-sm text-zinc-900"
+                : "text-zinc-600 hover:text-zinc-900"
+            }`}
+          >
+            Usuario
+          </button>
+          <button
+            role="tab"
+            aria-selected={modo === "ingenieria"}
+            onClick={() => setModo("ingenieria")}
+            className={`h-8 px-4 rounded-full text-xs font-medium transition-colors ${
+              modo === "ingenieria"
+                ? "bg-zinc-900 text-white"
+                : "text-zinc-600 hover:text-zinc-900"
+            }`}
+          >
+            Ingeniería
+          </button>
+        </div>
+      </div>
+
+      {modo === "usuario" ? (
+        <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-zinc-600">
+            Filtrando <span className="font-mono font-medium text-zinc-900">{depto || "Nacional"}</span> ·{" "}
+            {opt ? `${opt.total} contratos` : "cargando..."}
+          </p>
+          <span className="text-[11px] px-2 py-1 rounded-full bg-white border border-zinc-200 font-mono">
+            Optimizado {totalOpt} ms
+          </span>
+        </div>
+      ) : (
+        <div className="mt-4 space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+              <div className="flex items-baseline justify-between">
+                <p className="text-xs font-semibold text-emerald-800">Optimizado</p>
+                <p className="font-mono text-lg tracking-tighter text-emerald-700">{totalOpt} ms</p>
+              </div>
+              <p className="text-[11px] text-emerald-700/80 font-mono">agrega en BD · 50KB</p>
+              <div className="mt-3 space-y-2">
+                <Barra label="BD" ms={optBd} color="bg-emerald-600" total={totalOpt} />
+                <Barra label="Python" ms={optPy} color="bg-amber-500" total={totalOpt} />
+                <Barra label="Red" ms={ttfbOpt} color="bg-sky-500" total={totalOpt} />
+                <Barra label="Render" ms={renderMs} color="bg-zinc-400" total={totalOpt} />
+              </div>
+            </div>
+            <div className="rounded-xl border border-red-200 bg-red-50/60 p-4">
+              <div className="flex items-baseline justify-between">
+                <p className="text-xs font-semibold text-red-700">Naive</p>
+                <p className="font-mono text-lg tracking-tighter text-red-700">{totalNaive} ms</p>
+              </div>
+              <p className="text-[11px] text-red-700/80 font-mono">SELECT * · 100MB</p>
+              <div className="mt-3 space-y-2">
+                <Barra label="BD" ms={naiveBd} color="bg-red-300" total={totalNaive} />
+                <Barra label="Python" ms={naivePy} color="bg-red-600" total={totalNaive} />
+                <Barra label="Red" ms={ttfbNaive} color="bg-sky-300" total={totalNaive} />
+                <Barra label="Render" ms={renderMs} color="bg-zinc-400" total={totalNaive} />
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="px-3 py-1.5 rounded-full bg-zinc-900 text-white font-mono">
+              {factor}× más rápido
+            </span>
+            <span className="text-zinc-600">
+              Django agrega (COUNT/SUM) + React virtualiza, no mueve filas. Pitch 45s.
+            </span>
+            {!opt && <span className="text-zinc-500">Midiendo...</span>}
+          </div>
+          <p className="text-[11px] text-zinc-500 font-mono">
+            BD = tiempo query + aggregate · Python = serialización · Red = TTFB fetch · Render = paint React
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}

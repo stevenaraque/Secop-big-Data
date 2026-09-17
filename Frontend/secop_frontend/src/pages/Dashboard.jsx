@@ -1,6 +1,5 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   BarChart,
   Bar,
@@ -17,6 +16,8 @@ import Umbrales from "./Umbrales.jsx";
 import ActualizacionMasiva from "./ActualizacionMasiva.jsx";
 import Entidades from "./Entidades.jsx";
 import Grafo from "./Grafo.jsx";
+import ProfilerDual from "./ProfilerDual.jsx";
+import DataTableSECOP from "./DataTableSECOP.jsx";
 
 const API = "http://127.0.0.1:8000/api";
 
@@ -120,17 +121,6 @@ export default function Dashboard({ token }) {
   });
 
   const rows = contratosPag?.results ?? [];
-  const parentRef = useRef(null);
-  // RNF-07: garantía 60 FPS — virtualizador tanstack react-virtual con estimateSize fijo 44px + overscan 8.
-  // count es el total de filas de la página actual (pagination), nunca el dataset completo.
-  // Esto evita renders bloqueantes: solo DOM de filas visibles (~8+8 overscan = 16 filas max).
-  const virtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 44,
-    overscan: 8,
-  });
-
   if (!token)
     return (
       <div className="max-w-[1200px] mx-auto p-8 text-zinc-600">
@@ -270,6 +260,8 @@ export default function Dashboard({ token }) {
           </div>
         </section>
 
+        <ProfilerDual token={token} depto={depto} />
+
         <section
           aria-label="Mapa de contratación directa"
           className="rounded-2xl border border-zinc-200 bg-white p-5"
@@ -335,11 +327,8 @@ export default function Dashboard({ token }) {
             </p>
           </div>
 
-          <div className="lg:col-span-2 rounded-2xl border border-zinc-200 bg-white p-5">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold tracking-tight">
-                Contratos · tabla virtualizada 60 FPS
-              </h2>
+          <div className="lg:col-span-2">
+            <div className="mb-3 flex items-center justify-end">
               <button
                 aria-label="Exportar tabla filtrada a CSV"
                 onClick={async () => {
@@ -357,72 +346,21 @@ export default function Dashboard({ token }) {
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
-                className="h-8 rounded-lg border border-zinc-200 px-3 text-xs font-medium text-zinc-900 hover:border-zinc-300 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+                className="h-8 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-900 hover:border-zinc-300 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
               >
                 ⬇ CSV
               </button>
             </div>
-            <p className="text-xs text-zinc-600 mt-1 tabular-nums">
-              Solo las filas visibles al DOM. {contratosPag?.count ?? 0} totales
-              · página 1 de {Math.ceil((contratosPag?.count || 0) / 20) || 1}{" "}
-              {isFetching && "· actualizando..."}
-            </p>
             {errorTabla ? (
-              <p role="alert" className="mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
+              <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
                 No se pudo cargar la tabla. Revisa tu sesión.
               </p>
             ) : rows.length === 0 && !cargandoTabla ? (
-              <p className="mt-4 text-sm text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3">
+              <p className="text-sm text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3">
                 Sin contratos para este filtro. Prueba con Todos.
               </p>
             ) : (
-              <>
-                <div
-                  ref={parentRef}
-                  role="region"
-                  aria-label="Tabla de contratos"
-                  tabIndex={0}
-                  className="mt-4 h-[260px] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50 focus-visible:ring-2 focus-visible:ring-emerald-600"
-                >
-                  <div
-                    style={{
-                      height: `${virtualizer.getTotalSize()}px`,
-                      position: "relative",
-                    }}
-                  >
-                    {virtualizer.getVirtualItems().map((v) => {
-                      const row = rows[v.index];
-                      return (
-                        <div
-                          key={row.id_contrato}
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            transform: `translateY(${v.start}px)`,
-                          }}
-                          className="h-[44px] grid grid-cols-[1.2fr_0.8fr_0.9fr] items-center px-3 border-b border-zinc-200 bg-white text-xs"
-                        >
-                          <span className="truncate font-medium">
-                            {row.id_contrato}
-                          </span>
-                          <span className="truncate text-zinc-600">
-                            {row.contratista_nombre}
-                          </span>
-                          <span className="text-right font-mono">
-                            $
-                            {Number(row.valor_contrato).toLocaleString("es-CO")}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                {cargandoTabla && (
-                  <div className="mt-2 h-2 bg-zinc-100 animate-pulse rounded" />
-                )}
-              </>
+              <DataTableSECOP rows={rows} isFetching={isFetching} count={contratosPag?.count} />
             )}
           </div>
         </section>
