@@ -2,7 +2,7 @@
 version: "3.9"
 services:
   db:
-    image: postgres:18-alpine
+    image: postgres:16-alpine
     environment:
       POSTGRES_DB: ${DB_NAME:-secop_db}
       POSTGRES_USER: ${DB_USER:-postgres}

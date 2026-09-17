@@ -1,5 +1,5 @@
 # RNF-10: deploy reproducible — Qué: imagen backend con migraciones antes de publicar. Por qué: evita romper esquema en prod.
-FROM python:3.14-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
