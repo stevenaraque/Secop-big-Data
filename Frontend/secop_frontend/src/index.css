@@ -61,7 +61,11 @@ input:focus-visible {
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
     --text: #9ca3af;
     --text-h: #f3f4f6;
     --bg: #16171d;

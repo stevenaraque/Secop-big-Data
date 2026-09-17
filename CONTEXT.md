@@ -165,4 +165,4 @@ Fuente: `GFPI-F-135-Guia4-DesarrolloExplicación.pdf` (Escritorio, fuera del rep
 - **Hallazgos estilo 15/09 (verificados, actualizado 16/09):** routing por `pathname` sin React Router; clases Tailwind sin Tailwind y sin definir (estilo visual muerto, `App.css` es plantilla Vite sin usar); profiler dual solo en backend (endpoints), no en pantalla; sin registro en UI; dashboard apila todo en una página; BD ya con 4669 contratos (tesis "se congela" ya medible, no teórica).
 
 ---
-*Actualizado: 17/09/2026 — P0-1 DONE + P0-2 DONE: docker-compose postgres:16 + Dockerfile python:3.12 — Pendiente P0-3 Tailwind, P0-5 tag, video, Notion (ver §9).*
+*Actualizado: 17/09/2026 — P0-1 DONE + P0-2 DONE + P0-3 DONE: Tailwind 3.4.17 init + config content + @tailwind en index.css + build 33.8KB verificado — Pendiente P0-5 tag, video, Notion (ver §9).*
