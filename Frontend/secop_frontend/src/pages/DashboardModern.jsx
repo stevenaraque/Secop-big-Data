@@ -4,6 +4,12 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, A
 import { animate } from "animejs";
 import { motion } from "motion/react";
 import MapaDirecta from "./MapaDirecta.jsx";
+import Banderas from "./Banderas.jsx";
+import PredominioDirecta from "./PredominioDirecta.jsx";
+import Umbrales from "./Umbrales.jsx";
+import ActualizacionMasiva from "./ActualizacionMasiva.jsx";
+import Entidades from "./Entidades.jsx";
+import Grafo from "./Grafo.jsx";
 import ProfilerDual from "./ProfilerDual.jsx";
 import DataTableSECOP from "./DataTableSECOP.jsx";
 import StatusMark from "../components/StatusMark.jsx";
@@ -76,8 +82,7 @@ export default function DashboardModern({ token }) {
   if (!token) return <div className="min-h-[100dvh] grid place-items-center bg-[#050505] text-white">Inicia sesión</div>;
 
   return (
-    <div className="min-h-[100dvh] bg-[#050505] text-white antialiased selection:bg-emerald-500/30">
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap'); *{font-family:Geist,system-ui,sans-serif} .font-mono{font-family:Geist Mono,monospace}`}</style>
+    <div className="min-h-[100dvh] bg-[#050505] text-white antialiased selection:bg-emerald-500/30" style={{ fontFamily: "Geist, system-ui, sans-serif" }}>
       <div className="fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-[#050505]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.15),transparent_50%),radial-gradient(ellipse_at_bottom_right,_rgba(56,189,248,0.12),transparent_60%),radial-gradient(ellipse_at_bottom_left,_rgba(168,85,247,0.08),transparent_50%)]" />
@@ -95,11 +100,12 @@ export default function DashboardModern({ token }) {
           </div>
           <div className="flex items-center gap-2">
             <a href="/app" className="h-9 inline-flex items-center rounded-full bg-white text-black px-5 text-xs font-semibold hover:bg-zinc-100 transition-colors will-change-transform hover:scale-[1.02] active:scale-[0.98]">Mis oportunidades →</a>
-            <select value={depto} onChange={(e) => setDepto(e.target.value)} className="h-9 rounded-full border border-white/10 bg-white/5 backdrop-blur px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+            <label htmlFor="filtro-territorio" className="sr-only">Filtrar por territorio</label>
+            <select id="filtro-territorio" value={depto} onChange={(e) => setDepto(e.target.value)} className="h-9 rounded-full border border-white/10 bg-white/5 backdrop-blur px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
               <option value="" className="bg-zinc-900">Todos · Nacional</option>
               {territorios.map((t) => <option key={t.departamento} value={t.departamento} className="bg-zinc-900">{t.departamento} · {t.total}</option>)}
             </select>
-            <button onClick={handleLogout} className="h-9 w-9 rounded-full border border-white/10 bg-white/5 grid place-items-center hover:bg-white/10 transition-colors">✕</button>
+            <button aria-label="Cerrar sesión" onClick={handleLogout} className="h-9 w-9 rounded-full border border-white/10 bg-white/5 grid place-items-center hover:bg-white/10 transition-colors">✕</button>
           </div>
         </div>
       </header>

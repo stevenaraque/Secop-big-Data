@@ -8,12 +8,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.core.management import call_command
 from django.db.models import Count, Sum, Q
-from .models import TrabajoCarga, Contrato, Entidad
+from .models import TrabajoCarga, Contrato, Entidad, Radar, Oportunidad
 from .services import servicio_contratos
 from django.db.models.functions import TruncMonth
-from rest_framework.generics import ListAPIView, RetrieveAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView
 from rest_framework.pagination import PageNumberPagination
-from .serializers import ContratoSerializer, EntidadSerializer
+from .serializers import ContratoSerializer, EntidadSerializer, RadarSerializer, OportunidadSerializer
 
 
 
@@ -459,5 +459,46 @@ class VistaDescargarBackup(APIView):
         resp = HttpResponse(p.read_bytes(), content_type="application/json; charset=utf-8")
         resp["Content-Disposition"] = f'attachment; filename="{p.name}"'
         return resp
-        
+
+
+# RF-36..40: Radares y Oportunidades SaaS Freemium
+class VistaRadarListaCrear(ListCreateAPIView):
+    serializer_class = RadarSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Radar.objects.filter(usuario=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(usuario=self.request.user)
+
+
+class VistaRadarDetalle(RetrieveUpdateDestroyAPIView):
+    serializer_class = RadarSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Radar.objects.filter(usuario=self.request.user)
+
+
+class VistaMisOportunidades(ListAPIView):
+    serializer_class = OportunidadSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = PageNumberPagination
+
+    def get_queryset(self):
+        qs = Oportunidad.objects.filter(radar__usuario=self.request.user).select_related("contrato", "radar")
+        estado = self.request.query_params.get("estado")
+        if estado in ["Nueva", "Guardada", "Postulado"]:
+            qs = qs.filter(estado=estado)
+        return qs
+
+
+class VistaOportunidadActualizar(UpdateAPIView):
+    serializer_class = OportunidadSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Oportunidad.objects.filter(radar__usuario=self.request.user)
+
         

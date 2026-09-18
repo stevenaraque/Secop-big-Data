@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import VistaIniciarCarga, VistaEstadoCarga, VistaResumenOptimizado, VistaResumenNaive, VistaListarCargas, VistaTopContratistasOptimizado, VistaTopContratistasNaive, VistaListaContratos, VistaDetalleContrato, VistaSerieMensualOptimizado, VistaMapaDirectaOptimizado, VistaBuscar, VistaBanderasConcentracion, VistaPredominioDirecta, VistaListarUmbrales, VistaActualizarUmbral, VistaListaEntidades, VistaEstadisticasEntidad, VistaGrafoRed, VistaExportarContratos, VistaActualizarPeriodica, VistaUltimaActualizacion, VistaConfigActualizacion, VistaCrearBackup, VistaListarBackups, VistaDescargarBackup
+from .views import VistaIniciarCarga, VistaEstadoCarga, VistaResumenOptimizado, VistaResumenNaive, VistaListarCargas, VistaTopContratistasOptimizado, VistaTopContratistasNaive, VistaListaContratos, VistaDetalleContrato, VistaSerieMensualOptimizado, VistaMapaDirectaOptimizado, VistaBuscar, VistaBanderasConcentracion, VistaPredominioDirecta, VistaListarUmbrales, VistaActualizarUmbral, VistaListaEntidades, VistaEstadisticasEntidad, VistaGrafoRed, VistaExportarContratos, VistaActualizarPeriodica, VistaUltimaActualizacion, VistaConfigActualizacion, VistaCrearBackup, VistaListarBackups, VistaDescargarBackup, VistaRadarListaCrear, VistaRadarDetalle, VistaMisOportunidades, VistaOportunidadActualizar
 
 urlpatterns = [
     path("cargar/", VistaIniciarCarga.as_view(), name="iniciar_carga"),
@@ -28,5 +28,9 @@ urlpatterns = [
     path("cargar/backup/", VistaCrearBackup.as_view(), name="crear_backup"),
     path("cargar/backup/listar/", VistaListarBackups.as_view(), name="listar_backups"),
     path("cargar/backup/<int:pk>/descargar/", VistaDescargarBackup.as_view(), name="descargar_backup"),
+    path("radares/", VistaRadarListaCrear.as_view(), name="radar_lista_crear"),
+    path("radares/<int:pk>/", VistaRadarDetalle.as_view(), name="radar_detalle"),
+    path("mis-oportunidades/", VistaMisOportunidades.as_view(), name="mis_oportunidades"),
+    path("mis-oportunidades/<int:pk>/", VistaOportunidadActualizar.as_view(), name="oportunidad_actualizar"),
 
 ]
