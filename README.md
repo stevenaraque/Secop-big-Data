@@ -165,7 +165,7 @@ Big data/
 - **Sprint 2 / Sesión 2:** ETL 2 fases + `ProcessingJob` 202 + polling 1s + dual `/optimized/*` vs `/naive/*` + timing `tiempo_bd_ms`
 - **Sprint 3 / Sesión 3:** Dashboard + filtros 85 elegibles + `filtros_extras` JSON + `serie-mensual` + mapa Leaflet + búsqueda + cache TanStack Query + Tailwind
 - **Sprint 4 / Sesión 4:** Grafo + **Profiler Dual 4 barras + toggle** + banderas + Radares SaaS + bandeja privada + email SMTP
-- **Sprint 5 / Buffer — 18/09 DONE:** 56 historias + 85 cols + 5 Radares + 3 Oportunidades + DataTable 60 FPS + Swagger + tests 8 passing + `v1.1-profiler` + Word V3.1 único. Pendiente: video 3min pitch 45s + `EstructuraSesion` V3 + reflexión 3.1
+- **Sprint 5 / Buffer — 18/09 DONE:** 56 historias + 85 cols + 5 Radares + 4 Oportunidades + DataTable 60 FPS + Swagger + tests 8 passing + `v1.1-profiler` + Word V3.1 único. Pendiente: video 3min pitch 45s + `EstructuraSesion` V3 + reflexión 3.1
 
 ## ETL y Paginación SODA 2.1 (V3)
 
@@ -200,4 +200,4 @@ python manage.py shell
   - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs) — ver `CONTEXT.md:8`
 
 ---
-*Última actualización: 18/09/2026 — V3.1 Freemium definitivo: 56 historias + 85 cols elegibles + 5 Radares + 3 Oportunidades + email SMTP real + Profiler 4 barras + DataTable 60 FPS + Tailwind 37KB + 6M sin estallar front — Autor: Steven Alejandro Araque Castro*
+*Última actualización: 18/09/2026 — V3.1 Freemium definitivo: 56 historias + 85 cols elegibles + 5 Radares + 4 Oportunidades + email SMTP real + Profiler 4 barras + DataTable 60 FPS + Tailwind 37KB + 6M sin estallar front — Autor: Steven Alejandro Araque Castro*

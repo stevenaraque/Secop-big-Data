@@ -60,7 +60,7 @@ Colombia publica **5.98M de contratos** en SECOP II con **85 columnas** planas q
 
 ## 6. Próximos pasos inmediatos (Sprint 4 Buffer + Freemium)
 
-1. **RF-36..42 Freemium DONE (18/09)** — 5 Radares + 3 Oportunidades + email SMTP + filtros 85 `filtros_extras` + matchmaking 2 fases. Probado `Sogamoso MATCH` vs `Tunja NO MATCH` + `Duitama` 201.
+1. **RF-36..42 Freemium DONE (18/09)** — 5 Radares + 4 Oportunidades + email SMTP + filtros 85 `filtros_extras` + matchmaking 2 fases. Probado `Sogamoso MATCH` vs `Tunja NO MATCH` + `Duitama` 201.
 2. **P0-1..3 Fixes DONE (17/09)** — secretos por env + `postgres:16`/`python:3.12` + Tailwind 37KB + build OK.
 3. **Portero React DONE:** `App.jsx` `AuthGuard` con `react-router` mental: público `/` + CTA → `Login` → privado `/app` bandeja. JWT en `localStorage` (explicado trade-off HttpOnly), expulsa sin token sin pedir al backend, `TanStack Query` cachea, `virtualización` no colapsa con 5.000 visibles.
 4. **Pendiente cierre Guía 4 (18/09):** `EstructuraSesion_v2.xlsx` actualizar a 56 historias + 5Sprints, video 3min pitch 45s (público 280ms + privado Radar→Match), tag `v1.1-profiler` ya en `main` (4407e72) + `e9efb7d` con RF-42, reflexión 3.1, `main` al día con 85 cols.
@@ -107,4 +107,4 @@ Colombia publica **5.98M de contratos** en SECOP II con **85 columnas** planas q
 - **Hallazgos estilo 18/09 ( resueltos):** Tailwind 37KB OK, routing `pathname` sin React Router (pendiente migrar a `react-router-dom` — explicado como trade-off), profiler dual en pantalla, DataTable 6 cols con sorting, 85 cols vía JSON sin recorte.
 
 ---
-*Actualizado: 18/09/2026 — V3.1 Freemium definitivo: 56 historias + 85 cols elegibles + 5 Radares + 3 Oportunidades + email SMTP real (pgtmswbagycceopx) + Profiler dual + DataTable 60 FPS + Tailwind + P0-1/2/3 + 4972 contratos — Main e9efb7d — Pendiente solo video 3min + EstructuraSesion V3 + reflexión 3.1 (ver §9).*
+*Actualizado: 18/09/2026 — V3.1 Freemium definitivo: 56 historias + 85 cols elegibles + 5 Radares + 4 Oportunidades + email SMTP real (pgtmswbagycceopx) + Profiler dual + DataTable 60 FPS + Front privado /app con StatusMark micro + Tailwind + P0-1/2/3 + 4972 contratos — Main 2aff4ba + v1.2-privado — Pendiente solo video 3min + EstructuraSesion V3 + reflexión 3.1 (ver §9).*
