@@ -3,7 +3,7 @@ import requests
 from decimal import Decimal, InvalidOperation
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from contratos.models import Contrato, Entidad, TrabajoCarga
+from contratos.models import Contrato, Entidad, TrabajoCarga, Radar, Oportunidad
 
 SODA_URL = "https://www.datos.gov.co/resource/jbjy-vk9h.json"
 
@@ -112,6 +112,67 @@ class Command(BaseCommand):
 
         with transaction.atomic():
             Contrato.objects.bulk_create(a_crear, batch_size=1000, ignore_conflicts=True)
+
+        # RF-39 Fase 2 Matchmaking: cruzar nuevos contratos vs Radares activos
+        nuevos_contratos = []
+        if nuevos and ids_a_crear:
+            # obtener objetos reales con PK para FK
+            nuevos_ids = [c.id_contrato for c in a_crear if c.id_contrato not in existentes]
+            if nuevos_ids:
+                nuevos_contratos = list(Contrato.objects.filter(id_contrato__in=nuevos_ids))
+        if nuevos_contratos:
+            radares = list(Radar.objects.filter(activo=True).select_related("usuario"))
+            oportunidades = []
+            for contrato in nuevos_contratos:
+                desc = (contrato.descripcion_del_proceso or "").lower()
+                nombre = (contrato.contratista_nombre or "").lower()
+                for radar in radares:
+                    # filtro depto
+                    if radar.departamento_objetivo and radar.departamento_objetivo.strip().lower() not in contrato.departamento.lower():
+                        continue
+                    # filtro palabras_clave (ILIKE)
+                    kw = (radar.palabras_clave or "").strip().lower()
+                    if kw and kw not in desc and kw not in nombre:
+                        continue
+                    # filtro rango cuantia
+                    if radar.rango_cuantia_min is not None and contrato.valor_contrato < radar.rango_cuantia_min:
+                        continue
+                    if radar.rango_cuantia_max is not None and contrato.valor_contrato > radar.rango_cuantia_max:
+                        continue
+                    # RF-42: filtros elegibles 85 cols via JSON (ej. {"ciudad":"Sogamoso","modalidad":"Licitacion publica"})
+                    filtros = getattr(radar, "filtros_extras", None) or {}
+                    if filtros:
+                        ok = True
+                        for k, v in filtros.items():
+                            contrato_val = getattr(contrato, k, None)
+                            if contrato_val is None or str(v).strip().lower() not in str(contrato_val).lower():
+                                ok = False
+                                break
+                        if not ok:
+                            continue
+                    oportunidades.append(Oportunidad(contrato=contrato, radar=radar, estado="Nueva"))
+            if oportunidades:
+                Oportunidad.objects.bulk_create(oportunidades, batch_size=1000, ignore_conflicts=True)
+                self.stdout.write(self.style.SUCCESS(f"Matchmaking: {len(oportunidades)} oportunidades creadas para {len(radares)} radares"))
+                # RF-41: email no bloqueante (best-effort)
+                try:
+                    from django.core.mail import send_mail
+                    from django.conf import settings
+                    for op in oportunidades[:10]:  # limitar a 10 emails por carga para demo
+                        try:
+                            email = op.radar.usuario.email
+                            if email:
+                                send_mail(
+                                    subject=f"Nueva oportunidad: {op.radar.palabras_clave}",
+                                    message=f"Hola {op.radar.usuario.username}, tu Radar '{op.radar.palabras_clave}' hizo match con contrato {op.contrato.id_contrato} - {op.contrato.departamento} ${op.contrato.valor_contrato}. Revisa tu bandeja en /app.",
+                                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@secop-insight.local"),
+                                    recipient_list=[email],
+                                    fail_silently=True,
+                                )
+                        except Exception:
+                            continue
+                except Exception:
+                    pass
 
         trabajo.registros_procesados = len(a_crear)
         trabajo.nuevos_registros = nuevos

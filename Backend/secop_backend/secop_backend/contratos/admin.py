@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Contrato, Entidad, TrabajoCarga, UmbralAlerta, ConfigActualizacion, BackupRegistro, Auditoria
+from .models import Contrato, Entidad, TrabajoCarga, UmbralAlerta, ConfigActualizacion, BackupRegistro, Auditoria, Radar, Oportunidad
 
 # RF-23: panel admin sin SQL — Qué: admin registra Contrato/Entidad/TrabajoCarga. Por qué: soporte sin SQL + auditar + progreso.
 
@@ -104,6 +104,25 @@ class AuditoriaAdmin(admin.ModelAdmin):
     search_fields = ("usuario", "accion", "detalle")
     readonly_fields = ("usuario", "accion", "detalle", "fecha")
     ordering = ("-fecha",)
+
+
+@admin.register(Radar)
+class RadarAdmin(admin.ModelAdmin):
+    list_display = ("id", "usuario", "departamento_objetivo", "palabras_clave", "rango_cuantia_min", "rango_cuantia_max", "activo", "creado_en")
+    list_filter = ("activo", "departamento_objetivo")
+    search_fields = ("palabras_clave", "departamento_objetivo", "usuario__username")
+    ordering = ("-creado_en",)
+    list_per_page = 50
+
+
+@admin.register(Oportunidad)
+class OportunidadAdmin(admin.ModelAdmin):
+    list_display = ("id", "radar", "contrato", "estado", "creado_en")
+    list_filter = ("estado",)
+    search_fields = ("radar__palabras_clave", "contrato__id_contrato")
+    ordering = ("-creado_en",)
+    readonly_fields = ("creado_en",)
+    list_per_page = 50
 
 
 # Personalización cabecera — opcional pero profesional

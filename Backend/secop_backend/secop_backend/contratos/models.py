@@ -155,3 +155,47 @@ class UmbralAlerta(models.Model):
 
     def __str__(self):
         return f"{self.nombre} = {self.valor}%"
+
+
+class Radar(models.Model):
+    # RF-36 + RF-42: preferencias + filtros elegibles 85 cols
+    usuario = models.ForeignKey("auth.User", on_delete=models.CASCADE, related_name="radares")
+    departamento_objetivo = models.CharField(max_length=100, blank=True, default="")
+    palabras_clave = models.CharField(max_length=255)
+    rango_cuantia_min = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
+    rango_cuantia_max = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
+    filtros_extras = models.JSONField(default=dict, blank=True)  # RF-42: {"ciudad":"Sogamoso","modalidad":"Licitacion publica", ...} 85 cols elegibles
+    activo = models.BooleanField(default=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "radar"
+        ordering = ["-creado_en"]
+        indexes = [
+            models.Index(fields=["usuario"], name="idx_radar_usuario"),
+            models.Index(fields=["palabras_clave"], name="idx_radar_palabras"),
+        ]
+
+    def __str__(self):
+        return f"Radar {self.id} {self.usuario} {self.palabras_clave} {self.filtros_extras}"
+
+
+class Oportunidad(models.Model):
+    # RF-39: match contrato-radar para bandeja privada
+    ESTADOS = [("Nueva", "Nueva"), ("Guardada", "Guardada"), ("Postulado", "Postulado")]
+    contrato = models.ForeignKey(Contrato, on_delete=models.CASCADE, related_name="oportunidades")
+    radar = models.ForeignKey(Radar, on_delete=models.CASCADE, related_name="oportunidades")
+    estado = models.CharField(max_length=20, choices=ESTADOS, default="Nueva")
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "oportunidad"
+        unique_together = [("contrato", "radar")]
+        ordering = ["-creado_en"]
+        indexes = [
+            models.Index(fields=["radar", "estado"], name="idx_oportunidad_radar_estado"),
+        ]
+
+    def __str__(self):
+        return f"Oportunidad {self.id} {self.radar_id}->{self.contrato_id} {self.estado}"
