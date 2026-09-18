@@ -2,6 +2,7 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Login from "./pages/Login.jsx";
 import SolicitarRecuperacion from "./pages/SolicitarRecuperacion.jsx";
 import Restablecer from "./pages/Restablecer.jsx";
+import PrivateDashboard from "./pages/PrivateDashboard.jsx";
 import "./App.css";
 
 function App() {
@@ -33,8 +34,20 @@ function App() {
         <Login />
       </>
     );
-  // Sin token no hay dashboard: mandar al login en vez de página vacía.
+  // Portero SaaS: /app es privado, sin token expulsa sin pedir al backend
   const token = localStorage.getItem("access");
+  if (path.includes("/app") || path.includes("privado") || path.includes("mis-oportunidades")) {
+    if (!token) {
+      window.location.replace("/login");
+      return null;
+    }
+    return (
+      <>
+        {skip}
+        <PrivateDashboard token={token} />
+      </>
+    );
+  }
   if (!token) {
     window.location.replace("/login");
     return null;

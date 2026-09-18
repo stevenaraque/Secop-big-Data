@@ -155,6 +155,9 @@ export default function Dashboard({ token }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <a href="/app" className="h-9 inline-flex items-center rounded-full bg-zinc-900 text-white px-4 text-xs font-medium hover:bg-zinc-800">
+              Mis oportunidades →
+            </a>
             <label htmlFor="filtro-territorio" className="text-[11px] uppercase tracking-[0.14em] text-zinc-600">
               Territorio
             </label>
@@ -261,6 +264,16 @@ export default function Dashboard({ token }) {
         </section>
 
         <ProfilerDual token={token} depto={depto} />
+
+        <section aria-label="Llamado a la acción Freemium" className="rounded-2xl border border-zinc-900 bg-zinc-900 p-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-white text-sm font-semibold">¿Quieres alertas sobre contratos de este tipo?</h3>
+            <p className="text-zinc-400 text-xs mt-1">Crea un Radar con Boyacá + pavimento y recibe Matches automáticos en tu bandeja privada + email.</p>
+          </div>
+          <a href="/app" className="h-9 inline-flex items-center rounded-full bg-white text-zinc-900 px-5 text-sm font-medium hover:bg-zinc-100">
+            Crear Radar →
+          </a>
+        </section>
 
         <section
           aria-label="Mapa de contratación directa"
