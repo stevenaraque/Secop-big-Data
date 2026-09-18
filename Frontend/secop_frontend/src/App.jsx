@@ -1,4 +1,4 @@
-import DashboardPublic from "./pages/DashboardPublic.jsx";
+import DashboardModern from "./pages/DashboardModern.jsx";
 import Login from "./pages/Login.jsx";
 import SolicitarRecuperacion from "./pages/SolicitarRecuperacion.jsx";
 import Restablecer from "./pages/Restablecer.jsx";
@@ -55,7 +55,7 @@ function App() {
   return (
     <>
       {skip}
-      <DashboardPublic token={token} />
+      <DashboardModern token={token} />
     </>
   );
 }
