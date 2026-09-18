@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const API = "http://127.0.0.1:8000/api";
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
 // RF-26: panel ops para disparar actualizacion masiva sin duplicar.
 // Origen periodica + bulk_create ignore_conflicts por id_contrato.

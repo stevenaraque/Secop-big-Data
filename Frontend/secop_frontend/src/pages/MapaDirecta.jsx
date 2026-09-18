@@ -4,7 +4,7 @@ import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import "./MapaRF15.css"
 
-const API = "http://127.0.0.1:8000/api"
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 async function fetchMapa(token) {
   const r = await fetch(`${API}/optimized/mapa-directa/`, {
     headers: { Authorization: `Bearer ${token}` },

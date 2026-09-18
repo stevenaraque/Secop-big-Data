@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import ForceGraph2D from "react-force-graph-2d"
 
-const API = "http://127.0.0.1:8000/api"
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
 async function fetchGrafo(limit, depto, token) {
   const params = new URLSearchParams({ limit: String(limit) })

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
-const API = "http://127.0.0.1:8000/api"
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
 async function fetchUmbrales(token) {
   const r = await fetch(`${API}/umbrales/`, {

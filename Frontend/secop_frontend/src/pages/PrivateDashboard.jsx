@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import StatusMark from "../components/StatusMark.jsx";
 
-const API = "http://127.0.0.1:8000/api";
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
 async function fetchRadares(token) {
   const r = await fetch(`${API}/radares/`, { headers: { Authorization: `Bearer ${token}` } });

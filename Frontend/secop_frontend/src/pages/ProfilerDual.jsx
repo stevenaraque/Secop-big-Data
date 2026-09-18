@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 
-const API = "http://127.0.0.1:8000/api";
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
 // Profiler Dual 4 barras: BD | Python | TTFB | Render + toggle Usuario/Ingeniería
 // Design: Telemetry Tactico (mono, scanlines sutiles, 1 acento emerald <80%, DENSITY 8)

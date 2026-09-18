@@ -13,7 +13,7 @@ import Grafo from "./Grafo.jsx";
 import ProfilerDual from "./ProfilerDual.jsx";
 import DataTableSECOP from "./DataTableSECOP.jsx";
 
-const API = "http://127.0.0.1:8000/api";
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
 async function fetchResumen(depto, token) {
   const url = depto ? `${API}/optimized/resumen/?depto=${encodeURIComponent(depto)}` : `${API}/optimized/resumen/`;

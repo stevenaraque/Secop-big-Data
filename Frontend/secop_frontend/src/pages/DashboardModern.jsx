@@ -14,7 +14,7 @@ import ProfilerDual from "./ProfilerDual.jsx";
 import DataTableSECOP from "./DataTableSECOP.jsx";
 import StatusMark from "../components/StatusMark.jsx";
 
-const API = "http://127.0.0.1:8000/api";
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 async function fetchResumen(d, t) {
   const r = await fetch(`${API}/optimized/resumen/${d ? `?depto=${encodeURIComponent(d)}` : ""}`, { headers: { Authorization: `Bearer ${t}` } });
   if (!r.ok) throw new Error();
