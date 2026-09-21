@@ -182,8 +182,7 @@ export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
     return () => { vivo = false }
   }, [data])
 
-  if (!token) return null
-
+  // Público: mapa renderiza sin token (AllowAny en /api/optimized/mapa-directa/), SaaS sigue privado en /app
   return (
     <div className="rf15-simple">
       <div className="map-wrap">

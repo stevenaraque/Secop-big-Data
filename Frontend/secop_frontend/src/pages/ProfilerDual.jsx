@@ -41,7 +41,7 @@ export default function ProfilerDual({ token, depto }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!token) return;
+    // Público: profiler mide anon y con JWT (AllowAny en /optimized/ y /naive/); antes bloqueaba sin token
     let vivo = true;
     const q = depto ? `?depto=${encodeURIComponent(depto)}` : "";
 
@@ -81,8 +81,6 @@ export default function ProfilerDual({ token, depto }) {
       vivo = false;
     };
   }, [token, depto]);
-
-  if (!token) return null;
 
   // P0: error visible en vez de NaN. 413 = naive apagado por tamaño (diseño backend).
   const errorMsg =
