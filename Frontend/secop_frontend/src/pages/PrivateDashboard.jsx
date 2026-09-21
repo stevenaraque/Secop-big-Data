@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import StatusMark from "../components/StatusMark.jsx";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
@@ -24,13 +24,16 @@ export default function PrivateDashboard({ token }) {
   const [form, setForm] = useState({ departamento_objetivo: "Boyaca", palabras_clave: "", rango_cuantia_min: "", rango_cuantia_max: "", filtros_extras: "" });
   const [msg, setMsg] = useState("");
 
-  const { data: radaresData } = useQuery({ queryKey: ["radares"], queryFn: () => fetchRadares(token), enabled: !!token });
+  const { data: radaresData } = useQuery({ queryKey: ["radares"], queryFn: () => fetchRadares(token), enabled: !!token, staleTime: 1000 * 60 * 5 });
   const radares = Array.isArray(radaresData) ? radaresData : radaresData?.results ?? [];
 
   const { data: oposData } = useQuery({
     queryKey: ["oportunidades", filtroEstado],
     queryFn: () => fetchOpos(token, filtroEstado),
     enabled: !!token,
+    // P1: conserva bandeja al cambiar filtro estado.
+    staleTime: 1000 * 60 * 5,
+    placeholderData: keepPreviousData,
   });
   const oportunidades = oposData?.results ?? oposData?.value ?? oposData ?? [];
   const count = oposData?.count ?? oportunidades.length;

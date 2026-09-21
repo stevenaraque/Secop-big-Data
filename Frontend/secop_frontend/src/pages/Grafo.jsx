@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import ForceGraph2D from "react-force-graph-2d"
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
@@ -23,6 +23,9 @@ export default function Grafo({ token, depto }) {
     queryKey: ["grafo", limit, depto],
     queryFn: () => fetchGrafo(limit, depto, token),
     enabled: !!token,
+    // P1: sin esto cada cambio re-dispara física + flicker. 5min + conserva anterior.
+    staleTime: 1000 * 60 * 5,
+    placeholderData: keepPreviousData,
   })
 
   return (

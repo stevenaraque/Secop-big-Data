@@ -124,7 +124,7 @@ export default function Dashboard({ token }) {
   if (!token)
     return (
       <div className="max-w-[1200px] mx-auto p-8 text-zinc-600">
-        Inicia sesión para ver el dashboard. Guarda tu access en localStorage.
+        Inicia sesión para ver el dashboard.
       </div>
     );
   // Esqueleto solo la primera vez (sin datos previos). Con keepPreviousData,

@@ -61,9 +61,10 @@ export default function ActualizacionMasiva({ token }) {
     setTrabajo(null);
     const lim = Number(limite) || 50;
     const off = Number(offset) || 0;
-    if (lim < 1 || lim > 50000) {
+    // P1: backend cap 1000 (VistaIniciarCarga). Qué: mismo límite. Por qué: evita 400 seguro.
+    if (lim < 1 || lim > 1000) {
       setFase("error");
-      setMensaje("Limite debe estar entre 1 y 50000.");
+      setMensaje("Limite debe estar entre 1 y 1000 (cap backend).");
       return;
     }
     if (off < 0) {
@@ -164,7 +165,7 @@ export default function ActualizacionMasiva({ token }) {
             id="act-limite"
             type="number"
             min={1}
-            max={50000}
+            max={1000}
             value={limite}
             onChange={(e) => setLimite(e.target.value)}
             disabled={enCurso}
