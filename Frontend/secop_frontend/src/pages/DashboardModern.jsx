@@ -19,24 +19,28 @@ import { ArrowRight, DownloadSimple as Download, X } from "@phosphor-icons/react
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 async function fetchResumen(d, t) {
-  const r = await fetch(`${API}/optimized/resumen/${d ? `?depto=${encodeURIComponent(d)}` : ""}`, { headers: { Authorization: `Bearer ${t}` } });
+  const headers = t ? { Authorization: `Bearer ${t}` } : {};
+  const r = await fetch(`${API}/optimized/resumen/${d ? `?depto=${encodeURIComponent(d)}` : ""}`, { headers });
   if (!r.ok) throw new Error();
   return r.json();
 }
 async function fetchTop(d, t) {
-  const r = await fetch(`${API}/optimized/top-contratistas/?limit=5${d ? `&depto=${encodeURIComponent(d)}` : ""}`, { headers: { Authorization: `Bearer ${t}` } });
+  const headers = t ? { Authorization: `Bearer ${t}` } : {};
+  const r = await fetch(`${API}/optimized/top-contratistas/?limit=5${d ? `&depto=${encodeURIComponent(d)}` : ""}`, { headers });
   if (!r.ok) throw new Error();
   return r.json();
 }
 async function fetchMapa(t) {
-  const r = await fetch(`${API}/optimized/mapa-directa/`, { headers: { Authorization: `Bearer ${t}` } });
+  const headers = t ? { Authorization: `Bearer ${t}` } : {};
+  const r = await fetch(`${API}/optimized/mapa-directa/`, { headers });
   if (!r.ok) throw new Error();
   return r.json();
 }
 async function fetchContratos({ depto }, t) {
   const p = new URLSearchParams({ page: 1, page_size: 20 });
   if (depto) p.set("depto", depto);
-  const r = await fetch(`${API}/contratos/?${p}`, { headers: { Authorization: `Bearer ${t}` } });
+  const headers = t ? { Authorization: `Bearer ${t}` } : {};
+  const r = await fetch(`${API}/contratos/?${p}`, { headers });
   if (!r.ok) throw new Error();
   return r.json();
 }
@@ -75,14 +79,13 @@ export default function DashboardModern({ token }) {
     window.location.href = "/login";
   }
 
-  const { data: resumen } = useQuery({ queryKey: ["resumen", depto], queryFn: () => fetchResumen(depto, token), enabled: !!token, staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
-  const { data: topData } = useQuery({ queryKey: ["top", depto], queryFn: () => fetchTop(depto, token), enabled: !!token, staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
-  const { data: mapaData } = useQuery({ queryKey: ["mapa"], queryFn: () => fetchMapa(token), enabled: !!token, staleTime: 5 * 60 * 1000 });
+  // Público: queries funcionan anonimas (AllowAny) y con JWT; token null => headers vacios
+  const { data: resumen } = useQuery({ queryKey: ["resumen", depto], queryFn: () => fetchResumen(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
+  const { data: topData } = useQuery({ queryKey: ["top", depto], queryFn: () => fetchTop(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
+  const { data: mapaData } = useQuery({ queryKey: ["mapa"], queryFn: () => fetchMapa(token), staleTime: 5 * 60 * 1000 });
   const territorios = [...(mapaData?.mapa || [])].sort((a, b) => String(a.departamento).localeCompare(String(b.departamento), "es"));
-  const { data: contratosPag, isFetching, isError: errorTabla } = useQuery({ queryKey: ["contratos", depto], queryFn: () => fetchContratos({ depto }, token), enabled: !!token, staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
+  const { data: contratosPag, isFetching, isError: errorTabla } = useQuery({ queryKey: ["contratos", depto], queryFn: () => fetchContratos({ depto }, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
   const rows = contratosPag?.results ?? [];
-
-  if (!token) return <div className="min-h-[100dvh] grid place-items-center bg-[#050505] text-white">Inicia sesión</div>;
 
   return (
     <div className="min-h-[100dvh] bg-[#050505] text-white antialiased selection:bg-emerald-500/30" style={{ fontFamily: "Geist, system-ui, sans-serif" }}>
@@ -102,13 +105,19 @@ export default function DashboardModern({ token }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <a href="/app" className="h-9 inline-flex items-center gap-1.5 rounded-full bg-white text-black px-5 text-xs font-semibold hover:bg-zinc-100 transition-colors will-change-transform hover:scale-[1.02] active:scale-[0.98]">Mis oportunidades <ArrowRight size={14} aria-hidden="true" /></a>
+            {token ? (
+              <a href="/app" className="h-9 inline-flex items-center gap-1.5 rounded-full bg-white text-black px-5 text-xs font-semibold hover:bg-zinc-100 transition-colors will-change-transform hover:scale-[1.02] active:scale-[0.98]">Mis oportunidades <ArrowRight size={14} aria-hidden="true" /></a>
+            ) : (
+              <a href="/login" className="h-9 inline-flex items-center gap-1.5 rounded-full bg-white text-black px-5 text-xs font-semibold hover:bg-zinc-100 transition-colors will-change-transform hover:scale-[1.02] active:scale-[0.98]">Iniciar sesión <ArrowRight size={14} aria-hidden="true" /></a>
+            )}
             <label htmlFor="filtro-territorio" className="sr-only">Filtrar por territorio</label>
             <select id="filtro-territorio" value={depto} onChange={(e) => setDepto(e.target.value)} className="h-9 rounded-full border border-white/10 bg-white/5 backdrop-blur px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
               <option value="" className="bg-zinc-900">Todos · Nacional</option>
               {territorios.map((t) => <option key={t.departamento} value={t.departamento} className="bg-zinc-900">{t.departamento} · {t.total}</option>)}
             </select>
-            <button aria-label="Cerrar sesión" onClick={handleLogout} className="h-9 w-9 rounded-full border border-white/10 bg-white/5 grid place-items-center hover:bg-white/10 transition-colors"><X size={16} aria-hidden="true" /></button>
+            {token ? (
+              <button aria-label="Cerrar sesión" onClick={handleLogout} className="h-9 w-9 rounded-full border border-white/10 bg-white/5 grid place-items-center hover:bg-white/10 transition-colors"><X size={16} aria-hidden="true" /></button>
+            ) : null}
             <ThemeToggle />
           </div>
         </div>
@@ -202,7 +211,8 @@ export default function DashboardModern({ token }) {
               onClick={async () => {
                 const p = new URLSearchParams();
                 if (depto) p.set("depto", depto);
-                const r = await fetch(`${API}/exportar/?${p}`, { headers: { Authorization: `Bearer ${token}` } });
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                const r = await fetch(`${API}/exportar/?${p}`, { headers });
                 if (!r.ok) return;
                 const b = await r.blob();
                 const u = URL.createObjectURL(b);

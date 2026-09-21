@@ -6,7 +6,7 @@ const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
 async function fetchUmbrales(token) {
   const r = await fetch(`${API}/umbrales/`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!r.ok) throw new Error("Error umbrales")
   return r.json()
@@ -31,7 +31,7 @@ export default function Umbrales({ token }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["umbrales"],
     queryFn: () => fetchUmbrales(token),
-    enabled: !!token,
+    enabled: true,
   })
   // Overrides del usuario. El valor visible es override ?? valor del servidor.
   // Sin useEffect: evita setState en efecto y cascadas de render.

@@ -8,7 +8,7 @@ async function fetchPredominio(umbral, depto, token) {
   const params = new URLSearchParams({ umbral: String(umbral) })
   if (depto) params.set("depto", depto)
   const r = await fetch(`${API}/predominio-directa/?${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!r.ok) throw new Error("Error predominio")
   return r.json()
@@ -22,7 +22,7 @@ export default function PredominioDirecta({ token, depto }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["predominio", umbral, depto],
     queryFn: () => fetchPredominio(umbral, depto, token),
-    enabled: !!token,
+    enabled: true,
   })
 
   return (

@@ -9,7 +9,7 @@ async function fetchGrafo(limit, depto, token) {
   const params = new URLSearchParams({ limit: String(limit) })
   if (depto) params.set("depto", depto)
   const r = await fetch(`${API}/grafo/?${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!r.ok) throw new Error("Error grafo")
   return r.json()
@@ -23,7 +23,7 @@ export default function Grafo({ token, depto }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["grafo", limit, depto],
     queryFn: () => fetchGrafo(limit, depto, token),
-    enabled: !!token,
+    enabled: true,
     // P1: sin esto cada cambio re-dispara física + flicker. 5min + conserva anterior.
     staleTime: 1000 * 60 * 5,
     placeholderData: keepPreviousData,

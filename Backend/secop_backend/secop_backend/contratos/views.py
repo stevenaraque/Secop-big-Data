@@ -124,7 +124,8 @@ class VistaEstadoCarga(APIView):
 
 
 class VistaResumenOptimizado(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    # Público: observatorio sin login — solo agregados <50KB. SaaS privado es /radares /mis-oportunidades
+    permission_classes = [permissions.AllowAny]
     def get(self, request):
         # Fix secop-unhandled-int-param-500-001: valida anio numérico → 400 no 500
         anio_raw = request.query_params.get("anio")
@@ -152,8 +153,8 @@ class VistaResumenOptimizado(APIView):
         })
 
 class VistaResumenNaive(APIView):
-    # P0: demo pedagógica, bloquea OOM con 6M. Qué: 413 si >20k. Por qué: list(Model.objects.all()) mata RAM.
-    permission_classes = [permissions.IsAuthenticated]
+    # P0: demo pedagógica, bloquea OOM con 6M. Qué: 413 si >20k. Por qué: list(Model.objects.all()) mata RAM. Público para comparativa naive vs optimizado.
+    permission_classes = [permissions.AllowAny]
     def get(self, request):
         if Contrato.objects.count() > 20000:
             return Response({"detalle": "Naive deshabilitado con >20k registros para evitar OOM. Usa /optimized/."}, status=status.HTTP_413_CONTENT_TOO_LARGE)
@@ -189,7 +190,7 @@ class VistaListarCargas(APIView):
 
 
 class VistaTopContratistasOptimizado(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     def get(self, request):
         # Fix secop-unhandled-int-param-500-001: valida limit 1..100 → 400 no 500, evita OOM por slice gigante
         limite, err = _parse_int_query_param(request.query_params.get("limit", 5), 5, 1, 100, field_name="limit")
@@ -202,8 +203,8 @@ class VistaTopContratistasOptimizado(APIView):
         return Response({"filtro": request.query_params.get("depto") or "todos", "optimizado": True, "top": top})
 
 class VistaTopContratistasNaive(APIView):
-    # P0: igual que resumen naive, evita OOM.
-    permission_classes = [permissions.IsAuthenticated]
+    # P0: igual que resumen naive, evita OOM. Público.
+    permission_classes = [permissions.AllowAny]
     def get(self, request):
         if Contrato.objects.count() > 20000:
             return Response({"detalle": "Naive deshabilitado con >20k registros para evitar OOM. Usa /optimized/."}, status=status.HTTP_413_CONTENT_TOO_LARGE)
@@ -223,7 +224,7 @@ class PaginacionContratos(PageNumberPagination):
 
 class VistaListaContratos(ListAPIView):
     serializer_class = ContratoSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     pagination_class = PaginacionContratos
     def get_queryset(self):
         qs = Contrato.objects.all().order_by("id")
@@ -244,13 +245,13 @@ class VistaListaContratos(ListAPIView):
 
 class VistaDetalleContrato(RetrieveAPIView):
     serializer_class = ContratoSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     lookup_field = "id_contrato"
     queryset = Contrato.objects.all()
 
 
 class VistaSerieMensualOptimizado(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     def get(self, request):
         depto = request.query_params.get("depto")
         qs = Contrato.objects.all()
@@ -264,14 +265,14 @@ class VistaSerieMensualOptimizado(APIView):
 
 
 class VistaMapaDirectaOptimizado(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     def get(self, request):
         datos = servicio_contratos.mapa_directa_optimizado()
         return Response ({"mapa": datos})
 
 
 class VistaBuscar(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     def get(self, request):
         q = request.query_params.get("q", "")
         datos = servicio_contratos.buscar(q=q)
@@ -279,7 +280,7 @@ class VistaBuscar(APIView):
 
 
 class VistaBanderasConcentracion(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     def get(self, request):
         # RF-24: si no mandan ?umbral=, usa el persistido en BD (sin reinicio)
         raw = request.query_params.get("umbral")
@@ -298,7 +299,7 @@ class VistaBanderasConcentracion(APIView):
 
 
 class VistaPredominioDirecta(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     def get(self, request):
         # RF-24: si no mandan ?umbral=, usa el persistido en BD (sin reinicio)
         raw = request.query_params.get("umbral")
@@ -317,15 +318,15 @@ class VistaPredominioDirecta(APIView):
 
 
 class VistaListarUmbrales(APIView):
-    # RF-24 C3: lista los umbrales actuales. Qué: GET persistido. Por qué: admin ve qué está vigente.
-    permission_classes = [permissions.IsAuthenticated]
+    # RF-24 C3: lista los umbrales actuales. Qué: GET persistido. Por qué: admin ve qué está vigente. Público lectura.
+    permission_classes = [permissions.AllowAny]
     def get(self, request):
         return Response({"umbrales": servicio_contratos.listar_umbrales()})
 
 
 class VistaActualizarUmbral(APIView):
-    # RF-24 C1/C2/C4: persiste en BD, aplica sin reinicio, valida 0<valor<=100 con 400.
-    permission_classes = [permissions.IsAuthenticated]
+    # RF-24 C1/C2/C4: persiste en BD, aplica sin reinicio, valida 0<valor<=100 con 400. Solo admin escribe.
+    permission_classes = [permissions.IsAdminUser]
     def put(self, request, nombre):
         valor = request.data.get("valor")
         try:
@@ -349,9 +350,9 @@ class PaginacionEntidades(PageNumberPagination):
 
 
 class VistaListaEntidades(ListAPIView):
-    # RF-28: catálogo paginado ordenado por nombre con búsqueda por nombre o NIT.
+    # RF-28: catálogo paginado ordenado por nombre con búsqueda por nombre o NIT. Público.
     serializer_class = EntidadSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     pagination_class = PaginacionEntidades
     def get_queryset(self):
         qs = Entidad.objects.all().order_by("nombre_entidad")
@@ -368,8 +369,8 @@ class VistaListaEntidades(ListAPIView):
 
 
 class VistaEstadisticasEntidad(APIView):
-    # RF-27: total, distribución por modalidad y top contratistas, con filtros depto/fechas.
-    permission_classes = [permissions.IsAuthenticated]
+    # RF-27: total, distribución por modalidad y top contratistas, con filtros depto/fechas. Público.
+    permission_classes = [permissions.AllowAny]
     def get(self, request):
         datos = servicio_contratos.estadisticas_por_entidad(
             nit=request.query_params.get("nit"),
@@ -382,8 +383,8 @@ class VistaEstadisticasEntidad(APIView):
 
 
 class VistaGrafoRed(APIView):
-    # RF-17: red entidad→contratista para force-graph. Qué: top montos con límite. Por qué: 500k nodos congelan el navegador.
-    permission_classes = [permissions.IsAuthenticated]
+    # RF-17: red entidad→contratista para force-graph. Qué: top montos con límite. Por qué: 500k nodos congelan el navegador. Público.
+    permission_classes = [permissions.AllowAny]
     def get(self, request):
         datos = servicio_contratos.grafo_red(
             limite=request.query_params.get("limit", 50),
@@ -393,8 +394,8 @@ class VistaGrafoRed(APIView):
 
 
 class VistaExportarContratos(APIView):
-    # RF-21: descarga el filtrado actual en CSV. Qué: mismos filtros + BOM + cap 100k. Por qué: 6M colapsa proxy/timeout.
-    permission_classes = [permissions.IsAuthenticated]
+    # RF-21: descarga el filtrado actual en CSV. Qué: mismos filtros + BOM + cap 100k. Por qué: 6M colapsa proxy/timeout. Público con throttle 20/min.
+    permission_classes = [permissions.AllowAny]
     def get(self, request):
         # RNF-08: auditoría exportar
         try:

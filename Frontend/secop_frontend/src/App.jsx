@@ -21,10 +21,8 @@ function SkipLink() {
 }
 
 function PublicDashboardRoute() {
-  // Nota: el backend exige IsAuthenticated incluso para el observatorio "público",
-  // por eso / pide token y manda a /login. Hacerlo público real exige backend anónimo.
-  const token = localStorage.getItem("access");
-  if (!token) return <Navigate to="/login" replace />;
+  // Público real: observatorio sin login — AllowAny en backend, token opcional. SaaS privado sigue en /app con PrivateRoute.
+  const token = localStorage.getItem("access"); // null si anonimo, dashboard funciona igual (agregados <50KB)
   return (
     <>
       <SkipLink />

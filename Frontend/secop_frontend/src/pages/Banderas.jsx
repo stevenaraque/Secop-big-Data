@@ -8,7 +8,7 @@ async function fetchBanderas(umbral, depto, token) {
   const params = new URLSearchParams({ umbral: String(umbral) })
   if (depto) params.set("depto", depto)
   const r = await fetch(`${API}/banderas-concentracion/?${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!r.ok) throw new Error("Error banderas")
   return r.json()
@@ -22,7 +22,7 @@ export default function Banderas({ token, depto }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["banderas", umbral, depto],
     queryFn: () => fetchBanderas(umbral, depto, token),
-    enabled: !!token,
+    enabled: true,
   })
 
   return (

@@ -30,7 +30,7 @@ export default function Buscador({ token }) {
     abortRef.current = ctrl;
     setCargando(true);
     fetch(`${API}/buscar/?q=${encodeURIComponent(q)}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       signal: ctrl.signal,
     })
       .then((r) => {

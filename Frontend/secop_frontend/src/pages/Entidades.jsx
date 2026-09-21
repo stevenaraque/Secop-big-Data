@@ -8,7 +8,7 @@ async function fetchEntidades(q, page, token) {
   const params = new URLSearchParams({ page: String(page) })
   if (q) params.set("q", q)
   const r = await fetch(`${API}/entidades/?${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!r.ok) {
     const d = await r.json().catch(() => ({}))
@@ -19,7 +19,7 @@ async function fetchEntidades(q, page, token) {
 
 async function fetchStats(nit, token) {
   const r = await fetch(`${API}/por-entidad/?nit=${encodeURIComponent(nit)}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!r.ok) throw new Error("Error stats")
   return r.json()
@@ -35,12 +35,12 @@ export default function Entidades({ token }) {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["entidades", q, page],
     queryFn: () => fetchEntidades(q, page, token),
-    enabled: !!token,
+    enabled: true,
   })
   const { data: stats } = useQuery({
     queryKey: ["por-entidad", selNit],
     queryFn: () => fetchStats(selNit, token),
-    enabled: !!token && !!selNit,
+    enabled: !!selNit,
   })
 
   return (

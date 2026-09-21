@@ -48,7 +48,7 @@ export default function ProfilerDual({ token, depto }) {
     async function medir(url, setData, setTtfb) {
       const t0 = performance.now();
       const r = await fetch(`${API}${url}${q}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!r.ok) {
         const e = new Error(`HTTP ${r.status}`);

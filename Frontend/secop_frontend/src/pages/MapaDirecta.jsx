@@ -7,7 +7,7 @@ import "./MapaRF15.css"
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 async function fetchMapa(token) {
   const r = await fetch(`${API}/optimized/mapa-directa/`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!r.ok) throw new Error("Error mapa")
   return r.json()
@@ -88,7 +88,7 @@ export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["mapa"],
     queryFn: () => fetchMapa(token),
-    enabled: !!token,
+    enabled: true,
     staleTime: 1000 * 60 * 5,
   })
 
