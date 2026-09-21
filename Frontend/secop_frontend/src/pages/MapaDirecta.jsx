@@ -31,6 +31,8 @@ const nf1 = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 1 })
 const nf0 = new Intl.NumberFormat("es-CO")
 const fmtPct = (p) => nf1.format(Number(p) || 0) + " %"
 const fmtCOP = (v) => "$" + nf0.format(Math.round(Number(v) || 0))
+// P0 SECOP-U5-TOOLTIP-01: strings SODA/DB van a innerHTML de Leaflet. Qué: escape antes de interpolar.
+const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;")
 const norm = (s) => String(s || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z ]/g, " ").replace(/\s+/g, " ").trim()
 
 /* vinculación de nombres del GeoJSON (de tu HTML) */
@@ -144,11 +146,11 @@ function claveGeo(props) {
               layer.setStyle({ color: "#221a12", weight: 2 })
               layer.bringToFront()
               layer.setTooltipContent(hit
-                ? `<div class="tt-name">${hit.departamento}</div>`
+                ? `<div class="tt-name">${esc(hit.departamento)}</div>`
                   + `<div class="tt-row"><span>Monto</span><b>${fmtCOP(hit.suma_total)} COP</b></div>`
                   + `<div class="tt-row"><span>Directa</span><b>${fmtPct(hit.porcentaje_directa)}</b></div>`
                   + `<div class="tt-bar"><span style="width:${Math.min(100, Number(hit.porcentaje_directa))}%;background:${colorFor(Number(hit.porcentaje_directa) / 100)}"></span></div>`
-                : `<div class="tt-name">${geoName}</div><div class="tt-sub">sin datos en la muestra actual</div>`)
+                : `<div class="tt-name">${esc(geoName)}</div><div class="tt-sub">sin datos en la muestra actual</div>`)
             })
             layer.on("mouseout", () => {
               layers.resetStyle(layer)

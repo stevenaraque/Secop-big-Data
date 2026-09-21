@@ -13,10 +13,13 @@ export default function ProfilerDual({ token, depto }) {
   const [ttfbOpt, setTtfbOpt] = useState(0);
   const [ttfbNaive, setTtfbNaive] = useState(0);
   const [renderMs, setRenderMs] = useState(0);
+  // P0: naive responde 413 con >20k (anti-OOM backend). Qué: estado error. Por qué: sin esto pinta NaN.
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!token) return;
     let vivo = true;
+    setError(null);
     const q = depto ? `?depto=${encodeURIComponent(depto)}` : "";
 
     async function medir(url, setData, setTtfb) {
@@ -24,6 +27,12 @@ export default function ProfilerDual({ token, depto }) {
       const r = await fetch(`${API}${url}${q}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!r.ok) {
+        const e = new Error(`HTTP ${r.status}`);
+        e.status = r.status;
+        e.url = url;
+        throw e;
+      }
       const t1 = performance.now();
       const ttfb = Math.round(t1 - t0);
       const j = await r.json();
@@ -37,9 +46,13 @@ export default function ProfilerDual({ token, depto }) {
     Promise.all([
       medir("/optimized/resumen/", setOpt, setTtfbOpt),
       medir("/naive/resumen/", setNaive, setTtfbNaive),
-    ]).finally(() => {
-      if (vivo) setRenderMs(Math.round(performance.now() - tRender0));
-    });
+    ])
+      .catch((e) => {
+        if (vivo) setError(e);
+      })
+      .finally(() => {
+        if (vivo) setRenderMs(Math.round(performance.now() - tRender0));
+      });
 
     return () => {
       vivo = false;
@@ -47,6 +60,14 @@ export default function ProfilerDual({ token, depto }) {
   }, [token, depto]);
 
   if (!token) return null;
+
+  // P0: error visible en vez de NaN. 413 = naive apagado por tamaño (diseño backend).
+  const errorMsg =
+    error?.status === 413 && error?.url?.includes("naive")
+      ? "Naive deshabilitado con >20k registros (anti-OOM). El optimizado sigue midiendo."
+      : error
+        ? "No se pudo medir. Revisa tu sesión."
+        : null;
 
   const optBd = opt?.tiempo_bd_ms ?? 0;
   const optPy = opt?.tiempo_python_ms ?? 0;
@@ -131,6 +152,12 @@ export default function ProfilerDual({ token, depto }) {
           </button>
         </div>
       </div>
+
+      {errorMsg && (
+        <p role="alert" className="mt-4 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
+          {errorMsg}
+        </p>
+      )}
 
       {modo === "usuario" ? (
         <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
