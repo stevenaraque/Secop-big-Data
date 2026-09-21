@@ -61,6 +61,13 @@ function nameOf(props) {
   return null
 }
 
+/* id estable del GeoJSON -> nombre normalizado (evita el problema de Ñ rota) */
+const POR_ID = { CONAR: 'NARINO', COPUT: 'PUTUMAYO', COCHO: 'CHOCO', COGUA: 'GUAINIA', COVAU: 'VAUPES', COAMA: 'AMAZONAS', COLAG: 'GUAJIRA', COCES: 'CESAR', CONSA: 'NORTE DE SANTANDER', COARA: 'ARAUCA', COBOY: 'BOYACA', COVID: 'VICHADA', COCAU: 'CAUCA', COVAC: 'VALLE', COANT: 'ANTIOQUIA', COCOR: 'CORDOBA', COSUC: 'SUCRE', COBOL: 'BOLIVAR', COATL: 'ATLANTICO', COMAG: 'MAGDALENA', COSAP: 'SAN ANDRES', COCAQ: 'CAQUETA', COHUI: 'HUILA', COGUV: 'GUAVIARE', COCAL: 'CALDAS', COCAS: 'CASANARE', COMET: 'META', CODC: 'BOGOTA', COSAN: 'SANTANDER', COTOL: 'TOLIMA', COQUI: 'QUINDIO', COCUN: 'CUNDINAMARCA', CORIS: 'RISARALDA' }
+function claveGeo(props) {
+  if (props?.id && POR_ID[props.id]) return POR_ID[props.id]
+  return matchName(nameOf(props) || props?.name || "")
+}
+
 export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
   const mapElRef = useRef(null)
   const mapRef = useRef(null)
@@ -68,7 +75,9 @@ export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
   const selKeyRef = useRef(null)
   const [selNombre, setSelNombre] = useState(null)
   const onSelectRef = useRef(onSelectDepto)
-  onSelectRef.current = onSelectDepto
+  useEffect(() => {
+    onSelectRef.current = onSelectDepto
+  }, [onSelectDepto])
 
   // Sincroniza el resaltado cuando el filtro cambia desde el select del header
   useEffect(() => {
@@ -96,18 +105,11 @@ export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
       setSelNombre(null)
       if (onSelectRef.current) onSelectRef.current("")
     })
-    setTimeout(() => { try { map.invalidateSize(); map.fitBounds([[-4.6, -82.6], [13.9, -66.7]]) } catch (_) { /* noop */ } }, 150)
+    setTimeout(() => { try { map.invalidateSize(); map.fitBounds([[-4.6, -82.6], [13.9, -66.7]]) } catch { /* noop: mapa aún sin tamaño */ } }, 150)
     return () => { map.remove(); mapRef.current = null }
   }, [])
 
-  /* capa coroplética con datos reales */
-/* id estable del GeoJSON -> nombre normalizado (evita el problema de Ñ rota) */
-const POR_ID = { CONAR: 'NARINO', COPUT: 'PUTUMAYO', COCHO: 'CHOCO', COGUA: 'GUAINIA', COVAU: 'VAUPES', COAMA: 'AMAZONAS', COLAG: 'GUAJIRA', COCES: 'CESAR', CONSA: 'NORTE DE SANTANDER', COARA: 'ARAUCA', COBOY: 'BOYACA', COVID: 'VICHADA', COCAU: 'CAUCA', COVAC: 'VALLE', COANT: 'ANTIOQUIA', COCOR: 'CORDOBA', COSUC: 'SUCRE', COBOL: 'BOLIVAR', COATL: 'ATLANTICO', COMAG: 'MAGDALENA', COSAP: 'SAN ANDRES', COCAQ: 'CAQUETA', COHUI: 'HUILA', COGUV: 'GUAVIARE', COCAL: 'CALDAS', COCAS: 'CASANARE', COMET: 'META', CODC: 'BOGOTA', COSAN: 'SANTANDER', COTOL: 'TOLIMA', COQUI: 'QUINDIO', COCUN: 'CUNDINAMARCA', CORIS: 'RISARALDA' }
-function claveGeo(props) {
-  if (props?.id && POR_ID[props.id]) return POR_ID[props.id]
-  return matchName(nameOf(props) || props?.name || "")
-}
-
+  /* capa coroplética con datos reales (claveGeo es pura y estable a nivel módulo) */
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
@@ -174,7 +176,7 @@ function claveGeo(props) {
           },
         }).addTo(map)
         layersRef.current = layers
-        try { map.fitBounds(layers.getBounds(), { padding: [20, 20] }) } catch (_) { /* noop */ }
+        try { map.fitBounds(layers.getBounds(), { padding: [20, 20] }) } catch { /* noop: bounds vacíos */ }
       })
       .catch(() => { /* deja el aviso en pantalla */ })
     return () => { vivo = false }

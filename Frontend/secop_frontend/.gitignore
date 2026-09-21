@@ -11,6 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
+# Env con secretos (DB, SECRET_KEY, email, tokens). Nunca versionar el real.
+.env
+.env.*.local
+coverage/
 
 # Editor directories and files
 .vscode/*

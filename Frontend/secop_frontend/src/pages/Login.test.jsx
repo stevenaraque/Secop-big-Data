@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { expect, beforeEach, afterEach, vi } from "vitest";
 import Login from "./Login.jsx";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 

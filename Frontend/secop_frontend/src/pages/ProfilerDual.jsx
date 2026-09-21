@@ -3,6 +3,30 @@ import { motion } from "motion/react";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
+// Barra fuera del render: crear componentes dentro del render resetea su estado.
+function Barra({ label, ms, color, total }) {
+  const pct = total ? Math.max(6, (ms / total) * 100) : 0;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-[58px] text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400 font-mono">
+        {label}
+      </span>
+      <div className="flex-1 h-[22px] rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 overflow-hidden relative">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ type: "spring", stiffness: 100, damping: 20 }}
+          className={`h-full ${color}`}
+          style={{ minWidth: ms ? 28 : 0 }}
+        />
+        <span className="absolute inset-0 grid place-items-center text-[11px] font-mono font-medium text-zinc-900 dark:text-zinc-100">
+          {ms} ms
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // Profiler Dual 4 barras: BD | Python | TTFB | Render + toggle Usuario/Ingeniería
 // Design: Telemetry Tactico (mono, scanlines sutiles, 1 acento emerald <80%, DENSITY 8)
 // Stack: recharts + motion + mono numbers
@@ -19,7 +43,6 @@ export default function ProfilerDual({ token, depto }) {
   useEffect(() => {
     if (!token) return;
     let vivo = true;
-    setError(null);
     const q = depto ? `?depto=${encodeURIComponent(depto)}` : "";
 
     async function medir(url, setData, setTtfb) {
@@ -36,9 +59,9 @@ export default function ProfilerDual({ token, depto }) {
       const t1 = performance.now();
       const ttfb = Math.round(t1 - t0);
       const j = await r.json();
-      const t2 = Math.round(performance.now() - t0);
       if (!vivo) return;
       setData(j);
+      setError(null);
       setTtfb(ttfb || Math.round(j.tiempo_bd_ms + j.tiempo_python_ms + 18));
     }
 
@@ -78,44 +101,20 @@ export default function ProfilerDual({ token, depto }) {
   const totalNaive = Math.round(naiveBd + naivePy + ttfbNaive + renderMs);
   const factor = totalNaive && totalOpt ? (totalNaive / totalOpt).toFixed(1) : "—";
 
-  // 4 barras apiladas para stacked visual
-  function Barra({ label, ms, color, total }) {
-    const pct = total ? Math.max(6, (ms / total) * 100) : 0;
-    return (
-      <div className="flex items-center gap-2">
-        <span className="w-[58px] text-[11px] uppercase tracking-[0.14em] text-zinc-500 font-mono">
-          {label}
-        </span>
-        <div className="flex-1 h-[22px] rounded-full bg-zinc-100 border border-zinc-200 overflow-hidden relative">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${pct}%` }}
-            transition={{ type: "spring", stiffness: 100, damping: 20 }}
-            className={`h-full ${color}`}
-            style={{ minWidth: ms ? 28 : 0 }}
-          />
-          <span className="absolute inset-0 grid place-items-center text-[11px] font-mono font-medium text-zinc-900">
-            {ms} ms
-          </span>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <section
       aria-label="Profiler dual"
-      className="rounded-2xl border border-zinc-200 bg-white p-5"
+      className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold tracking-tight flex items-center gap-2">
             Profiler dual
-            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-mono">
+            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 text-[11px] font-mono">
               4 capas
             </span>
           </h2>
-          <p className="text-xs text-zinc-600 mt-1 max-w-[60ch] leading-relaxed">
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 max-w-[60ch] leading-relaxed">
             Vista Usuario ve KPIs. Vista Ingeniería desglosa{" "}
             <span className="font-mono">BD | Python | Red | Render</span> en ms.
             Word:9 + Pitch 45s: naive vs optimizado.
@@ -124,7 +123,7 @@ export default function ProfilerDual({ token, depto }) {
         <div
           role="tablist"
           aria-label="Modo profiler"
-          className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 p-1"
+          className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 dark:bg-zinc-800/60 p-1"
         >
           <button
             role="tab"
@@ -132,8 +131,8 @@ export default function ProfilerDual({ token, depto }) {
             onClick={() => setModo("usuario")}
             className={`h-8 px-4 rounded-full text-xs font-medium transition-colors ${
               modo === "usuario"
-                ? "bg-white border border-zinc-200 shadow-sm text-zinc-900"
-                : "text-zinc-600 hover:text-zinc-900"
+                ? "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100 dark:text-zinc-100"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-100"
             }`}
           >
             Usuario
@@ -144,8 +143,8 @@ export default function ProfilerDual({ token, depto }) {
             onClick={() => setModo("ingenieria")}
             className={`h-8 px-4 rounded-full text-xs font-medium transition-colors ${
               modo === "ingenieria"
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-600 hover:text-zinc-900"
+                ? "bg-zinc-900 dark:bg-zinc-100 dark:bg-zinc-800 text-white dark:text-zinc-900 dark:text-zinc-100"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-100"
             }`}
           >
             Ingeniería
@@ -160,24 +159,24 @@ export default function ProfilerDual({ token, depto }) {
       )}
 
       {modo === "usuario" ? (
-        <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-zinc-600">
-            Filtrando <span className="font-mono font-medium text-zinc-900">{depto || "Nacional"}</span> ·{" "}
+        <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 dark:bg-zinc-800/60 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-zinc-600 dark:text-zinc-400">
+            Filtrando <span className="font-mono font-medium text-zinc-900 dark:text-zinc-100">{depto || "Nacional"}</span> ·{" "}
             {opt ? `${opt.total} contratos` : "cargando..."}
           </p>
-          <span className="text-[11px] px-2 py-1 rounded-full bg-white border border-zinc-200 font-mono">
+          <span className="text-[11px] px-2 py-1 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 font-mono">
             Optimizado {totalOpt} ms
           </span>
         </div>
       ) : (
         <div className="mt-4 space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+            <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/30 p-4">
               <div className="flex items-baseline justify-between">
-                <p className="text-xs font-semibold text-emerald-800">Optimizado</p>
-                <p className="font-mono text-lg tracking-tighter text-emerald-700">{totalOpt} ms</p>
+                <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">Optimizado</p>
+                <p className="font-mono text-lg tracking-tighter text-emerald-700 dark:text-emerald-300">{totalOpt} ms</p>
               </div>
-              <p className="text-[11px] text-emerald-700/80 font-mono">agrega en BD · 50KB</p>
+              <p className="text-[11px] text-emerald-700 dark:text-emerald-300/80 font-mono">agrega en BD · 50KB</p>
               <div className="mt-3 space-y-2">
                 <Barra label="BD" ms={optBd} color="bg-emerald-600" total={totalOpt} />
                 <Barra label="Python" ms={optPy} color="bg-amber-500" total={totalOpt} />
@@ -185,12 +184,12 @@ export default function ProfilerDual({ token, depto }) {
                 <Barra label="Render" ms={renderMs} color="bg-zinc-400" total={totalOpt} />
               </div>
             </div>
-            <div className="rounded-xl border border-red-200 bg-red-50/60 p-4">
+            <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50/60 dark:bg-red-950/30 p-4">
               <div className="flex items-baseline justify-between">
-                <p className="text-xs font-semibold text-red-700">Naive</p>
-                <p className="font-mono text-lg tracking-tighter text-red-700">{totalNaive} ms</p>
+                <p className="text-xs font-semibold text-red-700 dark:text-red-300">Naive</p>
+                <p className="font-mono text-lg tracking-tighter text-red-700 dark:text-red-300">{totalNaive} ms</p>
               </div>
-              <p className="text-[11px] text-red-700/80 font-mono">SELECT * · 100MB</p>
+              <p className="text-[11px] text-red-700 dark:text-red-300/80 font-mono">SELECT * · 100MB</p>
               <div className="mt-3 space-y-2">
                 <Barra label="BD" ms={naiveBd} color="bg-red-300" total={totalNaive} />
                 <Barra label="Python" ms={naivePy} color="bg-red-600" total={totalNaive} />
@@ -200,15 +199,15 @@ export default function ProfilerDual({ token, depto }) {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="px-3 py-1.5 rounded-full bg-zinc-900 text-white font-mono">
+            <span className="px-3 py-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 dark:bg-zinc-800 text-white dark:text-zinc-900 dark:text-zinc-100 font-mono">
               {factor}× más rápido
             </span>
-            <span className="text-zinc-600">
+            <span className="text-zinc-600 dark:text-zinc-400">
               Django agrega (COUNT/SUM) + React virtualiza, no mueve filas. Pitch 45s.
             </span>
-            {!opt && <span className="text-zinc-500">Midiendo...</span>}
+            {!opt && <span className="text-zinc-500 dark:text-zinc-400">Midiendo...</span>}
           </div>
-          <p className="text-[11px] text-zinc-500 font-mono">
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">
             BD = tiempo query + aggregate · Python = serialización · Red = TTFB fetch · Render = paint React
           </p>
         </div>

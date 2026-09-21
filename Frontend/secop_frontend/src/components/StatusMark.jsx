@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { animate, useMotionValue, useReducedMotion } from 'motion/react';
 import './StatusMark.css';
 const UI = { type: 'spring', duration: 0.3, bounce: 0 };
@@ -22,24 +22,24 @@ export default function StatusMark({ status = 'pending', progress, label, color 
   const travel = useMotionValue(0);
   const ringRef = useRef(null);
   const geo = useRef({ C, P });
-  geo.current = { C, P };
   const gen = useRef(0);
-  const writeDash = () => {
+  const writeDash = useCallback(() => {
     const g = geo.current;
     const m = mode.get();
     const a = arc.get();
     const dash = IDLE_DASH * g.P + (a * g.C - IDLE_DASH * g.P) * m;
     const gap = (1 - IDLE_DASH) * g.P + ((1 - a) * g.C - (1 - IDLE_DASH) * g.P) * m;
     ringRef.current?.setAttribute('stroke-dasharray', `${Math.max(0, dash)} ${Math.max(0, gap)}`);
-  };
+  }, [mode, arc]);
   useLayoutEffect(() => {
+    geo.current = { C, P };
     writeDash();
     ringRef.current?.setAttribute('stroke-dashoffset', String(travel.get()));
-  }, [C, P]);
+  }, [C, P, writeDash, travel]);
   useEffect(() => {
     const offs = [mode.on('change', writeDash), arc.on('change', writeDash), travel.on('change', v => ringRef.current?.setAttribute('stroke-dashoffset', String(v)))];
     return () => { offs.forEach(off => off()); mode.stop(); arc.stop(); travel.stop(); };
-  }, []);
+  }, [mode, arc, travel, writeDash]);
   useEffect(() => {
     const g = ++gen.current;
     if (reduce) { mode.jump(solid ? 1 : 0); arc.jump(targetArc); travel.jump(0); return; }
@@ -54,7 +54,7 @@ export default function StatusMark({ status = 'pending', progress, label, color 
     const unit = determinate ? C : P;
     const to = Math.floor(travel.get() / unit) * unit;
     animate(travel, to, UI).then(() => { if (gen.current === g) travel.jump(0); });
-  }, [status, determinate, targetArc, reduce, C, P, spinDuration]);
+  }, [status, determinate, indeterminate, solid, targetArc, reduce, C, P, spinDuration, mode, arc, travel]);
   const spoken = TEXT[status] + (determinate ? `, ${Math.round(clamp01(progress) * 100)}%` : '');
   const hasLabel = label !== undefined && label !== null;
   return (
