@@ -14,8 +14,9 @@ class RegistroSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
     def validate_correo(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("El correo ya está registrado.")
+        # Fix secop-user-enumeration-register-001: no revelar existencia en validación.
+        # La verificación se hace en VistaRegistro.create con respuesta genérica (200) para ambos casos,
+        # espejo de VistaSolicitarRecuperacion que ya es genérica. Evita oracle 400 vs 201.
         return value
 
     def validate_contrasena(self, value):

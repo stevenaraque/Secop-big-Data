@@ -15,7 +15,29 @@ from rest_framework.generics import ListAPIView, RetrieveAPIView, ListCreateAPIV
 from rest_framework.pagination import PageNumberPagination
 from .serializers import ContratoSerializer, EntidadSerializer, RadarSerializer, OportunidadSerializer
 
+# Fix secop-csv-injection-export-001: sanitiza celdas CSV que Excel evaluaría como fórmula.
+# Fix secop-unhandled-int-param-500-001: helper centralizado para query params numéricos → 400 no 500.
+def _sanitize_csv_value(v):
+    """OWASP CSV injection: si celda empieza con = + - @ (tras lstrip), prefija ' para forzar texto."""
+    s = str(v) if v is not None else ""
+    if s and s.lstrip()[:1] in ("=", "+", "-", "@"):
+        return "'" + s
+    return s
 
+
+def _parse_int_query_param(value, default, min_v=None, max_v=None, field_name="parametro"):
+    """Valida int de query string. Retorna (valor, error_response). Si error_response no es None, caller debe return Response 400."""
+    if value is None or value == "":
+        return default, None
+    try:
+        v = int(str(value).strip())
+    except (TypeError, ValueError):
+        return None, Response({"detalle": f"{field_name} debe ser un número entero."}, status=status.HTTP_400_BAD_REQUEST)
+    if min_v is not None and v < min_v:
+        return None, Response({"detalle": f"{field_name} debe ser >= {min_v}."}, status=status.HTTP_400_BAD_REQUEST)
+    if max_v is not None and v > max_v:
+        return None, Response({"detalle": f"{field_name} debe ser <= {max_v}."}, status=status.HTTP_400_BAD_REQUEST)
+    return v, None
 
 
 def tarea_carga(trabajo_id, limite, offset, depto):
@@ -81,7 +103,8 @@ class VistaIniciarCarga(APIView):
         return Response({"id": trabajo.id, "estado": trabajo.estado}, status=status.HTTP_202_ACCEPTED)
 
 class VistaEstadoCarga(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    # Fix secop-idor-trabajo-carga-001: solo admin puede ver estado de ETL (antes IsAuthenticated permitía a cualquier usuario enumerar jobs secuenciales)
+    permission_classes = [permissions.IsAdminUser]
 
     def get(self, request, pk):
         trabajo = TrabajoCarga.objects.get(id=pk)
@@ -103,10 +126,16 @@ class VistaEstadoCarga(APIView):
 class VistaResumenOptimizado(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
+        # Fix secop-unhandled-int-param-500-001: valida anio numérico → 400 no 500
+        anio_raw = request.query_params.get("anio")
+        if anio_raw not in (None, ""):
+            _, err = _parse_int_query_param(anio_raw, None, 1900, 2100, field_name="anio")
+            if err:
+                return err
         t0 = time.perf_counter()
         datos = servicio_contratos.resumen_optimizado(
             depto=request.query_params.get("depto"),
-            anio=request.query_params.get("anio"),
+            anio=anio_raw,
             modalidad=request.query_params.get("modalidad"),
         )
         dt = (time.perf_counter() - t0) * 1000
@@ -128,10 +157,15 @@ class VistaResumenNaive(APIView):
     def get(self, request):
         if Contrato.objects.count() > 20000:
             return Response({"detalle": "Naive deshabilitado con >20k registros para evitar OOM. Usa /optimized/."}, status=status.HTTP_413_CONTENT_TOO_LARGE)
+        anio_raw = request.query_params.get("anio")
+        if anio_raw not in (None, ""):
+            _, err = _parse_int_query_param(anio_raw, None, 1900, 2100, field_name="anio")
+            if err:
+                return err
         t0 = time.perf_counter()
         datos = servicio_contratos.resumen_naive(
             depto=request.query_params.get("depto"),
-            anio=request.query_params.get("anio"),
+            anio=anio_raw,
             modalidad=request.query_params.get("modalidad"),
         )
         dt = (time.perf_counter() - t0) * 1000
@@ -147,7 +181,8 @@ class VistaResumenNaive(APIView):
             **datos
         })
 class VistaListarCargas(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    # Fix secop-idor-trabajo-carga-001: listar cargas también solo admin (coherente con VistaEstadoCarga)
+    permission_classes = [permissions.IsAdminUser]
     def get(self, request):
         trabajos = TrabajoCarga.objects.all()[:20]
         return Response([{"id": t.id, "estado": t.estado, "registros_procesados": t.registros_procesados, "total_registros": t.total_registros, "creado_en": t.creado_en} for t in trabajos])
@@ -156,9 +191,13 @@ class VistaListarCargas(APIView):
 class VistaTopContratistasOptimizado(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
+        # Fix secop-unhandled-int-param-500-001: valida limit 1..100 → 400 no 500, evita OOM por slice gigante
+        limite, err = _parse_int_query_param(request.query_params.get("limit", 5), 5, 1, 100, field_name="limit")
+        if err:
+            return err
         top = servicio_contratos.top_contratistas_optimizado(
             depto=request.query_params.get("depto"),
-            limite=int(request.query_params.get("limit", 5)),
+            limite=limite,
         )
         return Response({"filtro": request.query_params.get("depto") or "todos", "optimizado": True, "top": top})
 
@@ -168,9 +207,12 @@ class VistaTopContratistasNaive(APIView):
     def get(self, request):
         if Contrato.objects.count() > 20000:
             return Response({"detalle": "Naive deshabilitado con >20k registros para evitar OOM. Usa /optimized/."}, status=status.HTTP_413_CONTENT_TOO_LARGE)
+        limite, err = _parse_int_query_param(request.query_params.get("limit", 5), 5, 1, 100, field_name="limit")
+        if err:
+            return err
         top = servicio_contratos.top_contratistas_naive(
             depto=request.query_params.get("depto"),
-            limite=int(request.query_params.get("limit", 5)),
+            limite=limite,
         )
         return Response({"filtro": request.query_params.get("depto") or "todos", "optimizado": False, "top": top})
 
@@ -382,10 +424,10 @@ class VistaExportarContratos(APIView):
                     "modalidad", "estado_contrato", "valor_contrato", "fecha_firma",
                     "contratista_nit", "contratista_nombre"])
         for c in qs.iterator(chunk_size=2000):
-            w.writerow([c.id_contrato, c.nombre_entidad, c.nit_entidad, c.departamento, c.ciudad,
-                        c.modalidad, c.estado_contrato, str(c.valor_contrato or ""),
-                        c.fecha_firma.isoformat() if c.fecha_firma else "",
-                        c.contratista_nit, c.contratista_nombre])
+            w.writerow([_sanitize_csv_value(c.id_contrato), _sanitize_csv_value(c.nombre_entidad), _sanitize_csv_value(c.nit_entidad), _sanitize_csv_value(c.departamento), _sanitize_csv_value(c.ciudad),
+                        _sanitize_csv_value(c.modalidad), _sanitize_csv_value(c.estado_contrato), _sanitize_csv_value(str(c.valor_contrato or "")),
+                        _sanitize_csv_value(c.fecha_firma.isoformat() if c.fecha_firma else ""),
+                        _sanitize_csv_value(c.contratista_nit), _sanitize_csv_value(c.contratista_nombre)])
         return resp
 
 
