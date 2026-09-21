@@ -7,7 +7,8 @@ import App from "./App.jsx";
 const queryClient = new QueryClient({
   defaultOptions: {
     // P0: 1 reintento (no 3) + sin refetch agresivo. Qué: evita tormenta 401 con token expirado 1h.
-    queries: { retry: 1, refetchOnWindowFocus: false },
+    // Fix 429: no reintentar en 429 (throttle anon 200/min aún puede saturar con 10 req por clic), deja que TanStack muestre error sin duplicar.
+    queries: { retry: (failureCount, error) => (error?.status === 429 ? false : failureCount < 1), refetchOnWindowFocus: false },
   },
 });
 

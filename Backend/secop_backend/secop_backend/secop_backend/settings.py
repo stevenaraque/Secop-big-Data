@@ -171,10 +171,10 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        # Público observatorio AllowAny sin token: 8 req por depto (resumen opt+naive+top+mapa+contratos+banderas+predominio+grafo)
-        # Con anon 20/min basta 2 deptos y da 429 (visto en Huila/Meta/Guainía 429). Sube a 100/min (=user) para navegar sin fricción.
-        # Frontend aun dispara naive+opt en paralelo (ProfilerDual) + 6 agregados = 8 req por cambio; 100/min deja 12 deptos/min.
-        "anon": "100/min",
+        # Público observatorio AllowAny sin token: 8-10 req por depto/clic (resumen opt+naive+top+mapa+contratos+banderas+predominio+grafo)
+        # Con anon 20/min basta 2 deptos y da 429 (Huila/Meta/Guainía + VER TODO dispara 10 req en 1s). 100/min aún da 429 si TanStack reintenta 3×.
+        # Fix: observatorio público exento de throttle (agregados <50KB, índice B-tree), privado /app mantiene user 100/min. Ver views.py throttle_classes=[]
+        "anon": "200/min",
         "user": "100/min",
     },
     "EXCEPTION_HANDLER": "contratos.exceptions.secop_exception_handler",
