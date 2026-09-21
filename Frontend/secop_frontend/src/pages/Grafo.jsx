@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import ForceGraph2D from "react-force-graph-2d"
+import { Network } from "lucide-react"
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
@@ -29,10 +30,10 @@ export default function Grafo({ token, depto }) {
   })
 
   return (
-    <section aria-label="Grafo de conexiones" className="rounded-2xl border border-zinc-200 bg-white p-5">
+    <section aria-label="Grafo de conexiones" className="rounded-2xl border border-zinc-200 dark:border-zinc-700 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-zinc-900">🕸️ Grafo entidad ↔ contratista</h2>
-        <label className="flex items-center gap-2 text-sm text-zinc-600">
+        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><Network size={18} aria-hidden="true" /> Grafo entidad-contratista</h2>
+        <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
           Contratos
           <input
             type="number"
@@ -40,26 +41,26 @@ export default function Grafo({ token, depto }) {
             max={200}
             value={limit}
             onChange={(e) => setLimit(Number(e.target.value) || 30)}
-            className="w-20 h-9 rounded-lg border border-zinc-200 px-2 text-sm tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
+            className="w-20 h-9 rounded-lg border border-zinc-200 dark:border-zinc-700 px-2 text-sm tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
           />
         </label>
       </div>
-      <p className="mt-1 text-xs text-zinc-500">
+      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
         Arrastra nodos para moverlos · rueda para zoom · grosor = monto · color = modalidad (rojo directa, verde licitación)
       </p>
-      {isLoading && <p className="mt-3 text-xs text-zinc-500">Cargando red…</p>}
+      {isLoading && <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Cargando red…</p>}
       {isError && <p className="mt-3 text-sm text-red-700">Error cargando el grafo.</p>}
       {!isLoading && !isError && data && data.total === 0 && (
-        <p className="mt-3 text-sm text-zinc-600">Sin contratos para este filtro.</p>
+        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">Sin contratos para este filtro.</p>
       )}
       {!isLoading && !isError && data && data.total > 0 && (
         <>
-          <p className="mt-2 text-xs text-zinc-500 tabular-nums">{data.total} contratos · {data.nodos.length} nodos</p>
-          <div className="mt-2 overflow-hidden rounded-xl border border-zinc-200">
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">{data.total} contratos · {data.nodos.length} nodos</p>
+          <div className="mt-2 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
             <ForceGraph2D
               height={420}
               graphData={{ nodes: data.nodos, links: data.aristas }}
-              nodeLabel={(n) => `${n.tipo === "entidad" ? "🏛️" : "🏢"} ${n.nombre}`}
+              nodeLabel={(n) => `${n.tipo === "entidad" ? "Entidad" : "Contratista"} · ${n.nombre}`}
               nodeColor={(n) => (n.tipo === "entidad" ? "#059669" : "#2563eb")}
               linkWidth={(l) => l.grosor}
               linkColor={(l) => l.color}

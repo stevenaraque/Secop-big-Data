@@ -49,12 +49,27 @@ def tarea_carga_periodica(trabajo_id, limite, offset, depto):
             pass
 
 class VistaIniciarCarga(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    # P0: solo admin puede disparar ETL. Qué: evita DoS por usuarios. Por qué: Thread + SODA quota + bulk_create.
+    permission_classes = [permissions.IsAdminUser]
 
     def post(self, request):
-        limite = int(request.data.get("limit", 50))
-        offset = int(request.data.get("offset", 0))
+        try:
+            limite = int(request.data.get("limit", 50))
+        except (TypeError, ValueError):
+            return Response({"detalle": "limit debe ser número entre 1 y 1000."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            offset = int(request.data.get("offset", 0))
+        except (TypeError, ValueError):
+            return Response({"detalle": "offset debe ser número >= 0."}, status=status.HTTP_400_BAD_REQUEST)
+        if not 1 <= limite <= 1000:
+            return Response({"detalle": "limit debe ser número entre 1 y 1000."}, status=status.HTTP_400_BAD_REQUEST)
+        if offset < 0:
+            return Response({"detalle": "offset debe ser número >= 0."}, status=status.HTTP_400_BAD_REQUEST)
         depto = request.data.get("depto")
+        if depto is not None:
+            depto = str(depto).strip()[:100]
+            if depto == "":
+                depto = None
         trabajo = TrabajoCarga.objects.create(estado="pendiente", offset_actual=offset)
         # RNF-08: auditoría carga
         try:
@@ -108,8 +123,11 @@ class VistaResumenOptimizado(APIView):
         })
 
 class VistaResumenNaive(APIView):
+    # P0: demo pedagógica, bloquea OOM con 6M. Qué: 413 si >20k. Por qué: list(Model.objects.all()) mata RAM.
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
+        if Contrato.objects.count() > 20000:
+            return Response({"detalle": "Naive deshabilitado con >20k registros para evitar OOM. Usa /optimized/."}, status=status.HTTP_413_CONTENT_TOO_LARGE)
         t0 = time.perf_counter()
         datos = servicio_contratos.resumen_naive(
             depto=request.query_params.get("depto"),
@@ -145,8 +163,11 @@ class VistaTopContratistasOptimizado(APIView):
         return Response({"filtro": request.query_params.get("depto") or "todos", "optimizado": True, "top": top})
 
 class VistaTopContratistasNaive(APIView):
+    # P0: igual que resumen naive, evita OOM.
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
+        if Contrato.objects.count() > 20000:
+            return Response({"detalle": "Naive deshabilitado con >20k registros para evitar OOM. Usa /optimized/."}, status=status.HTTP_413_CONTENT_TOO_LARGE)
         top = servicio_contratos.top_contratistas_naive(
             depto=request.query_params.get("depto"),
             limite=int(request.query_params.get("limit", 5)),
@@ -330,7 +351,7 @@ class VistaGrafoRed(APIView):
 
 
 class VistaExportarContratos(APIView):
-    # RF-21: descarga el filtrado actual en CSV. Qué: mismos filtros de la tabla + BOM. Por qué: Excel abre tildes y el punto decimal no se rompe.
+    # RF-21: descarga el filtrado actual en CSV. Qué: mismos filtros + BOM + cap 100k. Por qué: 6M colapsa proxy/timeout.
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
         # RNF-08: auditoría exportar
@@ -351,6 +372,8 @@ class VistaExportarContratos(APIView):
             qs = qs.filter(fecha_firma__gte=fecha_desde)
         if fecha_hasta:
             qs = qs.filter(fecha_firma__lte=fecha_hasta)
+        # P1: cap 100k filas como backup. Evita timeout/OOM con 6M.
+        qs = qs[:100000]
         resp = HttpResponse(content_type="text/csv; charset=utf-8")
         resp["Content-Disposition"] = 'attachment; filename="contratos.csv"'
         resp.write("\ufeff")
@@ -433,7 +456,7 @@ class VistaCrearBackup(APIView):
                 pass
         except ValueError as e:
             return Response({"detalle": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        return Response({"id": reg.id, "archivo": reg.archivo, "tamano_bytes": reg.tamaño_bytes, "tamaño_bytes": reg.tamaño_bytes, "registros": reg.registros, "estado": reg.estado, "creado_en": reg.creado_en}, status=status.HTTP_201_CREATED)
+        return Response({"id": reg.id, "archivo": reg.archivo, "tamano_bytes": reg.tamano_bytes, "registros": reg.registros, "estado": reg.estado, "creado_en": reg.creado_en}, status=status.HTTP_201_CREATED)
 
 
 class VistaListarBackups(APIView):

@@ -133,13 +133,13 @@ export default function ActualizacionMasiva({ token }) {
   return (
     <section
       aria-label="Actualizacion masiva"
-      className="rounded-2xl border border-zinc-200 bg-white p-5"
+      className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-sm font-semibold tracking-tight">
           Actualizacion masiva
         </h2>
-        <p className="text-[11px] text-zinc-500 tabular-nums">
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 tabular-nums">
           {cargandoUltima
             ? "Leyendo ultima..."
             : ultimoTrabajo
@@ -147,7 +147,7 @@ export default function ActualizacionMasiva({ token }) {
               : "Sin trabajos aun"}
         </p>
       </div>
-      <p className="text-xs text-zinc-600 mt-1 max-w-[70ch] leading-relaxed">
+      <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 max-w-[70ch] leading-relaxed">
         Trae bloques nuevos desde datos.gov.co sin duplicar por id_contrato.
         Solo admin. El progreso se consulta cada 1s.
       </p>
@@ -158,7 +158,7 @@ export default function ActualizacionMasiva({ token }) {
       >
         <label
           htmlFor="act-limite"
-          className="block text-[11px] uppercase tracking-[0.14em] text-zinc-600"
+          className="block text-[11px] uppercase tracking-[0.14em] text-zinc-600 dark:text-zinc-400"
         >
           Limite
           <input
@@ -174,7 +174,7 @@ export default function ActualizacionMasiva({ token }) {
         </label>
         <label
           htmlFor="act-offset"
-          className="block text-[11px] uppercase tracking-[0.14em] text-zinc-600"
+          className="block text-[11px] uppercase tracking-[0.14em] text-zinc-600 dark:text-zinc-400"
         >
           Offset
           <input
@@ -189,7 +189,7 @@ export default function ActualizacionMasiva({ token }) {
         </label>
         <label
           htmlFor="act-depto"
-          className="block text-[11px] uppercase tracking-[0.14em] text-zinc-600"
+          className="block text-[11px] uppercase tracking-[0.14em] text-zinc-600 dark:text-zinc-400"
         >
           Depto opcional
           <input
@@ -215,8 +215,8 @@ export default function ActualizacionMasiva({ token }) {
 
       <div aria-live="polite" className="mt-4">
         {enCurso && (
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
-            <p className="text-xs text-zinc-700 tabular-nums">
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 px-4 py-3">
+            <p className="text-xs text-zinc-700 dark:text-zinc-300 tabular-nums">
               Trabajo {trabajo?.id ?? ""} · {trabajo?.estado ?? "lanzando"} ·
               procesados {trabajo?.procesados ?? 0}
             </p>
@@ -226,15 +226,15 @@ export default function ActualizacionMasiva({ token }) {
           </div>
         )}
         {fase === "done" && trabajo && (
-          <div className="divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-white">
+          <div className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900">
             <div className="px-4 py-3 flex items-baseline justify-between gap-3">
-              <p className="text-xs text-zinc-600">Nuevos registros</p>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">Nuevos registros</p>
               <p className="font-mono text-2xl tracking-tighter">
                 {trabajo.nuevos ?? 0}
               </p>
             </div>
             <div className="px-4 py-2 flex items-baseline justify-between gap-3">
-              <p className="text-xs text-zinc-600">Estado final</p>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">Estado final</p>
               <p className="text-xs font-medium tabular-nums">
                 {trabajo.estado} · id {trabajo.id}
               </p>
@@ -244,13 +244,13 @@ export default function ActualizacionMasiva({ token }) {
         {fase === "error" && mensaje && (
           <p
             role="alert"
-            className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2"
+            className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-xl px-3 py-2"
           >
             {mensaje}
           </p>
         )}
         {!enCurso && fase !== "done" && fase !== "error" && config && (
-          <p className="text-[11px] text-zinc-500 tabular-nums">
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 tabular-nums">
             Intervalo {config.intervalo_horas}h · activo{" "}
             {String(config.activo)} ·{" "}
             {config.ultima_ejecucion

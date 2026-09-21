@@ -91,9 +91,9 @@ class ConfigActualizacionAdmin(admin.ModelAdmin):
 
 @admin.register(BackupRegistro)
 class BackupRegistroAdmin(admin.ModelAdmin):
-    list_display = ("id", "archivo", "registros", "tamaño_bytes", "estado", "creado_en")
+    list_display = ("id", "archivo", "registros", "tamano_bytes", "estado", "creado_en")
     list_filter = ("estado",)
-    readonly_fields = ("archivo", "tamaño_bytes", "registros", "creado_en")
+    readonly_fields = ("archivo", "tamano_bytes", "registros", "creado_en")
     ordering = ("-creado_en",)
 
 

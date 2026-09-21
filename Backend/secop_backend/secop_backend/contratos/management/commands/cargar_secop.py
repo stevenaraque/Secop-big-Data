@@ -38,7 +38,10 @@ class Command(BaseCommand):
         headers = {"X-App-Token": token} if token else {}
         params = {"$limit": limite, "$offset": offset, "$order": ":id"}
         if depto:
-            params["$where"] = f"departamento='{depto}'"
+            # P1: sanitiza $where SoQL. Qué: strip 100 + escapa ' como ''. Por qué: evita inyección SODA.
+            depto_limpio = str(depto).strip()[:100].replace("'", "''")
+            if depto_limpio:
+                params["$where"] = f"departamento='{depto_limpio}'"
 
         resp = requests.get(SODA_URL, params=params, headers=headers, timeout=60)
         resp.raise_for_status()

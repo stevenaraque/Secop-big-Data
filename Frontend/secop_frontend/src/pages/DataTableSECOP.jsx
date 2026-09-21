@@ -22,12 +22,12 @@ const columns = [
   }),
   columnHelper.accessor("contratista_nombre", {
     header: "Contratista",
-    cell: (info) => <span className="truncate text-zinc-700">{info.getValue() || "—"}</span>,
+    cell: (info) => <span className="truncate text-zinc-700 dark:text-zinc-300">{info.getValue() || "—"}</span>,
     size: 200,
   }),
   columnHelper.accessor("departamento", {
     header: "Depto",
-    cell: (info) => <span className="truncate text-zinc-600">{info.getValue()}</span>,
+    cell: (info) => <span className="truncate text-zinc-600 dark:text-zinc-400">{info.getValue()}</span>,
     size: 120,
   }),
   columnHelper.accessor("modalidad", {
@@ -39,8 +39,8 @@ const columns = [
         <span
           className={`inline-flex px-2 py-0.5 rounded-full text-[11px] border font-medium ${
             isDirecta
-              ? "bg-red-50 text-red-700 border-red-200"
-              : "bg-emerald-50 text-emerald-700 border-emerald-200"
+              ? "bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900"
+              : "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900"
           }`}
         >
           {v || "—"}
@@ -65,7 +65,7 @@ const columns = [
   columnHelper.accessor("fecha_firma", {
     header: "Fecha",
     cell: (info) => (
-      <span className="font-mono text-[11px] text-zinc-600">
+      <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400">
         {info.getValue() ? String(info.getValue()).slice(0, 10) : "—"}
       </span>
     ),
@@ -99,27 +99,27 @@ export default function DataTableSECOP({ rows, isFetching, count }) {
 
   // Pre-flight: sin morado IA, 1 acento emerald <80%, nav 1 línea, contraste AA
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold tracking-tight">
           Contratos · DataTable masivo
         </h2>
-        <span className="text-[11px] px-2 py-1 rounded-full bg-zinc-900 text-white font-mono">
+        <span className="text-[11px] px-2 py-1 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-mono">
           {count ?? rows.length} totales
         </span>
       </div>
-      <p className="text-xs text-zinc-600 mt-1 tabular-nums">
+      <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 tabular-nums">
         Virtualizada: solo filas visibles al DOM · sorting por cabecera · 60 FPS
         {isFetching && " · actualizando..."}
       </p>
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-zinc-200">
-        <div className="grid grid-cols-[180px_200px_120px_160px_140px_110px] gap-0 bg-zinc-50 border-b border-zinc-200 text-[11px] uppercase tracking-[0.14em] text-zinc-600 font-medium">
+      <div className="mt-4 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
+        <div className="grid grid-cols-[180px_200px_120px_160px_140px_110px] gap-0 bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-700 text-[11px] uppercase tracking-[0.14em] text-zinc-600 dark:text-zinc-400 font-medium">
           {table.getHeaderGroups()[0].headers.map((header) => (
             <button
               key={header.id}
               onClick={header.column.getToggleSortingHandler()}
-              className="text-left px-3 py-2.5 hover:bg-zinc-100 flex items-center gap-1"
+              className="text-left px-3 py-2.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-1"
             >
               {header.isPlaceholder
                 ? null
@@ -136,7 +136,7 @@ export default function DataTableSECOP({ rows, isFetching, count }) {
           role="region"
           aria-label="Tabla de contratos"
           tabIndex={0}
-          className="h-[360px] overflow-auto bg-white focus-visible:ring-2 focus-visible:ring-emerald-600"
+          className="h-[360px] overflow-auto bg-white dark:bg-zinc-900 focus-visible:ring-2 focus-visible:ring-emerald-600"
         >
           <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
             {virtualizer.getVirtualItems().map((v) => {
@@ -151,7 +151,7 @@ export default function DataTableSECOP({ rows, isFetching, count }) {
                     width: "100%",
                     transform: `translateY(${v.start}px)`,
                   }}
-                  className="h-[44px] grid grid-cols-[180px_200px_120px_160px_140px_110px] items-center px-0 border-b border-zinc-100 text-xs divide-x divide-zinc-100"
+                  className="h-[44px] grid grid-cols-[180px_200px_120px_160px_140px_110px] items-center px-0 border-b border-zinc-100 dark:border-zinc-800 text-xs divide-x divide-zinc-100 dark:divide-zinc-800"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <div key={cell.id} className="px-3 truncate">
@@ -165,7 +165,7 @@ export default function DataTableSECOP({ rows, isFetching, count }) {
         </div>
       </div>
 
-      <p className="text-[11px] text-zinc-500 mt-2">
+      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2">
         Click en cabecera ordena · scroll no congela · exporta respeta filtro
       </p>
     </div>

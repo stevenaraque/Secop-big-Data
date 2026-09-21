@@ -434,7 +434,7 @@ class ServicioContratos:
             with open(archivo, "w", encoding="utf-8") as f:
                 json.dump(datos, f, ensure_ascii=False, indent=2)
             tamaño = archivo.stat().st_size
-            reg = BackupRegistro.objects.create(archivo=str(archivo), tamaño_bytes=tamaño, registros=len(datos), estado="completado")
+            reg = BackupRegistro.objects.create(archivo=str(archivo), tamano_bytes=tamaño, registros=len(datos), estado="completado")
             # retención 7 días: borrar archivos y registros viejos
             limite = timezone.now() - timedelta(days=7)
             viejos = BackupRegistro.objects.filter(creado_en__lt=limite)
@@ -446,16 +446,13 @@ class ServicioContratos:
                 v.delete()
             return reg
         except Exception as e:
-            reg = BackupRegistro.objects.create(archivo=str(archivo), tamaño_bytes=0, registros=0, estado="error", mensaje_error=str(e))
+            reg = BackupRegistro.objects.create(archivo=str(archivo), tamano_bytes=0, registros=0, estado="error", mensaje_error=str(e))
             raise ValueError(f"Backup falló: {e}") from e
 
     def listar_backups(self, limite=20):
         from .models import BackupRegistro
-        # devolver tamano_bytes ASCII para evitar ñ en JSON keys (PowerShell)
-        rows = list(BackupRegistro.objects.all().order_by("-creado_en").values("id", "archivo", "tamaño_bytes", "registros", "estado", "creado_en")[:limite])
-        for r in rows:
-            r["tamano_bytes"] = r.pop("tamaño_bytes")
-        return rows
+        # P1: campo ascii tamano_bytes, sin alias ñ.
+        return list(BackupRegistro.objects.all().order_by("-creado_en").values("id", "archivo", "tamano_bytes", "registros", "estado", "creado_en")[:limite])
 
     # RNF-08: auditoría
     def registrar_auditoria(self, usuario, accion, detalle=""):

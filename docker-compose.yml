@@ -24,7 +24,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_HOST: db
       DB_PORT: 5432
-      SECRET_KEY: ${SECRET_KEY:-django-insecure-cambiar-en-produccion}
+      # P2: sin fallback insecure. Qué: :? falla si falta. Por qué: settings.py hace fail-fast igual.
+      SECRET_KEY: ${SECRET_KEY:?Define SECRET_KEY en .env}
       DEBUG: ${DEBUG:-False}
       SODA_APP_TOKEN: ${SODA_APP_TOKEN:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
@@ -32,6 +33,7 @@ services:
       EMAIL_BACKEND: ${EMAIL_BACKEND:-}
       EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
       EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
     ports:
       - "8000:8000"
     depends_on:

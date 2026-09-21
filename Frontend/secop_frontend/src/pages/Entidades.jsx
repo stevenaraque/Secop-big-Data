@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { ChevronLeft, ChevronRight, Landmark } from "lucide-react"
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
@@ -43,25 +44,25 @@ export default function Entidades({ token }) {
   })
 
   return (
-    <section aria-label="Entidades" className="rounded-2xl border border-zinc-200 bg-white p-5">
+    <section aria-label="Entidades" className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-zinc-900">🏛️ Entidades</h2>
+        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><Landmark size={18} aria-hidden="true" /> Entidades</h2>
         <input
           value={q}
           onChange={(e) => { setQ(e.target.value); setPage(1) }}
           placeholder="Buscar por nombre o NIT…"
-          className="h-9 w-64 rounded-lg border border-zinc-200 px-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
+          className="h-9 w-64 rounded-lg border border-zinc-200 dark:border-zinc-700 px-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
         />
       </div>
-      {isLoading && <p className="mt-3 text-xs text-zinc-500">Cargando entidades…</p>}
-      {isError && <p className="mt-3 text-sm text-red-700">{String(error?.message || "Error cargando entidades.")}</p>}
+      {isLoading && <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Cargando entidades…</p>}
+      {isError && <p className="mt-3 text-sm text-red-700 dark:text-red-300">{String(error?.message || "Error cargando entidades.")}</p>}
       {!isLoading && !isError && data && (
         <>
-          <p className="mt-2 text-xs text-zinc-500 tabular-nums">{data.count} en total</p>
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">{data.count} en total</p>
           <div className="mt-2 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-zinc-500">
+                <tr className="text-left text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                   <th className="py-2 pr-3">Nombre</th>
                   <th className="py-2 pr-3">NIT</th>
                   <th className="py-2 pr-3">Depto</th>
@@ -70,38 +71,38 @@ export default function Entidades({ token }) {
               </thead>
               <tbody>
                 {data.results.map((e) => (
-                  <tr key={e.id} className="border-t border-zinc-100">
+                  <tr key={e.id} className="border-t border-zinc-100 dark:border-zinc-800">
                     <td className="py-2 pr-3">
                       <button onClick={() => setSelNit(e.nit_entidad)} className="font-medium underline decoration-zinc-300 underline-offset-2 hover:text-emerald-700">
                         {e.nombre_entidad}
                       </button>
                     </td>
-                    <td className="py-2 pr-3 text-zinc-600 tabular-nums">{e.nit_entidad}</td>
-                    <td className="py-2 pr-3 text-zinc-600">{e.departamento}</td>
-                    <td className="py-2 text-zinc-600">{e.ciudad}</td>
+                    <td className="py-2 pr-3 text-zinc-600 dark:text-zinc-400 tabular-nums">{e.nit_entidad}</td>
+                    <td className="py-2 pr-3 text-zinc-600 dark:text-zinc-400">{e.departamento}</td>
+                    <td className="py-2 text-zinc-600 dark:text-zinc-400">{e.ciudad}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <div className="mt-3 flex items-center gap-2 text-sm">
-            <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="h-8 rounded-lg border border-zinc-200 px-3 disabled:opacity-40">←</button>
-            <span className="text-xs text-zinc-500 tabular-nums">Página {page}</span>
-            <button disabled={!data.next} onClick={() => setPage(page + 1)} className="h-8 rounded-lg border border-zinc-200 px-3 disabled:opacity-40">→</button>
+            <button disabled={page <= 1} onClick={() => setPage(page - 1)} aria-label="Página anterior" className="h-8 w-8 grid place-items-center rounded-lg border border-zinc-200 dark:border-zinc-700 px-3 disabled:opacity-40"><ChevronLeft size={16} aria-hidden="true" /></button>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">Página {page}</span>
+            <button disabled={!data.next} onClick={() => setPage(page + 1)} aria-label="Página siguiente" className="h-8 w-8 grid place-items-center rounded-lg border border-zinc-200 dark:border-zinc-700 px-3 disabled:opacity-40"><ChevronRight size={16} aria-hidden="true" /></button>
           </div>
         </>
       )}
       {stats && (
-        <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+        <div className="mt-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 p-4">
           <p className="text-sm font-semibold">{stats.entidad?.nombre_entidad} · {stats.total_contratos} contratos · {formatoCOP(stats.total_contratado)}</p>
-          {stats.total_contratos === 0 && <p className="mt-1 text-sm text-zinc-600">Sin contratos para esta entidad.</p>}
+          {stats.total_contratos === 0 && <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Sin contratos para esta entidad.</p>}
           {stats.por_modalidad?.length > 0 && (
-            <p className="mt-1 text-xs text-zinc-600">
+            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
               {stats.por_modalidad.map((m) => `${m.modalidad}: ${m.total}`).join(" · ")}
             </p>
           )}
           {stats.top_contratistas?.length > 0 && (
-            <p className="mt-1 text-xs text-zinc-600">
+            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
               Top: {stats.top_contratistas.map((t) => `${t.contratista_nombre} (${formatoCOP(t.suma)})`).join(" · ")}
             </p>
           )}

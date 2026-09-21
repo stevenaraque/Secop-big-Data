@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from datetime import timedelta
 from pathlib import Path
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -24,10 +25,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
-# RNF-10 C4: secretos por env, nunca hardcodear. Qué: os.getenv. Por qué: evita filtración en repo.
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-cambiar-en-produccion-si-no-hay-env")
-DEBUG = os.getenv("DEBUG", "True") == "True"
+# RNF-10 C4: secretos por env, nunca hardcodear. Qué: os.getenv + fail-fast en prod. Por qué: evita DEBUG True y key conocida en prod.
+DEBUG = os.getenv("DEBUG", "False") == "True"
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-solo-dev-local-cambiar-en-prod"
+    else:
+        raise ImproperlyConfigured("Falta SECRET_KEY con DEBUG=False. Define SECRET_KEY en .env.")
+elif SECRET_KEY.startswith("django-insecure-") and not DEBUG:
+    raise ImproperlyConfigured("SECRET_KEY insegura con DEBUG=False. Genera una con get_random_secret_key.")
 ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
+if not DEBUG and set(ALLOWED_HOSTS) <= {"localhost", "127.0.0.1"}:
+    raise ImproperlyConfigured("ALLOWED_HOSTS solo localhost con DEBUG=False. Define tu dominio Render/Vercel.")
 
 # Hardening prod (activo solo si DEBUG=False): HTTPS + HSTS + cookies seguras
 if not DEBUG:
@@ -38,6 +48,12 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
+
+# P0-5: cookies HttpOnly + SameSite. Qué: mitiga robo JWT vía XSS. Por qué: localStorage es legible por JS.
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_HTTPONLY = False  # False para que React lea csrftoken si lo necesita
+CSRF_COOKIE_SAMESITE = "Lax"
 
 
 # Application definition
@@ -188,8 +204,9 @@ SIMPLE_JWT = {
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend")
 EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
+# P2: TLS/SSL por env y excluyentes. Qué: SSL True apaga TLS. Por qué: Gmail 587=TLS, 465=SSL.
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False") == "True"
+EMAIL_USE_TLS = (os.getenv("EMAIL_USE_TLS", "True") == "True") and not EMAIL_USE_SSL
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "noreply@secop-insight.local")
-EMAIL_USE_SSL = False

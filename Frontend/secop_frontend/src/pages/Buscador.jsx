@@ -46,29 +46,29 @@ export default function Buscador({ token }) {
   return (
     <section
       aria-label="Búsqueda global"
-      className="rounded-2xl border border-zinc-200 bg-white p-5"
+      className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5"
     >
       <input
         value={texto}
         onChange={(e) => setTexto(e.target.value)}
         placeholder="Buscar contratos, empresas y entidades…"
-        className="w-full h-10 rounded-lg border border-zinc-200 px-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
+        className="w-full h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 px-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
       />
-      {cargando && <p className="mt-2 text-xs text-zinc-500">Buscando…</p>}
+      {cargando && <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">Buscando…</p>}
       {!cargando &&
         q.length >= 2 &&
         datos &&
         datos.contratos.length === 0 &&
         datos.empresas.length === 0 &&
         datos.entidades.length === 0 && (
-          <p className="mt-2 text-sm text-zinc-600">
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
             Sin resultados para “{q}”. Prueba con otro texto.
           </p>
         )}
       {datos && (
         <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               Contratos · {datos.contratos.length}
             </h3>
             {datos.contratos.map((c) => (
@@ -78,7 +78,7 @@ export default function Buscador({ token }) {
             ))}
           </div>
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               Empresas · {datos.empresas.length}
             </h3>
             {datos.empresas.map((e) => (
@@ -88,7 +88,7 @@ export default function Buscador({ token }) {
             ))}
           </div>
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               Entidades · {datos.entidades.length}
             </h3>
             {datos.entidades.map((e) => (

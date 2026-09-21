@@ -105,7 +105,8 @@ class BackupRegistro(models.Model):
         ("error", "Error"),
     ]
     archivo = models.CharField(max_length=255)
-    tamaño_bytes = models.IntegerField(default=0)
+    # P1: ascii sin ñ. Qué: evita mangling JSON en PowerShell. Por qué: key ñ se ve tama��o_bytes.
+    tamano_bytes = models.IntegerField(default=0)
     registros = models.IntegerField(default=0)
     estado = models.CharField(max_length=20, choices=ESTADOS, default="completado")
     mensaje_error = models.TextField(blank=True, null=True)
@@ -116,7 +117,7 @@ class BackupRegistro(models.Model):
         ordering = ["-creado_en"]
 
     def __str__(self):
-        return f"Backup {self.id} {self.creado_en.date()} {self.registros} regs {self.tamaño_bytes}B"
+        return f"Backup {self.id} {self.creado_en.date()} {self.registros} regs {self.tamano_bytes}B"
 
 
 class Auditoria(models.Model):
@@ -129,6 +130,7 @@ class Auditoria(models.Model):
         ("config_umbral", "Config umbral"),
         ("backup", "Backup"),
         ("carga", "Carga"),
+        ("reset_password", "Reset password"),
     ]
     usuario = models.CharField(max_length=150, blank=True, default="")
     accion = models.CharField(max_length=20, choices=ACCIONES)

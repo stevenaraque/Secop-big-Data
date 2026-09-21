@@ -119,23 +119,52 @@ class TestServicioContratos(TestCase):
 
 
 class TestETLCarga(TestCase):
-    """Test comando cargar_secop: validación calidad y sin duplicados."""
+    """Test comando cargar_secop: validación calidad y sin duplicados (mock sin red)."""
+
+    def _fake_soda(self):
+        # P2: mock SODA sin gastar quota. 2 válidos + 1 sin fecha (RNF-04 la descarta).
+        from unittest.mock import Mock
+        filas = [
+            {"id_contrato": "MOCK-001", "valor_del_contrato": "1000000", "fecha_de_firma": "2024-01-15T00:00:00.000",
+             "nombre_entidad": "Alcaldía Mock", "nit_entidad": "900001", "departamento": "Boyacá", "ciudad": "Tunja",
+             "orden": "1", "sector": "Test", "estado_contrato": "Firmado", "codigo_categoria_principal": "CAT1",
+             "descripcion_del_proceso": "Pavimento mock", "modalidad_de_contratacion": "Licitación pública",
+             "documento_proveedor": "111", "proveedor_adjudicado": "Contratista Mock 1"},
+            {"id_contrato": "MOCK-002", "valor_del_contrato": "2000000", "fecha_de_firma": "2024-02-20T00:00:00.000",
+             "nombre_entidad": "Alcaldía Mock", "nit_entidad": "900001", "departamento": "Boyacá", "ciudad": "Duitama",
+             "orden": "1", "sector": "Test", "estado_contrato": "Firmado", "codigo_categoria_principal": "CAT1",
+             "descripcion_del_proceso": "Puente mock", "modalidad_de_contratacion": "Contratación directa",
+             "documento_proveedor": "222", "proveedor_adjudicado": "Contratista Mock 2"},
+            {"id_contrato": "MOCK-SIN-FECHA", "valor_del_contrato": "500000", "fecha_de_firma": "",
+             "nombre_entidad": "Alcaldía Mock", "nit_entidad": "900001", "departamento": "Boyacá", "ciudad": "Sogamoso",
+             "orden": "1", "sector": "Test", "estado_contrato": "Firmado", "codigo_categoria_principal": "CAT1",
+             "descripcion_del_proceso": "Sin fecha", "modalidad_de_contratacion": "Licitación pública",
+             "documento_proveedor": "333", "proveedor_adjudicado": "Contratista Mock 3"},
+        ]
+        resp = Mock()
+        resp.json.return_value = filas
+        resp.raise_for_status.return_value = None
+        return resp
 
     @pytest.mark.django_db(transaction=True)
     def test_cargar_secop_descarta_sin_fecha_y_no_duplica(self):
+        from unittest.mock import patch
         from django.core.management import call_command
         from io import StringIO
 
-        # Primera carga
-        out = StringIO()
-        call_command("cargar_secop", limit=10, offset=0, depto="Boyacá", stdout=out)
+        # Primera carga: 3 filas SODA → 2 nuevos (1 sin fecha descartada)
+        with patch("contratos.management.commands.cargar_secop.requests.get", return_value=self._fake_soda()):
+            out = StringIO()
+            call_command("cargar_secop", limit=10, offset=0, depto="Boyacá", stdout=out)
         trabajo1 = TrabajoCarga.objects.latest("id")
         self.assertEqual(trabajo1.estado, "completado")
+        self.assertEqual(Contrato.objects.filter(id_contrato__in=["MOCK-001", "MOCK-002"]).count(), 2)
         primeros = Contrato.objects.count()
 
-        # Segunda carga mismo offset = 0 nuevos
-        out2 = StringIO()
-        call_command("cargar_secop", limit=10, offset=0, depto="Boyacá", stdout=out2)
+        # Segunda carga mismo mock = 0 nuevos
+        with patch("contratos.management.commands.cargar_secop.requests.get", return_value=self._fake_soda()):
+            out2 = StringIO()
+            call_command("cargar_secop", limit=10, offset=0, depto="Boyacá", stdout=out2)
         trabajo2 = TrabajoCarga.objects.latest("id")
         self.assertEqual(trabajo2.nuevos_registros, 0)
         self.assertEqual(Contrato.objects.count(), primeros)
