@@ -1,3 +1,5 @@
+import hashlib
+import os
 import re
 import uuid
 from datetime import timedelta
@@ -6,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
+from django.db import transaction
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
@@ -78,13 +81,18 @@ class ServicioUsuarios:
         except self.modelo_usuario.DoesNotExist:
             return None  # no revelar — caller responde 200 igual
         ModeloToken = self._get_modelo_token()
-        token_str = uuid.uuid4().hex  # 32 chars hex único
+        token_str = uuid.uuid4().hex  # 32 chars hex único (va en el email, nunca se guarda en claro)
+        # SECOP-U1: solo hash SHA-256 en BD + invalida previos vivos. Qué: quema enlaces viejos. Por qué: 1 solo link válido por usuario.
+        digest = hashlib.sha256(token_str.encode()).hexdigest()
+        ModeloToken.objects.filter(usuario=usuario, usado=False).update(usado=True)
         expira = timezone.now() + timedelta(minutes=30)
         token_obj = ModeloToken.objects.create(
-            usuario=usuario, token=token_str, expira_en=expira
+            usuario=usuario, token=digest, expira_en=expira
         )
         # Enviar email console (dev) — en prod sería SMTP real
-        enlace = f"http://localhost:5173/restablecer?token={token_str}"
+        # P1: URL por env para prod. Qué: FRONTEND_URL. Por qué: localhost rompe email en Vercel.
+        base_front = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+        enlace = f"{base_front}/restablecer?token={token_str}"
         try:
             send_mail(
                 subject="Recupera tu contraseña — SECOP Insight",
@@ -98,23 +106,26 @@ class ServicioUsuarios:
         return token_obj
 
     def confirmar_recuperacion(self, token_str: str, nueva_contrasena: str):
-        """Valida token no usado/no expirado + política + set_password. Qué: un solo uso 30min. Por qué: RF-22."""
+        """Valida token no usado/no expirado + política + set_password. Qué: un solo uso 30min atómico. Por qué: RF-22 + SECOP-U1."""
         _validar_politica_contrasena(nueva_contrasena)
         ModeloToken = self._get_modelo_token()
+        # SECOP-U1: el link trae raw, en BD solo vive el hash. Consumo atómico anti doble-uso.
+        digest = hashlib.sha256((token_str or "").encode()).hexdigest()
         try:
-            token_obj = ModeloToken.objects.select_related("usuario").get(token=token_str)
+            with transaction.atomic():
+                token_obj = ModeloToken.objects.select_for_update().select_related("usuario").get(token=digest)
+                if token_obj.usado:
+                    raise ValueError("Enlace ya utilizado.")
+                if token_obj.esta_expirado():
+                    raise ValueError("Enlace expirado.")
+                usuario = token_obj.usuario
+                usuario.set_password(nueva_contrasena)
+                usuario.save(update_fields=["password"])
+                token_obj.usado = True
+                token_obj.save(update_fields=["usado"])
+                return usuario
         except ModeloToken.DoesNotExist:
             raise ValueError("Enlace inválido o expirado.")
-        if token_obj.usado:
-            raise ValueError("Enlace ya utilizado.")
-        if token_obj.esta_expirado():
-            raise ValueError("Enlace expirado.")
-        usuario = token_obj.usuario
-        usuario.set_password(nueva_contrasena)
-        usuario.save(update_fields=["password"])
-        token_obj.usado = True
-        token_obj.save(update_fields=["usado"])
-        return usuario
 
 
 servicio_usuarios = ServicioUsuarios()
