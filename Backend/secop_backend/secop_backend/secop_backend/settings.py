@@ -172,8 +172,9 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_THROTTLE_RATES": {
         # Público observatorio AllowAny sin token: 8 req por depto (resumen opt+naive+top+mapa+contratos+banderas+predominio+grafo)
-        # Con anon 20/min basta 2 deptos y da 429 (visto en Guainía/Vichada). Sube a 60/min para 7 deptos/min sin fricción, user 100/min queda para /app privado.
-        "anon": "60/min",
+        # Con anon 20/min basta 2 deptos y da 429 (visto en Huila/Meta/Guainía 429). Sube a 100/min (=user) para navegar sin fricción.
+        # Frontend aun dispara naive+opt en paralelo (ProfilerDual) + 6 agregados = 8 req por cambio; 100/min deja 12 deptos/min.
+        "anon": "100/min",
         "user": "100/min",
     },
     "EXCEPTION_HANDLER": "contratos.exceptions.secop_exception_handler",
