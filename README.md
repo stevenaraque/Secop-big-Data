@@ -19,13 +19,13 @@
 - **Público:** KPIs + filtros elegibles (85 cols) + DataTable masivo 60 FPS (TanStack Table + virtual 44px, solo 50 nodos en DOM) + exportar CSV con BOM + Profiler Dual 4 barras (BD|Python|Red|Render) + toggle Usuario/Ingeniería.
 - **Público visual:** Mapa coroplético % directa (clic filtra todo) + grafo entidad→contratista + Banderas rojas (concentración >30%, directa >80%) con umbrales configurables sin reinicio.
 - **Privado SaaS:** `POST /api/radares/` con `filtros_extras` JSON para 85 cols (ej. `{"ciudad":"Sogamoso","modalidad":"Licitación pública"}`) + `GET /api/mis-oportunidades/` bandeja con estados Nueva/Guardada/Postulado + filtros `?estado=` + email automático vía `send_mail` (console en dev, SMTP Gmail real en prod).
-- **Plataforma:** Auth JWT (registro, login, logout, recuperar 30min) + páginas `/`, `/login`, `/app` con `AuthGuard` + panel admin + ETL SODA 2.1 con matchmaking + backup 7 días.
+ - **Plataforma:** Auth JWT (registro abierto, login, logout, recuperar 30min + restablecer) + páginas `/`, `/login`, `/registro`, `/recuperar`, `/restablecer`, `/app` con `AuthGuard` + `UiverseInput` (uiverse.io + animejs line drawing) + panel admin + ETL SODA 2.1 con matchmaking + backup 7 días.
 
 ## Stack Tecnológico (V3 definitivo)
 
 - **Backend:** Django 6.1 (target 5.0.14) + DRF 3.18 + SimpleJWT 5.5.1 + `drf-spectacular` (OpenAPI 3.0.3)
 - **Base de datos:** PostgreSQL 16 local (pgAdmin, localhost:5432) — *local permite 6M completos sin techo 500MB; 85 columnas completas; índices B-tree + JSON para Radares*
-- **Frontend:** React 19.2.8 + Vite 8.2 + Tailwind 3.4.17 + TanStack Query (cache 5min) + TanStack Table 8.21 + TanStack Virtual 3.14 (60 FPS) + Recharts 3.10 + Leaflet 1.9 + `react-force-graph` + `motion` + `sonner`
+- **Frontend:** React 19.2.8 + Vite 8.2 + Tailwind 3.4.17 + TanStack Query (cache 5min) + TanStack Table 8.21 + TanStack Virtual 3.14 (60 FPS) + Recharts 3.10 + Leaflet 1.9 + `react-force-graph` + `motion` 13.4 + `animejs` 4.5 (stagger + line drawing) + `@phosphor-icons/react` 2.1 (unificado, lucide eliminado) + `sonner` + `UiverseInput` (floating label + glow uiverse.io) + `vite-plugin-compression` (gzip + brotli)
 - **Manejo masivo:** Agregación en BD (50KB), paginación `page_size 20-50`, virtualización (solo visibles), `keepPreviousData` sin recarga
 - **Control:** Git + GitHub (`main` al día, tag `v1.1-profiler`, PR #1 mergeado)
 - **Gestión:** Notion (5 Sprints, 56 requisitos 399 pts) + `EstructuraSesion_v2.xlsx` (5 sesiones × 6h) + `SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx` V3.1 Freemium + `SECOP_Backlog_Producto.xlsx` (56 historias)
@@ -38,8 +38,8 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
 
 | Módulo | Qué hace |
 |---|---|
-| Auth API | Registro, login, logout JWT + recuperar 30min un solo uso |
-| Login front | `/login` con AuthGuard, redirect sin token, Salir con blacklist |
+| Auth API | Registro abierto, login, logout JWT + recuperar 30min un solo uso + restablecer PBKDF2 |
+| Login/Registro front | `/login` + `/registro` + `/recuperar` + `/restablecer` high-agency 8,6,4 (split 1.18fr/0.92fr, glass, MagneticButton `useMotionValue`, UiverseInput) con AuthGuard, redirect sin token, Salir con blacklist |
 | ETL 2 fases | `cargar_secop` SODA paginado `$limit=50k/$offset/$order=:id` + `bulk_create 1000` + **Fase 2 Matchmaking** (cruza `filtros_extras` 85 cols → `Oportunidad` Nueva) + validación RNF-04 |
 | Radares SaaS | `GET/POST /api/radares/` + `PUT/DELETE /api/radares/<id>/` con `filtros_extras` JSON (85 cols elegibles), validación `rango_min <= max`, `IsAuthenticated` + ownership |
 | Bandeja privada | `GET /api/mis-oportunidades/?estado=Nueva` (bandeja) + `PATCH` a Guardada/Postulado + email `send_mail` best-effort (10 por carga) |
@@ -62,10 +62,10 @@ Big data/
 │   ├── requirements.txt      # Django 6.1 + DRF + SimpleJWT + drf-spectacular + gunicorn + python-dotenv + psycopg2
 │   ├── secop_backend/        # proyecto Django (settings.py con env, urls.py con /api/docs/, wsgi.py)
 │   │   ├── contratos/        # Contrato 85 cols* + Entidad + TrabajoCarga + Radar(filtros_extras JSON) + Oportunidad + Umbral + Config + Backup + Auditoria (migrations 0001-0011), services.py, exceptions.py (503), management/commands/cargar_secop.py (2 fases)
-│   │   ├── users/            # Registro/Login/Logout + TokenRecuperacion 30min
+│   │   ├── users/            # Registro/Login/Logout + TokenRecuperacion 30min (hash SHA-256, select_for_update)
 │   │   └── manage.py
 │   └── venv/                 # venv Python 3.14.5 (no versionado)
-├── Frontend/secop_frontend/  # Vite + React + Tailwind (App.jsx con AuthGuard, main.jsx QueryClient, pages: Dashboard, ProfilerDual, DataTableSECOP, Login, MapaDirecta, Buscador, Banderas, Umbrales, ActualizacionMasiva, Entidades, Grafo, Solicitar/Restablecer, Dockerfile, nginx.conf)
+├── Frontend/secop_frontend/  # Vite + React + Tailwind (App.jsx AuthGuard + prefetch idle, main.jsx QueryClient, components: UiverseInput (animejs + phosphor) + StatusMark + ThemeToggle (phosphor), pages: DashboardModern, Registro/Login (8,6,4 + glass + magnetic), Solicitar/Restablecer (Uiverse), DataTableSECOP virtual 60 FPS, ProfilerDual, MapaDirecta, Grafo, Banderas, Entidades, Umbrales, Buscador, Dockerfile, nginx.conf, vite-plugin-compression)
 ├── docker-compose.yml        # RNF-10: db (postgres:16) + backend + frontend reproducibles
 ├── deploy.ps1 / deploy.sh    # RNF-10: migrate + check + build en orden
 ├── SECOP_Backlog_Producto.xlsx (56 historias: 42 base + 7 frontend + 7 Freemium RF-36..42, estandarizado)
@@ -200,4 +200,4 @@ python manage.py shell
   - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs) — ver `CONTEXT.md:8`
 
 ---
-*Última actualización: 18/09/2026 — V3.1 Freemium definitivo: 56 historias + 85 cols elegibles + 5 Radares + 4 Oportunidades + email SMTP real + Profiler 4 barras + DataTable 60 FPS + Tailwind 37KB + 6M sin estallar front — Autor: Steven Alejandro Araque Castro*
+*Última actualización: 21/09/2026 — V3.2 High-Agency: 56 historias + 85 cols + 5 Radares + 4 Oportunidades + Registro abierto (/registro) + Login/Registro/Recuperar/Restablecer 8,6,4 (glass + UiverseInput + animejs + phosphor unificado) + DataTable 60 FPS + Tailwind 42kB + vite compression (gzip/br) + 11 tests pass + a11y WCAG + CSP upgrade-insecure-requests — Autor: Steven Alejandro Araque Castro*

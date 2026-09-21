@@ -1,11 +1,16 @@
 import react from '@vitejs/plugin-react'
+import viteCompression from 'vite-plugin-compression'
 import { defineConfig } from 'vite'
 
 // RNF-12: Vite build ya minifica con esbuild + css + target modernos (Chrome/Firefox/Edge/Safari últimas 2). Ver .browserslistrc
 // P0 auditoría: code-split para bajar 1.23MB >500kB — recharts/leaflet/graph separados, 50KB agregados + 50 nodos DOM = 100 FPS
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    viteCompression({ algorithm: 'gzip', ext: '.gz', threshold: 1024 }),
+    viteCompression({ algorithm: 'brotliCompress', ext: '.br', threshold: 1024 }),
+  ],
   build: {
     chunkSizeWarningLimit: 600,
     rollupOptions: {

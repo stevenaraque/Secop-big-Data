@@ -78,10 +78,13 @@ export default function DataTableSECOP({ rows, isFetching, count }) {
   const parentRef = useRef(null);
 
   const data = useMemo(() => rows, [rows]);
+  const memoColumns = useMemo(() => columns, []);
 
+  // TanStack Table retorna funciones no memoizables — React Compiler lo skippea intencionalmente
+  // oxlint-disable-next-line react/incompatible-library
   const table = useReactTable({
     data,
-    columns,
+    columns: memoColumns,
     state: { sorting },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),

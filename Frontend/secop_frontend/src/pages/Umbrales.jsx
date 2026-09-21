@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { SlidersHorizontal } from "lucide-react"
+import { SlidersHorizontal } from "@phosphor-icons/react"
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 

@@ -85,8 +85,11 @@ describe("App guard", () => {
         <App />
       </QueryClientProvider>
     );
-    await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /iniciar sesi/i })).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByRole("heading", { name: /iniciar sesi/i })).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
   });
 });

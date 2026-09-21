@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { ChevronLeft, ChevronRight, Landmark } from "lucide-react"
+import { CaretLeft as ChevronLeft, CaretRight as ChevronRight, Buildings as Landmark } from "@phosphor-icons/react"
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 

@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import ForceGraph2D from "react-force-graph-2d"
-import { Network } from "lucide-react"
+import { ShareNetwork as Network } from "@phosphor-icons/react"
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 

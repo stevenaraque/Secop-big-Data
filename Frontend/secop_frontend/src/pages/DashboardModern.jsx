@@ -15,7 +15,7 @@ import ProfilerDual from "./ProfilerDual.jsx";
 import DataTableSECOP from "./DataTableSECOP.jsx";
 import StatusMark from "../components/StatusMark.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
-import { ArrowRight, Download, X } from "lucide-react";
+import { ArrowRight, DownloadSimple as Download, X } from "@phosphor-icons/react";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 async function fetchResumen(d, t) {

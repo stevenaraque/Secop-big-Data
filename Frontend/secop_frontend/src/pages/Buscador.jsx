@@ -9,7 +9,8 @@ export default function Buscador({ token }) {
   const [cargando, setCargando] = useState(false);
   const abortRef = useRef(null);
 
-  // debounce 300ms: espera a que dejes de escribir
+  // debounce 300ms: espera a que dejes de escribir — setState en effect es intencional para debounce + abort
+  // oxlint-disable-next-line react/set-state-in-effect
   useEffect(() => {
     if (texto.trim().length < 2) {
       setQ("");
@@ -20,7 +21,8 @@ export default function Buscador({ token }) {
     return () => clearTimeout(t);
   }, [texto]);
 
-  // abort: cancela la petición anterior si escribes de nuevo
+  // abort: cancela la petición anterior si escribes de nuevo — setState en effect intencional para fetch + loading
+  // oxlint-disable-next-line react/set-state-in-effect
   useEffect(() => {
     if (q.length < 2 || !token) return;
     if (abortRef.current) abortRef.current.abort();

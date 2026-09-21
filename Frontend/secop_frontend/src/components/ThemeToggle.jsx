@@ -1,4 +1,4 @@
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "@phosphor-icons/react";
 import { useTheme } from "../hooks/useTheme.js";
 
 // Botón tema claro/oscuro. Va en headers + auth. Estado compartido vía evento + localStorage.

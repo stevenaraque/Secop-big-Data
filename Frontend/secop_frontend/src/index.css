@@ -10,8 +10,9 @@
   /* Solo claro: evita que el SO pinte controles nativos en oscuro */
   color-scheme: light;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* P2-3 Geist con fallback local — Google Fonts via <link> + display=swap, si falla cae a system-ui sin romper tracking-tighter */
+  --sans: 'Geist', 'Geist Mono', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
