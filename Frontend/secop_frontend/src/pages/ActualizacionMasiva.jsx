@@ -61,10 +61,11 @@ export default function ActualizacionMasiva({ token }) {
     setTrabajo(null);
     const lim = Number(limite) || 50;
     const off = Number(offset) || 0;
-    // P1: backend cap 1000 (VistaIniciarCarga). Qué: mismo límite. Por qué: evita 400 seguro.
-    if (lim < 1 || lim > 1000) {
+    // Público 500k: SODA $limit max 50000 por request. Si piden >50000 o =500k, se pagina en 50k chunks.
+    // Backend actualizar-periodica no tiene cap 1000 (solo iniciar-carga), pero validamos 1..50000 por chunk.
+    if (lim < 1 || lim > 500000) {
       setFase("error");
-      setMensaje("Limite debe estar entre 1 y 1000 (cap backend).");
+      setMensaje("Limite debe estar entre 1 y 500000 (500k = 10×50k paginado).");
       return;
     }
     if (off < 0) {
@@ -74,6 +75,49 @@ export default function ActualizacionMasiva({ token }) {
     }
     setFase("lanzando");
     try {
+      // Si piden 500k (o >50000), pagina en bloques de 50k con offset incremental y espera cada trabajo
+      if (lim > 50000) {
+        const chunks = Math.ceil(lim / 50000);
+        let totalNuevos = 0;
+        let lastId = null;
+        for (let i = 0; i < chunks; i++) {
+          const chunkLim = Math.min(50000, lim - i * 50000);
+          const chunkOff = off + i * 50000;
+          setMensaje(`Cargando bloque ${i + 1}/${chunks} (limit ${chunkLim} offset ${chunkOff})...`);
+          const r = await fetch(`${API}/cargar/actualizar-periodica/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ limit: chunkLim, offset: chunkOff, ...(depto.trim() ? { depto: depto.trim() } : {}) }),
+          });
+          const data = await r.json().catch(() => ({}));
+          if (r.status === 401) throw new Error("Sesion vencida. Vuelve a entrar.");
+          if (r.status === 403) throw new Error("Solo admin puede actualizar.");
+          if (r.status === 409) throw new Error(data.detalle || "Ya hay una actualizacion en curso — espera 1s y reintenta.");
+          if (!r.ok) throw new Error(data.detalle || `Bloque ${i + 1} fallo.`);
+          lastId = data.id;
+          // Espera a que este bloque complete antes del siguiente (polling 1s)
+          await new Promise((resolve, reject) => {
+            const iv = setInterval(async () => {
+              try {
+                const j = await consultarTrabajo(data.id);
+                setTrabajo({ id: j.id, estado: j.estado, procesados: j.registros_procesados ?? 0, nuevos: j.nuevos_registros ?? null, total: j.total_registros ?? 0 });
+                if (j.estado === "completado" || j.estado === "error") {
+                  clearInterval(iv);
+                  if (j.estado === "error") reject(new Error(j.mensaje_error || "Bloque fallo"));
+                  else { totalNuevos += j.nuevos_registros ?? 0; resolve(); }
+                }
+              } catch (e) { clearInterval(iv); reject(e); }
+            }, 1000);
+            timerRef.current = iv;
+          });
+        }
+        setFase("done");
+        setMensaje(`Carga 500k completada en ${chunks} bloques. Total nuevos ~${totalNuevos}.`);
+        setTrabajo((prev) => ({ ...prev, nuevos: totalNuevos }));
+        cargarUltima();
+        return;
+      }
+      // Caso normal 1..50000: un solo bloque
       const r = await fetch(`${API}/cargar/actualizar-periodica/`, {
         method: "POST",
         headers: {
@@ -121,6 +165,62 @@ export default function ActualizacionMasiva({ token }) {
         }
       }, 1000);
     } catch (err) {
+      detenerPolling();
+      setFase("error");
+      setMensaje(err.message);
+    }
+  }
+
+  async function handleCargar500k() {
+    // Carga 500k en 10 bloques de 50k con offset incremental, sin depender del state limite (evita async setState)
+    if (!token) { setFase("error"); setMensaje("Necesitas login admin para cargar 500k."); return; }
+    setFase("lanzando");
+    setMensaje("Iniciando 500k (10×50k) desde offset 10000 — ~3 min, no cierres la pestaña...");
+    const totalBloques = 10;
+    const baseOffset = 10000;
+    let totalNuevos = 0;
+    try {
+      for (let i = 0; i < totalBloques; i++) {
+        const chunkLim = 50000;
+        const chunkOff = baseOffset + i * 50000;
+        setMensaje(`Bloque ${i + 1}/${totalBloques} limit ${chunkLim} offset ${chunkOff} — cargando...`);
+        const r = await fetch(`${API}/cargar/actualizar-periodica/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ limit: chunkLim, offset: chunkOff, ...(depto.trim() ? { depto: depto.trim() } : {}) }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (r.status === 401) throw new Error("Sesion vencida. Vuelve a entrar.");
+        if (r.status === 403) throw new Error("Solo admin puede actualizar.");
+        if (r.status === 409) {
+          // Espera y reintenta este bloque
+          await new Promise((res) => setTimeout(res, 2000));
+          i--; continue;
+        }
+        if (!r.ok) throw new Error(data.detalle || `Bloque ${i + 1} fallo.`);
+        // Espera completado con polling 1s
+        await new Promise((resolve, reject) => {
+          const iv = setInterval(async () => {
+            try {
+              const j = await consultarTrabajo(data.id);
+              setTrabajo({ id: j.id, estado: j.estado, procesados: j.registros_procesados ?? 0, nuevos: j.nuevos_registros ?? null, total: j.total_registros ?? 0 });
+              if (j.estado === "completado" || j.estado === "error") {
+                clearInterval(iv);
+                timerRef.current = null;
+                if (j.estado === "error") reject(new Error(j.mensaje_error || "Bloque fallo"));
+                else { totalNuevos += j.nuevos_registros ?? 0; resolve(); }
+              }
+            } catch (e) { clearInterval(iv); reject(e); }
+          }, 1000);
+          timerRef.current = iv;
+        });
+      }
+      setFase("done");
+      setMensaje(`500k completado en ${totalBloques} bloques. Total nuevos ${totalNuevos}. Refresca dashboard.`);
+      setTrabajo((prev) => ({ ...prev, nuevos: totalNuevos }));
+      cargarUltima();
+    } catch (err) {
+      detenerPolling();
       setFase("error");
       setMensaje(err.message);
     }
@@ -154,7 +254,7 @@ export default function ActualizacionMasiva({ token }) {
 
       <form
         onSubmit={handleActualizar}
-        className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3"
+        className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-3"
       >
         <label
           htmlFor="act-limite"
@@ -165,7 +265,7 @@ export default function ActualizacionMasiva({ token }) {
             id="act-limite"
             type="number"
             min={1}
-            max={1000}
+            max={500000}
             value={limite}
             onChange={(e) => setLimite(e.target.value)}
             disabled={enCurso}
@@ -209,6 +309,17 @@ export default function ActualizacionMasiva({ token }) {
             className="w-full h-9 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
           >
             {enCurso ? "Actualizando..." : "Actualizar"}
+          </button>
+        </div>
+        <div className="flex items-end">
+          <button
+            type="button"
+            onClick={handleCargar500k}
+            disabled={enCurso}
+            className="w-full h-9 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium hover:bg-zinc-800 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+            title="10×50k = 500k desde offset 10000 (paginado SODA $limit 50k)"
+          >
+            Cargar 500k
           </button>
         </div>
       </form>
