@@ -171,7 +171,9 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "20/min",
+        # Público observatorio AllowAny sin token: 8 req por depto (resumen opt+naive+top+mapa+contratos+banderas+predominio+grafo)
+        # Con anon 20/min basta 2 deptos y da 429 (visto en Guainía/Vichada). Sube a 60/min para 7 deptos/min sin fricción, user 100/min queda para /app privado.
+        "anon": "60/min",
         "user": "100/min",
     },
     "EXCEPTION_HANDLER": "contratos.exceptions.secop_exception_handler",
