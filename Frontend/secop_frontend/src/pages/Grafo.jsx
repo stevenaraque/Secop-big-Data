@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import ForceGraph2D from "react-force-graph-2d"
 import { ShareNetwork as Network } from "@phosphor-icons/react"
+import { useTheme } from "../hooks/useTheme.js"
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
@@ -20,6 +21,8 @@ const formatoCOP = (v) =>
 
 export default function Grafo({ token, depto }) {
   const [limit, setLimit] = useState(30)
+  // El canvas NO hereda el tema: fondo explícito blanco/negro según toggle
+  const { dark } = useTheme()
   const { data, isLoading, isError } = useQuery({
     queryKey: ["grafo", limit, depto],
     queryFn: () => fetchGrafo(limit, depto, token),
@@ -30,7 +33,7 @@ export default function Grafo({ token, depto }) {
   })
 
   return (
-    <section aria-label="Grafo de conexiones" className="rounded-2xl border border-zinc-200 dark:border-zinc-700 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+    <section aria-label="Grafo de conexiones" className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><Network size={18} aria-hidden="true" /> Grafo entidad-contratista</h2>
         <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
@@ -59,6 +62,7 @@ export default function Grafo({ token, depto }) {
           <div className="mt-2 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
             <ForceGraph2D
               height={420}
+              backgroundColor={dark ? "#09090b" : "#ffffff"}
               graphData={{ nodes: data.nodos, links: data.aristas }}
               nodeLabel={(n) => `${n.tipo === "entidad" ? "Entidad" : "Contratista"} · ${n.nombre}`}
               nodeColor={(n) => (n.tipo === "entidad" ? "#059669" : "#2563eb")}

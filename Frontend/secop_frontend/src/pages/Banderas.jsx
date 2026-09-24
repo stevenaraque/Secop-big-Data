@@ -1,6 +1,9 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { createColumnHelper } from "@tanstack/react-table"
+import { motion } from "motion/react"
 import { Flag } from "@phosphor-icons/react"
+import MiniDataTable from "../components/MiniDataTable.jsx"
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
@@ -17,6 +20,8 @@ async function fetchBanderas(umbral, depto, token) {
 const formatoCOP = (v) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v ?? 0)
 
+const columnHelper = createColumnHelper()
+
 export default function Banderas({ token, depto }) {
   const [umbral, setUmbral] = useState(30)
   const { data, isLoading, isError } = useQuery({
@@ -25,8 +30,35 @@ export default function Banderas({ token, depto }) {
     enabled: true,
   })
 
+  // DataTable: 8 filas por página + sorting (antes se pintaban TODAS de golpe)
+  const columns = useMemo(() => [
+    columnHelper.accessor("contratista_nombre", {
+      header: "Contratista",
+      cell: (info) => <span className="font-medium">{info.getValue() || "—"}</span>,
+    }),
+    columnHelper.accessor("entidad", {
+      header: "Entidad",
+      cell: (info) => <span className="text-zinc-600 dark:text-zinc-400">{info.getValue()}</span>,
+    }),
+    columnHelper.accessor("porcentaje", {
+      header: "% concentración",
+      meta: { align: "right", width: "130px" },
+      cell: (info) => <span className="font-semibold text-red-700 dark:text-red-300 tabular-nums">{info.getValue()}%</span>,
+    }),
+    columnHelper.accessor("monto", {
+      header: "Monto",
+      meta: { align: "right", width: "150px" },
+      cell: (info) => <span className="tabular-nums">{formatoCOP(info.getValue())}</span>,
+    }),
+    columnHelper.accessor("contratos", {
+      header: "Contratos",
+      meta: { align: "right", width: "100px" },
+      cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
+    }),
+  ], [])
+
   return (
-    <section aria-label="Banderas rojas de concentración" className="rounded-2xl border border-red-200 dark:border-red-900 bg-white dark:bg-zinc-900 p-5">
+    <motion.section whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 16 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5, ease: "easeOut" }} aria-label="Banderas rojas de concentración" className="rounded-2xl border border-red-200 dark:border-red-900 bg-white dark:bg-zinc-900 shadow-[0_8px_32px_rgba(0,0,0,0.06)] p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><Flag size={18} aria-hidden="true" /> Banderas rojas de concentración</h2>
         <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
@@ -51,32 +83,15 @@ export default function Banderas({ token, depto }) {
           <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
             {data.total} alerta{data.total === 1 ? "" : "s"} con umbral {data.umbral}%{depto ? ` en ${depto}` : ""}
           </p>
-          <div className="mt-2 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                  <th className="py-2 pr-3">Contratista</th>
-                  <th className="py-2 pr-3">Entidad</th>
-                  <th className="py-2 pr-3 text-right">% concentración</th>
-                  <th className="py-2 pr-3 text-right">Monto</th>
-                  <th className="py-2 text-right">Contratos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.banderas.map((b) => (
-                  <tr key={`${b.entidad}-${b.contratista_nit}`} className="border-t border-zinc-100 dark:border-zinc-800">
-                    <td className="py-2 pr-3">{b.contratista_nombre}</td>
-                    <td className="py-2 pr-3 text-zinc-600 dark:text-zinc-400">{b.entidad}</td>
-                    <td className="py-2 pr-3 text-right font-semibold text-red-700 dark:text-red-300 tabular-nums">{b.porcentaje}%</td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{formatoCOP(b.monto)}</td>
-                    <td className="py-2 text-right tabular-nums">{b.contratos}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <MiniDataTable
+            columns={columns}
+            data={data.banderas}
+            defaultSort={[{ id: "porcentaje", desc: true }]}
+            pageSize={8}
+            label="Paginación de banderas de concentración"
+          />
         </>
       )}
-    </section>
+    </motion.section>
   )
 }

@@ -145,5 +145,27 @@ Solución: devolver ambas keys `tamano_bytes` (ASCII) y `tamaño_bytes` en `Vist
 Causa: `Dashboard.jsx` tenia `if (cargando) return <esqueleto/>`. Al cambiar `depto`, la nueva llave `["resumen", depto]` pone `isLoading` en true, el early return desmonta TODO (incluido Leaflet con `map.remove()`) y al llegar los datos se reconstruye desde cero: re-descarga GeoJSON, pierde zoom y parpadea.
 Solucion: `placeholderData: keepPreviousData` en resumen/top/contratos + esqueleto solo si `cargando && !resumen`. Ahora el clic conserva KPIs, sale "actualizando..." y el mapa no se destruye. Verificado `build 407ms` OK.
 
+## 32. `naive/resumen/` 500 con 470k registros (24/09/2026)
+Causa: el guard anti-OOM usaba `status.HTTP_413_CONTENT_TOO_LARGE`, que NO existe en DRF 3.18 (la constante es `HTTP_413_REQUEST_ENTITY_TOO_LARGE`). El `AttributeError` se lanzaba en `contratos/views.py:162` antes de retornar, convirtiendo el 413 diseñado en 500. Se veía en consola al cambiar de depto porque `ProfilerDual` pide naive+optimized en paralelo.
+Solución: cambiar a `status.HTTP_413_REQUEST_ENTITY_TOO_LARGE` en `VistaResumenNaive` y `VistaTopContratistasNaive`. Verificado: `GET /api/naive/resumen/?depto=Boyacá` → `413` + front muestra aviso ámbar "Naive deshabilitado", el optimizado sigue midiendo. `check 0` + `pytest 5 passed`.
+Lección: con 470k filas el naive (`list(Model.objects.all())`) es impagable — el 413 es el comportamiento correcto, no un error.
+
+## 33. `naive/resumen/?depto=Boyacá` seguía 413 aunque Boyacá tiene ~11k (24/09/2026)
+Causa: desalineación de medidores. El guard backend miraba el conteo GLOBAL (`Contrato.objects.count()` 470k → siempre 413) mientras el front omitía el fetch según el total FILTRADO del optimizado (Boyacá 11.7k → sí lo pedía). Resultado: request condenado al 413 + ruido en consola. Además `resumen_naive` hacía `list(all())` (470k objetos) antes de filtrar en Python.
+Solución: guard por filtro — la vista usa `resumen_optimizado(depto,anio,modalidad)["total"]` (COUNT barato, mismo predictor del front) y el servicio filtra con WHERE antes de `list()` (sigue agregando en Python: la demo se conserva). `VistaTopContratistasNaive` igual con `depto`.
+Verificado: `?depto=Boyacá` → `200 total 11715` (comparativa real: BD 29ms vs Python 167ms) · sin depto → `413` + front lo omite sin pedirlo. `check 0` + `pytest 5 passed`.
+
+## 34. HMR sirve código viejo tras editar (OneDrive no avisa al watcher) (24/09/2026)
+Causa: el dev corre sobre OneDrive y chokidar no recibe los cambios; Vite seguía sirviendo el módulo viejo en memoria. Síntomas: primer pintado OK pero clic explotaba (`cursor is not defined`, antes `AreaChart is not defined`) aunque en disco todo estaba bien (`build` OK). Ninguna recarga lo arregla porque lo viejo está en el servidor, no en el navegador.
+Solución: `vite.config.js` → `server.watch: { usePolling: true, interval: 300 }` (solo `dev`, no build) + reiniciar `npm run dev` una vez.
+
+## 35. Flash blanco al recargar (tema llegaba tarde) (24/09/2026)
+Causa: React ponía `.dark` en un efecto, DESPUÉS del primer paint → un frame en claro.
+Solución: `public/tema.js` (300 bytes) lee `localStorage secop-theme` y fija `.dark` + `colorScheme` antes de pintar, con `<script src="/tema.js">` bloqueante en `<head>`. Archivo externo: respeta `script-src 'self'`, cero inline. Cubre recarga + las 3 páginas.
+
+## 36. Loader parpadeaba y nacía en tema claro aunque fueras oscuro (24/09/2026)
+Causa: el fallback de Suspense moría antes de 100ms (parpadeo) y leía la clase de `<html>`, que aún no existía al montar → siempre "claro".
+Solución: `App.jsx` envuelve los 6 `lazy` en `minimo()` (chunk + `setTimeout 100ms` en paralelo); `PantallaCarga` congela el tema leyendo `localStorage` (misma fuente de `useTheme`) + `PageBackground tema` fijo y `Background forzar` que gana a `<html>` por cascada. Verificado `vitest 11 passed`.
+
 ---
 *Actualizado: 15/09/2026 — RF-16 clic sin recarga (keepPreviousData) + RF-04 login frontend — Steven Araque*

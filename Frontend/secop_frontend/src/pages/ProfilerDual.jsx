@@ -39,6 +39,9 @@ export default function ProfilerDual({ token, depto }) {
   const [renderMs, setRenderMs] = useState(0);
   // P0: naive responde 413 con >20k (anti-OOM backend). Qué: estado error. Por qué: sin esto pinta NaN.
   const [error, setError] = useState(null);
+  // P1 (24/09): con >20k el naive siempre daría 413 y ensucia la consola.
+  // Qué: lee total del optimizado y omite el fetch naive. Por qué: 0 requests inútiles, 0 ruido.
+  const [naiveBloqueado, setNaiveBloqueado] = useState(false);
 
   useEffect(() => {
     // Público: profiler mide anon y con JWT (AllowAny en /optimized/ y /naive/); antes bloqueaba sin token
@@ -59,23 +62,34 @@ export default function ProfilerDual({ token, depto }) {
       const t1 = performance.now();
       const ttfb = Math.round(t1 - t0);
       const j = await r.json();
-      if (!vivo) return;
+      if (!vivo) return null;
       setData(j);
       setError(null);
       setTtfb(ttfb || Math.round(j.tiempo_bd_ms + j.tiempo_python_ms + 18));
+      return j;
     }
 
     const tRender0 = performance.now();
-    Promise.all([
-      medir("/optimized/resumen/", setOpt, setTtfbOpt),
-      medir("/naive/resumen/", setNaive, setTtfbNaive),
-    ])
-      .catch((e) => {
+    // Secuencial: el total del optimizado decide si el naive vale la pena.
+    // Con >20k se omite (el backend daría 413) — sin request, sin 413 en consola.
+    (async () => {
+      try {
+        const optJson = await medir("/optimized/resumen/", setOpt, setTtfbOpt);
+        if (!vivo) return;
+        if ((optJson?.total ?? 0) > 20000) {
+          setNaive(null);
+          setNaiveBloqueado(true);
+          setError(null);
+        } else {
+          setNaiveBloqueado(false);
+          await medir("/naive/resumen/", setNaive, setTtfbNaive);
+        }
+      } catch (e) {
         if (vivo) setError(e);
-      })
-      .finally(() => {
+      } finally {
         if (vivo) setRenderMs(Math.round(performance.now() - tRender0));
-      });
+      }
+    })();
 
     return () => {
       vivo = false;
@@ -83,12 +97,15 @@ export default function ProfilerDual({ token, depto }) {
   }, [token, depto]);
 
   // P0: error visible en vez de NaN. 413 = naive apagado por tamaño (diseño backend).
+  // P1: naiveBloqueado = lo omitimos en el front (ni se pide) — mensaje pedagógico, sin request fallido.
   const errorMsg =
-    error?.status === 413 && error?.url?.includes("naive")
-      ? "Naive deshabilitado con >20k registros (anti-OOM). El optimizado sigue midiendo."
-      : error
-        ? "No se pudo medir. Revisa tu sesión."
-        : null;
+    naiveBloqueado
+      ? `Naive omitido por diseño: ${Number(opt?.total ?? 0).toLocaleString("es-CO")} registros > 20k. Traerlos (SELECT *) tumbaría el navegador; el optimizado agrega en BD.`
+      : error?.status === 413 && error?.url?.includes("naive")
+        ? "Naive deshabilitado con >20k registros (anti-OOM). El optimizado sigue midiendo."
+        : error
+          ? "No se pudo medir. Revisa tu sesión."
+          : null;
 
   const optBd = opt?.tiempo_bd_ms ?? 0;
   const optPy = opt?.tiempo_python_ms ?? 0;
@@ -102,7 +119,7 @@ export default function ProfilerDual({ token, depto }) {
   return (
     <section
       aria-label="Profiler dual"
-      className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5"
+      className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-[0_8px_32px_rgba(0,0,0,0.06)] p-5"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -185,21 +202,29 @@ export default function ProfilerDual({ token, depto }) {
             <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50/60 dark:bg-red-950/30 p-4">
               <div className="flex items-baseline justify-between">
                 <p className="text-xs font-semibold text-red-700 dark:text-red-300">Naive</p>
-                <p className="font-mono text-lg tracking-tighter text-red-700 dark:text-red-300">{totalNaive} ms</p>
+                <p className="font-mono text-lg tracking-tighter text-red-700 dark:text-red-300">{naiveBloqueado && !naive ? "—" : `${totalNaive} ms`}</p>
               </div>
               <p className="text-[11px] text-red-700 dark:text-red-300/80 font-mono">SELECT * · 100MB</p>
-              <div className="mt-3 space-y-2">
-                <Barra label="BD" ms={naiveBd} color="bg-red-300" total={totalNaive} />
-                <Barra label="Python" ms={naivePy} color="bg-red-600" total={totalNaive} />
-                <Barra label="Red" ms={ttfbNaive} color="bg-sky-300" total={totalNaive} />
-                <Barra label="Render" ms={renderMs} color="bg-zinc-400" total={totalNaive} />
-              </div>
+              {naiveBloqueado && !naive ? (
+                <p className="mt-3 text-xs leading-relaxed text-red-800 dark:text-red-200 border border-dashed border-red-300 dark:border-red-800 rounded-xl px-3 py-3">
+                  🔒 Omitido por diseño con {Number(opt?.total ?? 0).toLocaleString("es-CO")} registros: traerlos colapsaría RAM/red. Esta es la tesis: agregados, no filas.
+                </p>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  <Barra label="BD" ms={naiveBd} color="bg-red-300" total={totalNaive} />
+                  <Barra label="Python" ms={naivePy} color="bg-red-600" total={totalNaive} />
+                  <Barra label="Red" ms={ttfbNaive} color="bg-sky-300" total={totalNaive} />
+                  <Barra label="Render" ms={renderMs} color="bg-zinc-400" total={totalNaive} />
+                </div>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="px-3 py-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 dark:bg-zinc-800 text-white dark:text-zinc-900 dark:text-zinc-100 font-mono">
-              {factor}× más rápido
-            </span>
+            {!naiveBloqueado && (
+              <span className="px-3 py-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 dark:bg-zinc-800 text-white dark:text-zinc-900 dark:text-zinc-100 font-mono">
+                {factor}× más rápido
+              </span>
+            )}
             <span className="text-zinc-600 dark:text-zinc-400">
               Django agrega (COUNT/SUM) + React virtualiza, no mueve filas. Pitch 45s.
             </span>

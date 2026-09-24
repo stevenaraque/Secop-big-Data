@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, memo, lazy, Suspense } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { animate } from "animejs";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
+import { Toaster, toast } from "sonner";
 import Banderas from "./Banderas.jsx";
 import PredominioDirecta from "./PredominioDirecta.jsx";
 import Umbrales from "./Umbrales.jsx";
@@ -15,7 +16,12 @@ import ProfilerDual from "./ProfilerDual.jsx";
 import DataTableSECOP from "./DataTableSECOP.jsx";
 import StatusMark from "../components/StatusMark.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
-import { ArrowRight, DownloadSimple as Download, X } from "@phosphor-icons/react";
+import LazySection from "../components/LazySection.jsx";
+import PageBackground from "../components/PageBackground.jsx";
+import ScrubChart from "../components/ScrubChart.jsx";
+import { useTheme } from "../hooks/useTheme.js";
+import { dineroCorto, dineroExacto } from "../lib/formato.js";
+import { ArrowRight, DownloadSimple as Download, X, Database, CurrencyCircleDollar, TrendUp, MapPin, ChartBar, BellRinging, Lightning, MagnifyingGlass } from "@phosphor-icons/react";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 async function fetchResumen(d, t) {
@@ -45,17 +51,42 @@ async function fetchContratos({ depto }, t) {
   return r.json();
 }
 
-const KPICard = memo(function KPICard({ label, value, sub, delay = 0 }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (ref.current) animate(ref.current, { opacity: [0, 1], translateY: [16, 0], scale: [0.98, 1], duration: 600, delay, easing: "easeOutExpo" });
-  }, [value, delay]);
+// CTA radar estándar: la misma píldora en header, hero y sección CTA.
+// Qué: un solo estilo h-10 + motion. Por qué: 3 versiones distintas confundían.
+// sobreOscuro: píldora clara para las tarjetas oscuras (CTA radar, gráfica viva).
+function EnlaceRadar({ href, children, icono, sobreOscuro }) {
+  const colores = sobreOscuro
+    ? "bg-white text-black hover:bg-zinc-200"
+    : "bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-700 dark:hover:bg-zinc-200";
   return (
-    <motion.div ref={ref} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 100, damping: 20, delay: delay * 0.001 }} className="group relative rounded-[24px] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-6 overflow-hidden will-change-transform hover:shadow-[0_16px_48px_rgba(0,0,0,0.12)] hover:scale-[1.01] transition-all duration-300" style={{ contain: "layout paint" }}>
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.03] via-transparent to-sky-500/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+    <motion.a
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.97 }}
+      href={href}
+      className={`h-10 inline-flex items-center gap-1.5 rounded-full px-5 text-sm font-semibold transition-colors ${colores}`}
+    >
+      {children} {icono ?? <ArrowRight size={16} aria-hidden="true" />}
+    </motion.a>
+  );
+}
+
+const KPICard = memo(function KPICard({ label, value, sub, delay = 0, icon: Icon, loading, title }) {  return (
+    <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }} transition={{ type: "spring", stiffness: 110, damping: 20, delay: delay * 0.001 }} whileHover={{ y: -2 }} className="group relative rounded-[24px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-6 overflow-hidden transition-shadow duration-300 hover:shadow-[0_16px_48px_rgba(16,185,129,0.14)]" style={{ contain: "layout paint" }}>
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.04] via-transparent to-sky-500/[0.04] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       <div className="absolute -top-12 -right-12 w-24 h-24 bg-gradient-to-br from-emerald-500/10 to-sky-500/10 rounded-full blur-2xl" />
-      <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400 font-medium relative">{label}</p>
-      <p className="text-4xl tracking-tighter font-bold mt-2 tabular-nums relative text-zinc-900 dark:text-white" style={{ fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em" }}>{value}</p>
+      <div className="flex items-center justify-between relative">
+        <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400 font-medium">{label}</p>
+        {Icon && (
+          <span className="size-8 grid place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <Icon size={17} aria-hidden="true" />
+          </span>
+        )}
+      </div>
+      {loading ? (
+        <div className="mt-2 h-10 w-2/3 animate-pulse rounded-lg bg-zinc-100 dark:bg-zinc-800" aria-label="Cargando indicador" />
+      ) : (
+        <motion.p key={String(value)} title={title} initial={{ opacity: 0.4, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut" }} className="text-3xl sm:text-4xl tracking-tighter font-bold mt-2 tabular-nums relative text-zinc-900 dark:text-white break-words leading-[1.05] min-w-0" style={{ fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em", overflowWrap: "anywhere" }}>{value}</motion.p>
+      )}
       <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 flex items-center gap-1.5 relative">
         <StatusMark status="done" size={14} /> {sub}
       </p>
@@ -63,12 +94,25 @@ const KPICard = memo(function KPICard({ label, value, sub, delay = 0 }) {
   );
 });
 
+async function fetchSerie(depto, token) {
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const r = await fetch(`${API}/optimized/serie-mensual/${depto ? `?depto=${encodeURIComponent(depto)}` : ""}`, { headers });
+  if (!r.ok) throw new Error();
+  return r.json();
+}
+
 export default function DashboardModern({ token }) {
   const [depto, setDepto] = useState("Boyacá");
+  const [exportando, setExportando] = useState(false);
   const heroRef = useRef(null);
+  const reduce = useReducedMotion();
+  // Para la píldora del CTA: clara sobre tarjeta oscura y viceversa
+  const { dark } = useTheme();
   useEffect(() => {
-    if (heroRef.current) animate(heroRef.current.children, { opacity: [0, 1], translateY: [20, 0], delay: (_, i) => i * 80, duration: 700, easing: "easeOutExpo" });
-  }, []);
+    if (!heroRef.current || reduce) return;
+    const anim = animate(heroRef.current.children, { opacity: [0, 1], translateY: [20, 0], delay: (_, i) => i * 80, duration: 700, easing: "easeOutExpo" });
+    return () => anim?.pause?.();
+  }, [reduce]);
 
   async function handleLogout() {
     try {
@@ -80,174 +124,231 @@ export default function DashboardModern({ token }) {
   }
 
   // Público: queries funcionan anonimas (AllowAny) y con JWT; token null => headers vacios
-  const { data: resumen } = useQuery({ queryKey: ["resumen", depto], queryFn: () => fetchResumen(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
+  const { data: resumen, isLoading: cargandoResumen } = useQuery({ queryKey: ["resumen", depto], queryFn: () => fetchResumen(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
   const { data: topData } = useQuery({ queryKey: ["top", depto], queryFn: () => fetchTop(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
   const { data: mapaData } = useQuery({ queryKey: ["mapa"], queryFn: () => fetchMapa(token), staleTime: 5 * 60 * 1000 });
   const territorios = [...(mapaData?.mapa || [])].sort((a, b) => String(a.departamento).localeCompare(String(b.departamento), "es"));
   const { data: contratosPag, isFetching, isError: errorTabla } = useQuery({ queryKey: ["contratos", depto], queryFn: () => fetchContratos({ depto }, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
   const rows = contratosPag?.results ?? [];
 
-  return (
-    <div className="min-h-[100dvh] bg-[#050505] text-white antialiased selection:bg-emerald-500/30" style={{ fontFamily: "Geist, system-ui, sans-serif" }}>
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-[#050505]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.15),transparent_50%),radial-gradient(ellipse_at_bottom_right,_rgba(56,189,248,0.12),transparent_60%),radial-gradient(ellipse_at_bottom_left,_rgba(168,85,247,0.08),transparent_50%)]" />
-        <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
-      </div>
+  // Serie mensual para el scrub: una sola serie manda (valor, cambio, %)
+  const { data: serieData } = useQuery({ queryKey: ["serie", depto], queryFn: () => fetchSerie(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
+  const serieMensual = (serieData?.serie ?? []).map((s) => ({
+    label: String(s.mes ?? "").slice(0, 7),
+    valor: Number(s.suma ?? 0),
+  }));
 
-      <header className="sticky top-0 z-20 backdrop-blur-2xl bg-[#050505]/70 border-b border-white/[0.06]">
-        <div className="max-w-[1400px] mx-auto px-6 h-[72px] flex items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-9 h-9 rounded-xl bg-white text-black grid place-items-center font-bold text-[13px] tracking-tighter">SI</div>
-            <div>
-              <p className="text-[14px] font-semibold tracking-tight leading-none">SECOP Insight</p>
-              <p className="text-[11px] text-white/60 font-mono">6M • 100 FPS • Freemium 2 en 1</p>
+  return (
+    <div className="relative isolate min-h-[100dvh] bg-[#fcfcfc] dark:bg-[#050505] text-zinc-900 dark:text-white antialiased selection:bg-emerald-500/30 transition-colors duration-300" style={{ fontFamily: "Geist, system-ui, sans-serif" }}>
+      <Toaster richColors closeButton position="bottom-left" toastOptions={{ style: { fontFamily: "Geist, system-ui, sans-serif" } }} />
+      {/* Fondo compartido: aurora CSS + metal WebGL */}
+      <PageBackground />
+
+      <header className="sticky top-0 z-20 backdrop-blur-2xl bg-white/80 dark:bg-[#050505]/70 border-b border-zinc-200 dark:border-white/[0.06] transition-colors duration-300">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 min-h-[72px] py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 shrink-0 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-black grid place-items-center font-bold text-[13px] tracking-tighter">SI</div>
+            <div className="min-w-0">
+              <p className="text-[14px] font-semibold tracking-tight leading-none truncate">SECOP Insight</p>
+              <p className="text-[11px] text-zinc-500 dark:text-white/60 font-mono truncate">6M • 100 FPS • Freemium 2 en 1</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
             {token ? (
-              <a href="/app" className="h-9 inline-flex items-center gap-1.5 rounded-full bg-white text-black px-5 text-xs font-semibold hover:bg-zinc-100 transition-colors will-change-transform hover:scale-[1.02] active:scale-[0.98]">Mis oportunidades <ArrowRight size={14} aria-hidden="true" /></a>
+              <EnlaceRadar href="/app">Mis oportunidades</EnlaceRadar>
             ) : (
-              <a href="/login" className="h-9 inline-flex items-center gap-1.5 rounded-full bg-white text-black px-5 text-xs font-semibold hover:bg-zinc-100 transition-colors will-change-transform hover:scale-[1.02] active:scale-[0.98]">Iniciar sesión <ArrowRight size={14} aria-hidden="true" /></a>
+              <EnlaceRadar href="/login">Iniciar sesión</EnlaceRadar>
             )}
             <label htmlFor="filtro-territorio" className="sr-only">Filtrar por territorio</label>
-            <select id="filtro-territorio" value={depto} onChange={(e) => setDepto(e.target.value)} className="h-9 rounded-full border border-white/10 bg-white/5 backdrop-blur px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
-              <option value="" className="bg-zinc-900">Todos · Nacional</option>
-              {territorios.map((t) => <option key={t.departamento} value={t.departamento} className="bg-zinc-900">{t.departamento} · {t.total}</option>)}
+            <select id="filtro-territorio" value={depto} onChange={(e) => setDepto(e.target.value)} className="h-9 max-w-[170px] sm:max-w-[240px] truncate rounded-full border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 backdrop-blur px-4 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+              <option value="">Todos · Nacional</option>
+              {territorios.map((t) => <option key={t.departamento} value={t.departamento}>{t.departamento} · {t.total}</option>)}
             </select>
             {token ? (
-              <button aria-label="Cerrar sesión" onClick={handleLogout} className="h-9 w-9 rounded-full border border-white/10 bg-white/5 grid place-items-center hover:bg-white/10 transition-colors"><X size={16} aria-hidden="true" /></button>
+              <button aria-label="Cerrar sesión" onClick={handleLogout} className="h-9 w-9 shrink-0 rounded-full border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 grid place-items-center text-zinc-700 dark:text-white hover:bg-zinc-50 dark:hover:bg-white/10 transition-colors"><X size={16} aria-hidden="true" /></button>
             ) : null}
             <ThemeToggle />
           </div>
         </div>
       </header>
 
-      <main id="contenido" className="max-w-[1400px] mx-auto px-6 py-8 space-y-8" role="main" tabIndex={-1}>
-        <section ref={heroRef} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 rounded-[32px] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-8 md:p-10 overflow-hidden relative">
-            <div className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-emerald-500/20 to-sky-500/20 rounded-full blur-3xl" />
-            <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400 font-medium">Observatorio público • Boyacá</p>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tighter leading-[0.9] mt-3 text-balance" style={{ letterSpacing: "-0.04em" }}>
-              6 millones de<br />
-              <span className="bg-gradient-to-r from-emerald-600 to-sky-600 bg-clip-text text-transparent">contratos</span> sin<br />
-              congelar tu navegador.
+      <main id="contenido" className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 w-full min-w-0" role="main" tabIndex={-1}>
+        <section ref={heroRef} className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 min-w-0">
+          <div className="lg:col-span-8 rounded-[24px] sm:rounded-[32px] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.06)] p-6 sm:p-8 md:p-10 overflow-hidden relative min-w-0">
+            <motion.div aria-hidden="true" className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-emerald-500/20 to-sky-500/20 rounded-full blur-3xl pointer-events-none" animate={reduce ? undefined : { scale: [1, 1.1, 1], opacity: [0.7, 1, 0.7] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} />
+            <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-2">
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+                <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+              </span>
+              Observatorio público • {depto || "Nacional"}
+            </p>
+            <h1 className="text-[2rem] leading-[1.05] sm:text-4xl md:text-5xl font-bold tracking-tighter sm:leading-[0.95] mt-3 text-balance break-words" style={{ letterSpacing: "-0.04em" }}>
+              6 millones de{" "}
+              <span className="bg-gradient-to-r from-emerald-600 to-sky-600 bg-clip-text text-transparent">contratos</span>{" "}
+              sin congelar tu navegador.
             </h1>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-4 max-w-[50ch] leading-relaxed">Agregamos en PostgreSQL y enviamos 50KB, no 100MB. Virtualizamos a 100 FPS con solo 50 nodos en el DOM.</p>
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <motion.a whileTap={{ scale: 0.97 }} href="#mapa" className="h-10 inline-flex items-center gap-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-black px-5 text-sm font-semibold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors">
+                <MapPin size={16} aria-hidden="true" /> Explorar mapa
+              </motion.a>
+              <EnlaceRadar href="/app" icono={<BellRinging size={16} aria-hidden="true" />}>Crear alerta</EnlaceRadar>
+            </div>
             <div className="mt-6 flex flex-wrap gap-2">
-              <span className="px-3 py-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-mono">100 FPS</span>
-              <span className="px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 text-xs">50KB</span>
-              <span className="px-3 py-1.5 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-900 dark:text-zinc-100">6M filas</span>
+              <span className="px-3 py-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-mono inline-flex items-center gap-1.5"><Lightning size={13} aria-hidden="true" /> 100 FPS</span>
+              <span className="px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 text-xs inline-flex items-center gap-1.5"><Database size={13} aria-hidden="true" /> 50KB</span>
+              <span className="px-3 py-1.5 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5"><ChartBar size={13} aria-hidden="true" /> 6M filas</span>
             </div>
           </div>
-          <div className="lg:col-span-4 rounded-[32px] bg-gradient-to-br from-zinc-900 to-black border border-white/10 p-6 text-white relative overflow-hidden">
+          <div className="lg:col-span-4 rounded-[32px] bg-white text-zinc-900 border border-zinc-200 dark:bg-gradient-to-br dark:from-zinc-900 dark:to-black dark:text-white dark:border-white/10 p-6 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-sky-500/10" />
-            <p className="text-[11px] uppercase tracking-[0.14em] text-white/60 relative">Gráfica en vivo</p>
-            <div className="mt-4 h-[160px] relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={topData?.top?.slice(0, 5) || []}>
-                  <Tooltip contentStyle={{ background: "rgba(0,0,0,0.8)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, color: "white" }} />
-                  <Area type="monotone" dataKey="suma_valor" stroke="#10b981" fill="url(#grad)" strokeWidth={2} dot={false} isAnimationActive={false} />
-                  <defs>
-                    <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                </AreaChart>
-              </ResponsiveContainer>
+            <div aria-hidden="true" className="absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2 w-[280px] h-[170px] bg-emerald-500/15 blur-[70px] rounded-full pointer-events-none" />
+            <div className="flex items-center justify-between relative">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-white/60 flex items-center gap-2">
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 dark:bg-emerald-400 opacity-60" />
+                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                </span>
+                Gráfica en vivo
+              </p>
+              <span className="text-[11px] font-mono px-2 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-600 dark:bg-white/5 dark:border-white/10 dark:text-white/70">Mensual</span>
             </div>
-            <p className="text-xs text-white/60 mt-2 relative">Top contratistas • {topData?.top?.[0]?.contratista_nombre?.slice(0, 20) || "—"} lidera</p>
+            <div className="mt-3 relative">
+              <ScrubChart data={serieMensual} titulo={`serie ${depto || "nacional"}`} />
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-white/60 mt-2 relative flex items-center gap-2">
+              <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 font-mono text-[10px]">SCRUB</span>
+              <span className="truncate">arrastra sobre la línea para explorar cada mes</span>
+            </p>
           </div>
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <KPICard label="Total contratos" value={resumen?.total ?? 0} sub="COUNT en BD • 100 FPS" delay={0} />
-          <KPICard label="Total dinero" value={`$${Number(resumen?.suma_valor || 0).toLocaleString("es-CO")}`} sub="SUM • indexed" delay={80} />
-          <KPICard label="Valor promedio" value={`$${Number(resumen?.promedio_valor || 0).toLocaleString("es-CO")}`} sub="AVG • 50KB" delay={160} />
+          <KPICard label="Total contratos" value={(resumen?.total ?? 0).toLocaleString("es-CO")} sub="COUNT en BD • 100 FPS" delay={0} icon={Database} loading={cargandoResumen && !resumen} />
+          <KPICard label="Total dinero" value={dineroCorto(resumen?.suma_valor)} title={dineroExacto(resumen?.suma_valor)} sub="SUM • indexed" delay={80} icon={CurrencyCircleDollar} loading={cargandoResumen && !resumen} />
+          <KPICard label="Valor promedio" value={dineroCorto(resumen?.promedio_valor)} title={dineroExacto(resumen?.promedio_valor)} sub="AVG • 50KB" delay={160} icon={TrendUp} loading={cargandoResumen && !resumen} />
         </section>
 
-        <ProfilerDual token={token} depto={depto} />
+        {/* Profiler diferido: mide al acercarse (2 queries pesadas menos al abrir) */}
+        <LazySection minHeight={180} label="Cargando profiler">
+          <ProfilerDual token={token} depto={depto} />
+        </LazySection>
 
-        <section className="rounded-[24px] bg-gradient-to-r from-zinc-900 via-black to-zinc-900 border border-white/10 p-[1px]">
-          <div className="rounded-[23px] bg-gradient-to-r from-zinc-900 to-black p-6 flex flex-wrap items-center justify-between gap-4">
+        <motion.section whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 16 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5, ease: "easeOut" }} className="rounded-[24px] bg-white border border-zinc-200 dark:bg-gradient-to-r dark:from-zinc-900 dark:via-black dark:to-zinc-900 dark:border-white/10 p-[1px]">
+          <div className="rounded-[23px] bg-white dark:bg-gradient-to-r dark:from-zinc-900 dark:to-black p-6 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h3 className="text-white font-semibold flex items-center gap-2">
+              <h3 className="text-zinc-900 dark:text-white font-semibold flex items-center gap-2">
                 <StatusMark status="running" size={18} /> ¿Alertas de este tipo?
               </h3>
-              <p className="text-white/60 text-xs mt-1">Crea un Radar con 85 cols y recibe Matches + email en /app</p>
+              <p className="text-zinc-500 dark:text-white/60 text-xs mt-1">Crea un Radar con 85 cols y recibe Matches + email en /app</p>
             </div>
-            <a href="/app" className="h-10 inline-flex items-center gap-1.5 rounded-full bg-white text-black px-6 text-sm font-semibold hover:bg-zinc-100 transition-all hover:scale-[1.02] active:scale-[0.98]">Crear Radar <ArrowRight size={16} aria-hidden="true" /></a>
+            <EnlaceRadar href="/app" sobreOscuro={dark}>Crear Radar</EnlaceRadar>
           </div>
-        </section>
+        </motion.section>
 
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="rounded-[24px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6" style={{ contain: "layout paint" }}>
-            <h3 className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Mapa · % directa</h3>
+        <section id="mapa" className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 min-w-0 scroll-mt-24">
+          <motion.div whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 16 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5, ease: "easeOut" }} className="rounded-[24px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_32px_rgba(0,0,0,0.06)] p-4 sm:p-6 min-w-0" style={{ contain: "layout paint" }}>
+            <h3 className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><MapPin size={15} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" /> Mapa · % directa</h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">Clic filtra todo en sync • 100 FPS</p>
-            <div className="mt-4 rounded-xl overflow-hidden border border-zinc-200">
+            <div className="mt-4 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 min-w-0">
               <Suspense fallback={<p className="p-4 text-xs text-zinc-500 dark:text-zinc-400">Cargando mapa…</p>}>
                 <MapaDirecta token={token} deptoActivo={depto} onSelectDepto={(n) => setDepto(n)} />
               </Suspense>
             </div>
-          </div>
-          <div className="rounded-[24px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Top contratistas</h3>
+          </motion.div>
+          <motion.div whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 16 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5, ease: "easeOut", delay: 0.08 }} className="rounded-[24px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_32px_rgba(0,0,0,0.06)] p-4 sm:p-6 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><ChartBar size={15} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" /> Top contratistas</h3>
+              <span className="text-[11px] px-2 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 font-mono">GROUP BY en BD</span>
+            </div>
+            <div className="w-full min-w-0 overflow-hidden mt-2">
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={topData?.top || []}>
                 <XAxis dataKey="contratista_nombre" hide />
-                <YAxis tick={{ fontSize: 11 }} width={80} tickFormatter={(v) => `${(v / 1e6).toFixed(0)}M`} />
-                <Tooltip formatter={(v) => [`$${Number(v).toLocaleString("es-CO")}`, "Suma"]} />
+                <YAxis tick={{ fontSize: 11 }} width={70} tickFormatter={(v) => `${(v / 1e6).toFixed(0)}M`} />
+                <Tooltip formatter={(v) => [`$${Number(v).toLocaleString("es-CO")}`, "Suma"]} contentStyle={{ borderRadius: 12, fontSize: 12 }} />
                 <Bar dataKey="suma_valor" radius={[8, 8, 0, 0]} fill="#10b981" isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+            </div>
+          </motion.div>
         </section>
 
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
+        <section className="space-y-4 min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-semibold tracking-tight">Contratos · DataTable 100 FPS</h2>
-            <button
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              disabled={exportando}
               onClick={async () => {
-                const p = new URLSearchParams();
-                if (depto) p.set("depto", depto);
-                const headers = token ? { Authorization: `Bearer ${token}` } : {};
-                const r = await fetch(`${API}/exportar/?${p}`, { headers });
-                if (!r.ok) return;
-                const b = await r.blob();
-                const u = URL.createObjectURL(b);
-                const a = document.createElement("a");
-                a.href = u;
-                a.download = `contratos${depto ? "-" + depto : ""}.csv`;
-                a.click();
-                URL.revokeObjectURL(u);
+                if (exportando) return;
+                setExportando(true);
+                const aviso = toast.loading(`Exportando CSV ${depto || "nacional"}…`);
+                try {
+                  const p = new URLSearchParams();
+                  if (depto) p.set("depto", depto);
+                  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                  const r = await fetch(`${API}/exportar/?${p}`, { headers });
+                  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                  const b = await r.blob();
+                  const u = URL.createObjectURL(b);
+                  const a = document.createElement("a");
+                  a.href = u;
+                  a.download = `contratos${depto ? "-" + depto : ""}.csv`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  URL.revokeObjectURL(u);
+                  toast.success("CSV descargado", { id: aviso });
+                } catch {
+                  toast.error("No se pudo exportar. Revisa tu sesión.", { id: aviso });
+                } finally {
+                  setExportando(false);
+                }
               }}
-              className="h-8 inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 text-xs font-medium text-zinc-900 dark:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800"
+              className="h-8 inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 text-xs font-medium text-zinc-900 dark:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60"
             >
-              <Download size={14} aria-hidden="true" /> CSV
-            </button>
+              <Download size={14} aria-hidden="true" /> {exportando ? "Exportando…" : "CSV"}
+            </motion.button>
           </div>
           {errorTabla ? (
             <p role="alert" className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-2xl px-4 py-3">No se pudo cargar</p>
           ) : rows.length === 0 ? (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 border border-dashed rounded-2xl p-8 text-center bg-white">Sin contratos para este filtro</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 border border-dashed border-zinc-200 dark:border-zinc-700 rounded-2xl p-8 text-center bg-white dark:bg-zinc-900 flex items-center justify-center gap-2"><MagnifyingGlass size={16} aria-hidden="true" /> Sin contratos para este filtro — prueba con Todos · Nacional</p>
           ) : (
+            <div className="min-w-0 overflow-hidden">
             <DataTableSECOP rows={rows} isFetching={isFetching} count={contratosPag?.count} />
+            </div>
           )}
         </section>
 
-        <section className="grid grid-cols-1 gap-6">
-          <Banderas token={token} depto={depto} />
-          <PredominioDirecta token={token} depto={depto} />
-          <Umbrales token={token} />
-          <ActualizacionMasiva token={token} />
-          <Entidades token={token} />
-          <Suspense fallback={<p className="text-xs text-zinc-500 dark:text-zinc-400">Cargando grafo…</p>}>
-            <Grafo token={token} depto={depto} />
-          </Suspense>
+        {/* Bajo el fold: cada sección pide su API al hacer scroll, no al abrir.
+            Antes eran ~12 queries a la vez contra runserver (1 hilo). */}
+        <section className="grid grid-cols-1 gap-4 sm:gap-6 min-w-0">
+          <LazySection minHeight={200} label="Cargando banderas">
+            <Banderas token={token} depto={depto} />
+          </LazySection>
+          <LazySection minHeight={200} label="Cargando predominio">
+            <PredominioDirecta token={token} depto={depto} />
+          </LazySection>
+          <LazySection minHeight={160} label="Cargando umbrales">
+            <Umbrales token={token} />
+          </LazySection>
+          <LazySection minHeight={220} label="Cargando actualización">
+            <ActualizacionMasiva token={token} />
+          </LazySection>
+          <LazySection minHeight={200} label="Cargando entidades">
+            <Entidades token={token} />
+          </LazySection>
+          <LazySection minHeight={320} label="Cargando grafo">
+            <Suspense fallback={<p className="text-xs text-zinc-500 dark:text-zinc-400">Cargando grafo…</p>}>
+              <Grafo token={token} depto={depto} />
+            </Suspense>
+          </LazySection>
         </section>
 
-        <p className="text-[11px] text-white/40 border-t border-white/5 pt-4">Sincronizado: Query cache 5min + 50 nodos + animejs transform/opacity → 100 FPS • Freemium 2 en 1 • 85 cols • 6M sin estallar</p>
+        <p className="text-[11px] text-zinc-500 dark:text-white/40 border-t border-zinc-200 dark:border-white/10 pt-4">Sincronizado: Query cache 5min + 50 nodos + animejs transform/opacity → 100 FPS • Freemium 2 en 1 • 85 cols • 6M sin estallar</p>
       </main>
     </div>
   );

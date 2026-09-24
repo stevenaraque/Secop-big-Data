@@ -100,9 +100,9 @@ export default function DataTableSECOP({ rows, isFetching, count }) {
     overscan: 8,
   });
 
-  // Pre-flight: sin morado IA, 1 acento emerald <80%, nav 1 línea, contraste AA
+  // Sólida a propósito: blur sobre canvas animado = repaint por frame. Glass solo en header.
   return (
-    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-[0_8px_32px_rgba(0,0,0,0.06)] p-4 sm:p-5 min-w-0 w-full overflow-hidden">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold tracking-tight">
           Contratos · DataTable masivo
@@ -116,8 +116,9 @@ export default function DataTableSECOP({ rows, isFetching, count }) {
         {isFetching && " · actualizando..."}
       </p>
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
-        <div className="grid grid-cols-[180px_200px_120px_160px_140px_110px] gap-0 bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-700 text-[11px] uppercase tracking-[0.14em] text-zinc-600 dark:text-zinc-400 font-medium">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
+        <div className="min-w-[910px]">
+        <div className="grid grid-cols-[180px_200px_120px_160px_140px_110px] gap-0 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-700 text-[11px] uppercase tracking-[0.14em] text-zinc-600 dark:text-zinc-400 font-medium">
           {table.getHeaderGroups()[0].headers.map((header) => (
             <button
               key={header.id}
@@ -139,7 +140,7 @@ export default function DataTableSECOP({ rows, isFetching, count }) {
           role="region"
           aria-label="Tabla de contratos"
           tabIndex={0}
-          className="h-[360px] overflow-auto bg-white dark:bg-zinc-900 focus-visible:ring-2 focus-visible:ring-emerald-600"
+          className="h-[320px] sm:h-[360px] overflow-auto bg-white dark:bg-zinc-900 focus-visible:ring-2 focus-visible:ring-emerald-600"
         >
           <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
             {virtualizer.getVirtualItems().map((v) => {
@@ -165,6 +166,7 @@ export default function DataTableSECOP({ rows, isFetching, count }) {
               );
             })}
           </div>
+        </div>
         </div>
       </div>
 

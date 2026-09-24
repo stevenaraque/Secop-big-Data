@@ -39,14 +39,21 @@ class ServicioContratos:
         return qs.aggregate(total=Count("id"), suma_valor=Sum("valor_contrato"), promedio_valor=Avg("valor_contrato"))
 
     def resumen_naive(self, depto=None, anio=None, modalidad=None):
-        contratos = list(self.modelo.objects.all())
+        # Naive = trae FILAS y agrega en Python (sin COUNT/SUM en BD: esa es la demo).
+        # Filtra con WHERE antes de materializar: con 470k globales, list(all())
+        # tumbaría RAM aunque el filtro (Boyacá ~11k) sí cabe. El guard 413 vive en la vista.
+        qs = self.modelo.objects.all()
         if depto:
-            k = self._clave(depto)
-            contratos = [c for c in contratos if self._clave(c.departamento) == k]
+            vals = self._variantes(depto)
+            if vals:
+                qs = qs.filter(departamento__in=vals)
+            else:
+                return {"total": 0, "suma_valor": 0, "promedio_valor": 0}
         if anio:
-            contratos = [c for c in contratos if c.fecha_firma and str(c.fecha_firma.year) == str(anio)]
+            qs = qs.filter(fecha_firma__year=int(anio))
         if modalidad:
-            contratos = [c for c in contratos if c.modalidad == modalidad]
+            qs = qs.filter(modalidad=modalidad)
+        contratos = list(qs)
         total = len(contratos)
         suma = sum((c.valor_contrato or 0) for c in contratos)
         promedio = suma / total if total else 0
@@ -62,10 +69,15 @@ class ServicioContratos:
         )
 
     def top_contratistas_naive(self, depto=None, limite=5):
-        contratos = list(self.modelo.objects.all())
+        # Igual que resumen_naive: WHERE en BD, agrupación en Python.
+        qs = self.modelo.objects.all()
         if depto:
-            k = self._clave(depto)
-            contratos = [c for c in contratos if self._clave(c.departamento) == k]
+            vals = self._variantes(depto)
+            if vals:
+                qs = qs.filter(departamento__in=vals)
+            else:
+                return []
+        contratos = list(qs)
         acumulado = {}
         for c in contratos:
             k = (c.contratista_nit, c.contratista_nombre)

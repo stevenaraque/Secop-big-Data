@@ -45,13 +45,13 @@ describe("PrivateDashboard", () => {
     renderPrivate(<PrivateDashboard token="t" />);
 
     fireEvent.change(screen.getByPlaceholderText("pavimento"), { target: { value: "puente" } });
-    fireEvent.change(screen.getByPlaceholderText('{"ciudad":"Sogamoso"}'), {
+    fireEvent.change(screen.getByPlaceholderText('{"orden":"1"}'), {
       target: { value: "{no-json" },
     });
     fireEvent.click(screen.getByRole("button", { name: /crear radar/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/debe ser JSON valido/i)).toBeInTheDocument();
+      expect(screen.getByText(/JSON inválido/i)).toBeInTheDocument();
     });
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
@@ -73,13 +73,15 @@ describe("PrivateDashboard", () => {
         expect.stringContaining("/radares/"),
         expect.objectContaining({ method: "POST" })
       );
-      expect(screen.getByText("Radar creado")).toBeInTheDocument();
+      expect(screen.getByText(/Radar creado/)).toBeInTheDocument();
     });
   });
 });
 
 describe("App guard", () => {
   it("sin token redirige a login", async () => {
+    // App usa BrowserRouter interno: se entra a /app vía historial (ruta privada, no la pública /)
+    window.history.pushState({}, "", "/app");
     render(
       <QueryClientProvider client={client()}>
         <App />
@@ -91,5 +93,6 @@ describe("App guard", () => {
       },
       { timeout: 5000 }
     );
+    window.history.pushState({}, "", "/");
   });
 });

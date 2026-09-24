@@ -25,14 +25,14 @@
 
 - **Backend:** Django 6.1 (target 5.0.14) + DRF 3.18 + SimpleJWT 5.5.1 + `drf-spectacular` (OpenAPI 3.0.3)
 - **Base de datos:** PostgreSQL 16 local (pgAdmin, localhost:5432) — *local permite 6M completos sin techo 500MB; 85 columnas completas; índices B-tree + JSON para Radares*
-- **Frontend:** React 19.2.8 + Vite 8.2 + Tailwind 3.4.17 + TanStack Query (cache 5min) + TanStack Table 8.21 + TanStack Virtual 3.14 (60 FPS) + Recharts 3.10 + Leaflet 1.9 + `react-force-graph` + `motion` 13.4 + `animejs` 4.5 (stagger + line drawing) + `@phosphor-icons/react` 2.1 (unificado, lucide eliminado) + `sonner` + `UiverseInput` (floating label + glow uiverse.io) + `vite-plugin-compression` (gzip + brotli)
+- **Frontend:** React 19.2.8 + Vite 8.2 + Tailwind 3.4.17 + TanStack Query (cache 5min) + TanStack Table 8.21 + TanStack Virtual 3.14 (60 FPS) + Recharts 3.10 + Leaflet 1.9 + `react-force-graph` + `motion` 13.4 + `animejs` 4.5 (stagger + line drawing) + `@phosphor-icons/react` 2.1 (unificado, lucide eliminado) + `sonner` + `ogl` 1.0 (metal WebGL) + `UiverseInput` (floating label + glow uiverse.io) + `vite-plugin-compression` (gzip + brotli)
 - **Manejo masivo:** Agregación en BD (50KB), paginación `page_size 20-50`, virtualización (solo visibles), `keepPreviousData` sin recarga
 - **Control:** Git + GitHub (`main` al día, tag `v1.1-profiler`, PR #1 mergeado)
 - **Gestión:** Notion (5 Sprints, 56 requisitos 399 pts) + `EstructuraSesion_v2.xlsx` (5 sesiones × 6h) + `SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx` V3.1 Freemium + `SECOP_Backlog_Producto.xlsx` (56 historias)
 
 ## Estado
 
-Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transferencia)**. **56 requisitos (49 base + 7 Freemium RF-36..42) + RNF-04/07/08/09/10/11/12** completados y verificados (`manage.py check` 0 issues, `npm run build` 37KB CSS OK, `pytest 5` + `vitest 3` = 8 passing). **BD 18/09: 4972 contratos + 5 Radares activos + 3 Oportunidades Nuevas + email SMTP real a stevenldssaac@gmail.com** (console en dev, Gmail `pgtmswbagycceopx` en prod). Evidencia en `CONTEXT.md:4`, errores en `ERRORES.md`. Word V3.1 único sin réplicas.
+Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transferencia)**. **56 requisitos (49 base + 7 Freemium RF-36..42) + RNF-04/07/08/09/10/11/12** completados y verificados (`manage.py check` 0 issues, `npm run build` OK, `pytest 5` + `vitest 11` passing, lint 0). **BD 24/09: 470.540 contratos + 6 Radares activos + email SMTP** (console en dev, Gmail en prod). **Front V3.2 (24/09):** dashboard rediseñado (hero + KPIs + `ScrubChart` scrub continuo con rangos 6M/1A/Todo + `MiniDataTable` 8 fijas + `LazySection` + fondo aurora/metal + loader 100ms anti-flash) + radar CRUD completo (pausar/editar/eliminar + toasts + paginación) + dinero compacto `$1,5 billones`. Evidencia en `CONTEXT.md:4`, errores en `ERRORES.md` (#32-#36).
 
 ## Módulos (detalle en `CONTEXT.md:4`)
 
@@ -190,7 +190,7 @@ python manage.py shell
 ## Dónde seguir (la evidencia vive aquí, no arriba)
 
 - **`CONTEXT.md`** — memoria viva: decisiones, estado 56 historias, verificación requisito por requisito, clave buenas prácticas, revisión Guía 4.
-- **`ERRORES.md`** — 31 errores con causa y solución.
+- **`ERRORES.md`** — 36 errores con causa y solución.
 - **Fuentes y artefactos V3.1 Freemium**
   - Dataset: https://www.datos.gov.co/resource/jbjy-vk9h.json (SECOP II, 5.98M, 85 cols, 2.72M vistas)
   - SODA 2.1 paginación: https://support.socrata.com (Tyler Tech, 2025 — $limit 50k + $offset)
@@ -200,4 +200,4 @@ python manage.py shell
   - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs) — ver `CONTEXT.md:8`
 
 ---
-*Última actualización: 21/09/2026 — V3.2 High-Agency: 56 historias + 85 cols + 5 Radares + 4 Oportunidades + Registro abierto (/registro) + Login/Registro/Recuperar/Restablecer 8,6,4 (glass + UiverseInput + animejs + phosphor unificado) + DataTable 60 FPS + Tailwind 42kB + vite compression (gzip/br) + 11 tests pass + a11y WCAG + CSP upgrade-insecure-requests — Autor: Steven Alejandro Araque Castro*
+*Última actualización: 24/09/2026 — V3.2 Rediseño: dashboard hero+KPIs+ScrubChart+MiniDataTable+LazySection, radar CRUD+toasts, fondo aurora+metal en 3 páginas, loader 100ms anti-flash, naive filtrado real (Boyacá 200), 470.540 contratos + 6 Radares — check 0 + pytest 5 + vitest 11 + lint 0 — Autor: Steven Alejandro Araque Castro*

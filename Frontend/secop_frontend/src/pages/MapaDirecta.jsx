@@ -73,17 +73,17 @@ export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
   const mapRef = useRef(null)
   const layersRef = useRef(null)
   const selKeyRef = useRef(null)
-  const [selNombre, setSelNombre] = useState(null)
+  const [clickSel, setClickSel] = useState(null)
   const onSelectRef = useRef(onSelectDepto)
   useEffect(() => {
     onSelectRef.current = onSelectDepto
   }, [onSelectDepto])
 
-  // Sincroniza el resaltado cuando el filtro cambia desde el select del header
+  // Sin effect espejo: el resaltado se deriva en el render como (deptoActivo || clickSel)
+  // Solo ref (sin setState): mantiene la clave de resaltado para mouseout tras cambios del header
   useEffect(() => {
-    selKeyRef.current = norm(deptoActivo || "")
-    setSelNombre(deptoActivo || null)
-  }, [deptoActivo])
+    selKeyRef.current = norm(deptoActivo || clickSel || "")
+  }, [deptoActivo, clickSel])
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["mapa"],
@@ -102,7 +102,7 @@ export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
     map.on("click", () => {
       // Clic en el mar: limpia la selección (RF-16)
       selKeyRef.current = ""
-      setSelNombre(null)
+      setClickSel(null)
       if (onSelectRef.current) onSelectRef.current("")
     })
     setTimeout(() => { try { map.invalidateSize(); map.fitBounds([[-4.6, -82.6], [13.9, -66.7]]) } catch { /* noop: mapa aún sin tamaño */ } }, 150)
@@ -167,7 +167,7 @@ export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
               if (!hit) return
               // RF-16: fija selección, resalta y actualiza el filtro global
               selKeyRef.current = norm(hit.departamento)
-              setSelNombre(hit.departamento)
+              setClickSel(hit.departamento)
               layers.eachLayer((l) => { layers.resetStyle(l) })
               layer.setStyle({ color: "#221a12", weight: 2.4 })
               layer.bringToFront()
@@ -187,12 +187,12 @@ export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
     <div className="rf15-simple">
       <div className="map-wrap">
         <div id="rf15-map" ref={mapElRef} />
-        {(selNombre || deptoActivo) && (
+        {(deptoActivo || clickSel) && (
           <button
             className="map-clear"
             onClick={() => {
               selKeyRef.current = ""
-              setSelNombre(null)
+              setClickSel(null)
               if (onSelectRef.current) onSelectRef.current("")
             }}
           >

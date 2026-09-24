@@ -2,11 +2,12 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <!-- Anti-flash de tema: fija .dark antes del primer pintado (ver public/tema.js) -->
+    <script src="/tema.js"></script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <!-- P0-4 CSP: script-src 'self' estricto (sin unsafe-inline) — mitiga XSS aunque JWT esté en localStorage. style-src 'unsafe-inline' es intencional para Tailwind JIT + Google Fonts; no afecta scripts. Plan: migrar JWT a cookies HttpOnly y añadir nonce para styles cuando Vite emita CSS con hash. -->
-    <!-- connect-src prod (Render + Vercel + datos.gov.co). object-src 'none' + base-uri 'self' cierran inyección plugins/base hijacking. Fallback si nginx no inyecta headers (Vercel). -->
+    <!-- P0-4 CSP: script-src 'self' estricto (sin unsafe-inline) — mitiga XSS aunque JWT esté en localStorage. style-src 'unsafe-inline' es intencional para Tailwind JIT + Google Fonts; no afecta scripts. Plan: migrar JWT a cookies HttpOnly y añadir nonce para styles cuando Vite emita CSS con hash. Fallback si nginx no inyecta headers (Vercel). -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 https://www.datos.gov.co https://secop-backend.onrender.com https://*.vercel.app; object-src 'none'; base-uri 'self'; upgrade-insecure-requests" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

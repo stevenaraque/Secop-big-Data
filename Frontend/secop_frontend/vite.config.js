@@ -11,6 +11,11 @@ export default defineConfig({
     viteCompression({ algorithm: 'gzip', ext: '.gz', threshold: 1024 }),
     viteCompression({ algorithm: 'brotliCompress', ext: '.br', threshold: 1024 }),
   ],
+  // OneDrive no avisa cambios al watcher (HMR servía código viejo tras editar).
+  // Polling: el dev detecta SIEMPRE lo guardado en disco. Solo afecta a `dev`, no al build.
+  server: {
+    watch: { usePolling: true, interval: 300 },
+  },
   build: {
     chunkSizeWarningLimit: 600,
     rollupOptions: {

@@ -30,7 +30,7 @@ Colombia publica **5.98M de contratos** en SECOP II con **85 columnas** planas q
 - **Freemium 2 en 1:** Público (`/`) sin auth + CTA `¿Alertas?` → Auth JWT → Privado `/app` con `AuthGuard` (sin token expulsa a `/login` sin pedir al backend) → Bandeja `mis-oportunidades` con estados `Nueva/Guardada/Postulado`.
 - **Modelo `Contrato` 15 cols + `Radares` JSON:** RF-01 exige 15 cols físicas para verificación; 85 elegibles vía `filtros_extras` sin recorte. `Radar` y `Oportunidad` normalizan SaaS.
 - **Índices B-tree + JSON:** `departamento`, `modalidad`, `fecha_firma`, `contratista_nit`, `radar.usuario`, `oportunidad.radar+estado` — sin ellos 100k pasa de 40ms a 3s.
-- **Email:** `EMAIL_BACKEND` env-driven: `console` en dev (imprime en terminal) + `smtp.gmail.com` con `EMAIL_HOST_PASSWORD` (App Password `pgtmswbagycceopx` sin espacios) en prod. `DEFAULT_FROM_EMAIL` = remitente.
+- **Email:** `EMAIL_BACKEND` env-driven: `console` en dev (imprime en terminal) + `smtp.gmail.com` con `EMAIL_HOST_PASSWORD` (App Password `<APP_PASSWORD_16_SIN_ESPACIOS_NO_VERSIONAR>` — solo en `.env` local y dashboard, nunca en docs) en prod. `DEFAULT_FROM_EMAIL` = remitente.
 
 ## 4. Estado real al 18/09/2026 — Validado en ejecución
 
@@ -40,14 +40,14 @@ Colombia publica **5.98M de contratos** en SECOP II con **85 columnas** planas q
 - **ETL RF-06 + Matchmaking DONE (07/09 + 18/09):** `cargar_secop` SODA jbjy-vk9h `$limit/$offset/$order=:id` + `X-App-Token` + `bulk_create 1000` + Fase 2 `matchmaking` (ILIKE + rango + filtros 85 → `Oportunidad` Nueva + `send_mail` 10 por carga). Validación RNF-04 descarta sin fecha/valor inválido con log 3 ejemplos. Probado `POST /api/cargar/actualizar-periodica/` 202 + polling 1s + `GET /api/cargar/<id>/` `completado 0 nuevos` si duplicado.
 - **Radares RF-36..38 DONE (18/09):** `RadarSerializer` valida `palabras_clave` no vacía y `rango_min <= max` + `filtros_extras` JSON contra campos Contrato (85 elegibles). Endpoints `POST /api/radares/` 201, `GET /api/radares/` 200 paginado solo del usuario, `PUT/DELETE /api/radares/<id>/` 404 si no es dueño. Probado `Boyaca/pavimento/10M-50M` 201 + `{"ciudad":"Sogamoso","modalidad":"Licitación pública"}` 201 + `Duitama` 201. Total 5 Radares activos para `stevenldssaac@gmail.com` (ids 2,3,4,5,7).
 - **Bandeja RF-39/40 DONE (18/09):** `GET /api/mis-oportunidades/` 200 paginado solo del usuario + `?estado=Nueva/Guardada/Postulado` + `OportunidadSerializer` con `contrato` embebido. `PATCH /api/mis-oportunidades/<id>/ {"estado":"Guardada"}` 200. Probado 3 Nuevas (`TEST-MATCH-001` pavimento, `TEST-EMAIL-001` emailtest, `TEST-PUENTE-001` puente) → filtrado `Nueva 3` / `Guardada 1` OK.
-- **Email RF-41 DONE (18/09):** `settings.py` env-driven `EMAIL_BACKEND` (`console` dev / `smtp.gmail.com` prod) + `.env` `EMAIL_HOST_USER=stevenldssaac@gmail.com` + `EMAIL_HOST_PASSWORD=pgtmswbagycceopx` (App Password 16 chars, sin espacios). `send_mail` best-effort en `cargar_secop.py` (no bloquea ETL). Probado `send_mail` a `stevenldssaac@gmail.com` `Subject: Nueva oportunidad: puente` → `email enviado OK` + recibido en Gmail. En `runserver` anterior `console`, tras reinicio `smtp`.
+- **Email RF-41 DONE (18/09):** `settings.py` env-driven `EMAIL_BACKEND` (`console` dev / `smtp.gmail.com` prod) + `.env` `EMAIL_HOST_USER=stevenldssaac@gmail.com` + `EMAIL_HOST_PASSWORD=<APP_PASSWORD_16_SIN_ESPACIOS_NO_VERSIONAR>` (App Password 16 chars, sin espacios, solo local). `send_mail` best-effort en `cargar_secop.py` (no bloquea ETL). Probado `send_mail` a `stevenldssaac@gmail.com` `Subject: Nueva oportunidad: puente` → `email enviado OK` + recibido en Gmail. En `runserver` anterior `console`, tras reinicio `smtp`.
 - **Filtros 85 RF-42 DONE (18/09):** `Radar.filtros_extras` JSON + `RadarSerializer.validate_filtros_extras` contra `Contrato._meta` + `matchmaking` loop con `getattr(contrato, k)`. Probado `{"ciudad":"Sogamoso","modalidad":"Licitación pública"}` → `TEST-85-SI Sogamoso MATCH` y `TEST-85-NO Tunja NO MATCH`.
 - **API RF-08..14 DONE:** `optimized/resumen` y `naive/resumen` con `tiempo_bd_ms` + `top` GROUP BY + `contratos` paginado 20 + `serie-mensual` DATE_TRUNC + `mapa-directa` + `buscar` debounce 300ms + `banderas/predominio` con umbrales + `entidades` + `grafo` force-graph + `exportar` BOM. Todo `IsAuthenticated`, `check 0`.
 - **Frontend V3 DONE:** `Frontend/secop_frontend/src/pages/` con `Dashboard.jsx` + `ProfilerDual.jsx` (4 barras + toggle) + `DataTableSECOP.jsx` (TanStack Table 8.21 + virtual 44px, sorting, 60 FPS, solo 50 nodos) + `ActualizacionMasiva.jsx` + `Login.jsx` con `AuthGuard` (`App.jsx` redirige sin token, expulsa sin pedir) + `MapaDirecta` + `Buscador` + `Banderas` + `Umbrales` + `Entidades` + `Grafo`. Tailwind 3.4.17 config `content src/**/*` + `@tailwind` + `postcss` + build 37KB OK. `QueryClient` 5min + `keepPreviousData` (no destruye Leaflet) + `motion` springs + `sonner`.
 - **Calidad:** `pytest.ini` + `contratos/tests.py` 5 tests (modelo, servicio, ETL sin fecha + no duplicados) `pytest 5 passed`, `vitest` 3 tests Login `3 passed`, `check 0`, `build 37KB` OK, `drf-spectacular` `/api/docs/` 34 endpoints.
-- **Seguridad P0 fixes (17/09):** `settings.py` `SECRET_KEY/DEBUG/ALLOWED_HOSTS` por `os.getenv` + nueva key `^i^8#b0uj0wrl4ulw4vcrh6krhgt4%z^-quo40o^t8#_cd%=!f` en `.env` + hardening `SECURE_SSL_REDIRECT` si `DEBUG=False` + `docker-compose.yml` `postgres:16` + `Dockerfile` `python:3.12-slim` reproducibles. `.env` no versionado, `.env.example` con placeholder.
+- **Seguridad P0 fixes (17/09):** `settings.py` `SECRET_KEY/DEBUG/ALLOWED_HOSTS` por `os.getenv` + nueva key `<SECRET_KEY_GENERADA_NO_VERSIONAR>` en `.env` + hardening `SECURE_SSL_REDIRECT` si `DEBUG=False` + `docker-compose.yml` `postgres:16` + `Dockerfile` `python:3.12-slim` reproducibles. `.env` no versionado, `.env.example` con placeholder.
 - **Backlog y Word:** `SECOP_Backlog_Producto.xlsx` 57 filas (56 historias: 42 base + 7 frontend + 7 Freemium RF-36..42, estandarizado header #1A3C5E, freeze A2) + `SECOP_Backlog_Producto.csv` único 70KB (16 cols Notion, Hecho/Steven Araque) + `SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx` V3.1 Freemium 13 secciones, 85 cols, único sin réplicas (47KB).
-- **BD:** PostgreSQL local `secop_db` con **4972 contratos** (4669 base + 5 TEST-*), **5 Radares** activos, **3 Oportunidades** Nuevas, 1 Entidad. `TrabajoCarga` con `0010` + `0011` OK.
+- **BD:** PostgreSQL local `secop_db` con **470.540 contratos** (creció vía ETL desde los 4.972 base), **6 Radares** activos de `steven` (pavimento 10M-50M, puente Sogamoso+Licitación, salud min 5M, emailtest, test/Duitama), oportunidades TEST + email SMTP. `TrabajoCarga` con `0010` + `0011` OK.
 
 > **Nota:** Para la retroalimentación constante, se celebra el acierto y se corrige el detalle sin tocar carpetas sin autorización.
 
@@ -60,10 +60,19 @@ Colombia publica **5.98M de contratos** en SECOP II con **85 columnas** planas q
 
 ## 6. Próximos pasos inmediatos (Sprint 4 Buffer + Freemium)
 
+### Sesión 24/09/2026 — Rediseño dashboard + radar CRUD + fondo + loader (DONE)
+1. **Dashboard rediseñado:** hero con CTAs + KPIs con iconos/skeleton + `ScrubChart` con scrub continuo (una serie manda, rangos 6M/1A/Todo, `serie-mensual` real, spring solo al soltar) + `MiniDataTable` (sort + 8 fijas + relleno) en Banderas/Predominio + `LazySection` (4 queries al abrir, resto al scroll) + `PageBackground` (aurora CSS + metal WebGL `ogl`, paleta por tema) en `/`, `/login`, `/app` + `PantallaCarga` (100ms mín + tema congelado) + `public/tema.js` anti-flash + `vite polling` (OneDrive) + dinero compacto (`$1,5 billones`, `lib/formato.js`) + estándar blanco en claro.
+2. **Radar CRUD completo:** pausar/activar, editar inline, eliminar con confirmación, skeletons, reintentar, paginación 4+5, toasts `sonner`, Ciudad/Modalidad con sugerencias + JSON avanzado, dark legible, `vitest 11 passed`.
+3. **Backend naive alineado:** guard 413 por total FILTRADO (COUNT optimizado) + servicio filtra con WHERE antes de `list()` → Boyacá 200 real (BD 29ms vs Python 167ms), Todos 413 omitido sin ruido (`ERRORES.md #32/#33`).
+4. **Calidad sesión:** `check 0` + `pytest 5 passed` + `vitest 11 passed` + lint 0 + build 1.6s. Pendiente: video 3min pitch 45s + `EstructuraSesion` V3 + reflexión 3.1 (ver §9).
+
+### Historial previo (conservado)
 1. **RF-36..42 Freemium DONE (18/09)** — 5 Radares + 4 Oportunidades + email SMTP + filtros 85 `filtros_extras` + matchmaking 2 fases. Probado `Sogamoso MATCH` vs `Tunja NO MATCH` + `Duitama` 201.
 2. **P0-1..3 Fixes DONE (17/09)** — secretos por env + `postgres:16`/`python:3.12` + Tailwind 37KB + build OK.
 3. **Portero React DONE:** `App.jsx` `AuthGuard` con `react-router` mental: público `/` + CTA → `Login` → privado `/app` bandeja. JWT en `localStorage` (explicado trade-off HttpOnly), expulsa sin token sin pedir al backend, `TanStack Query` cachea, `virtualización` no colapsa con 5.000 visibles.
 4. **Pendiente cierre Guía 4 (18/09):** `EstructuraSesion_v2.xlsx` actualizar a 56 historias + 5Sprints, video 3min pitch 45s (público 280ms + privado Radar→Match), tag `v1.1-profiler` ya en `main` (4407e72) + `e9efb7d` con RF-42, reflexión 3.1, `main` al día con 85 cols.
+
+> **Nota histórica:** Para la retroalimentación constante, se celebra el acierto y se corrige el detalle sin tocar carpetas sin autorización.
 
 ## 7. Fuentes y artefactos (V3.1 Freemium)
 
@@ -107,4 +116,4 @@ Colombia publica **5.98M de contratos** en SECOP II con **85 columnas** planas q
 - **Hallazgos estilo 18/09 ( resueltos):** Tailwind 37KB OK, routing `pathname` sin React Router (pendiente migrar a `react-router-dom` — explicado como trade-off), profiler dual en pantalla, DataTable 6 cols con sorting, 85 cols vía JSON sin recorte.
 
 ---
-*Actualizado: 18/09/2026 — V3.1 Freemium definitivo: 56 historias + 85 cols elegibles + 5 Radares + 4 Oportunidades + email SMTP real (pgtmswbagycceopx) + Profiler dual + DataTable 60 FPS + Front privado /app con StatusMark micro + Tailwind + P0-1/2/3 + 4972 contratos — Main 2aff4ba + v1.2-privado — Pendiente solo video 3min + EstructuraSesion V3 + reflexión 3.1 (ver §9).*
+*Actualizado: 24/09/2026 — V3.2 Rediseño: dashboard hero+KPIs+ScrubChart+MiniDataTable+LazySection, radar CRUD+toasts, fondo aurora+metal en 3 páginas, loader 100ms anti-flash, naive filtrado real, 470.540 contratos + 6 Radares — check 0 + pytest 5 + vitest 11 + lint 0 — Pendiente video 3min + EstructuraSesion V3 + reflexión 3.1 (ver §9).*

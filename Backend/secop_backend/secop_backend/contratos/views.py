@@ -154,17 +154,24 @@ class VistaResumenOptimizado(APIView):
         })
 
 class VistaResumenNaive(APIView):
-    # P0: demo pedagógica, bloquea OOM con 6M. Qué: 413 si >20k. Por qué: list(Model.objects.all()) mata RAM. Público para comparativa naive vs optimizado.
+    # P0: demo pedagógica, bloquea OOM. Qué: 413 si el FILTRO supera 20k filas.
+    # Por qué: el naive materializa filas en Python; el guard usa COUNT barato del
+    # optimizado con los mismos filtros (mismo predictor que el front). Público.
     permission_classes = [permissions.AllowAny]
     throttle_classes = []
     def get(self, request):
-        if Contrato.objects.count() > 20000:
-            return Response({"detalle": "Naive deshabilitado con >20k registros para evitar OOM. Usa /optimized/."}, status=status.HTTP_413_CONTENT_TOO_LARGE)
         anio_raw = request.query_params.get("anio")
         if anio_raw not in (None, ""):
             _, err = _parse_int_query_param(anio_raw, None, 1900, 2100, field_name="anio")
             if err:
                 return err
+        total_filtrado = (servicio_contratos.resumen_optimizado(
+            depto=request.query_params.get("depto"),
+            anio=anio_raw,
+            modalidad=request.query_params.get("modalidad"),
+        ).get("total") or 0)
+        if total_filtrado > 20000:
+            return Response({"detalle": "Naive deshabilitado con >20k registros para evitar OOM. Usa /optimized/."}, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
         t0 = time.perf_counter()
         datos = servicio_contratos.resumen_naive(
             depto=request.query_params.get("depto"),
@@ -206,12 +213,15 @@ class VistaTopContratistasOptimizado(APIView):
         return Response({"filtro": request.query_params.get("depto") or "todos", "optimizado": True, "top": top})
 
 class VistaTopContratistasNaive(APIView):
-    # P0: igual que resumen naive, evita OOM. Público.
+    # P0: igual que resumen naive, evita OOM con guard filtrado. Público.
     permission_classes = [permissions.AllowAny]
     throttle_classes = []
     def get(self, request):
-        if Contrato.objects.count() > 20000:
-            return Response({"detalle": "Naive deshabilitado con >20k registros para evitar OOM. Usa /optimized/."}, status=status.HTTP_413_CONTENT_TOO_LARGE)
+        total_filtrado = (servicio_contratos.resumen_optimizado(
+            depto=request.query_params.get("depto"),
+        ).get("total") or 0)
+        if total_filtrado > 20000:
+            return Response({"detalle": "Naive deshabilitado con >20k registros para evitar OOM. Usa /optimized/."}, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
         limite, err = _parse_int_query_param(request.query_params.get("limit", 5), 5, 1, 100, field_name="limit")
         if err:
             return err

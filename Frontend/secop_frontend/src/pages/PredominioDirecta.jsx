@@ -1,6 +1,9 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { createColumnHelper } from "@tanstack/react-table"
+import { motion } from "motion/react"
 import { Warning as TriangleAlert } from "@phosphor-icons/react"
+import MiniDataTable from "../components/MiniDataTable.jsx"
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
@@ -17,6 +20,8 @@ async function fetchPredominio(umbral, depto, token) {
 const formatoCOP = (v) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v ?? 0)
 
+const columnHelper = createColumnHelper()
+
 export default function PredominioDirecta({ token, depto }) {
   const [umbral, setUmbral] = useState(80)
   const { data, isLoading, isError } = useQuery({
@@ -25,8 +30,36 @@ export default function PredominioDirecta({ token, depto }) {
     enabled: true,
   })
 
+  // DataTable: 8 filas por página + sorting (antes se pintaban TODAS de golpe)
+  const columns = useMemo(() => [
+    columnHelper.accessor("entidad", {
+      header: "Entidad",
+      cell: (info) => <span className="font-medium">{info.getValue()}</span>,
+    }),
+    columnHelper.accessor("porcentaje_directa", {
+      header: "% directa",
+      meta: { align: "right", width: "110px" },
+      cell: (info) => <span className="font-semibold text-amber-700 dark:text-amber-300 tabular-nums">{info.getValue()}%</span>,
+    }),
+    columnHelper.accessor("directas", {
+      header: "Directas",
+      meta: { align: "right", width: "110px" },
+      cell: (info) => <span className="tabular-nums">{info.getValue()}/{info.row.original.total}</span>,
+    }),
+    columnHelper.accessor("suma_directa", {
+      header: "Monto directa",
+      meta: { align: "right", width: "150px" },
+      cell: (info) => <span className="tabular-nums">{formatoCOP(info.getValue())}</span>,
+    }),
+    columnHelper.accessor("suma_total", {
+      header: "Total",
+      meta: { align: "right", width: "150px" },
+      cell: (info) => <span className="tabular-nums">{formatoCOP(info.getValue())}</span>,
+    }),
+  ], [])
+
   return (
-    <section aria-label="Predominio contratación directa" className="rounded-2xl border border-amber-200 dark:border-amber-900 bg-white dark:bg-zinc-900 p-5">
+    <motion.section whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 16 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5, ease: "easeOut", delay: 0.06 }} aria-label="Predominio contratación directa" className="rounded-2xl border border-amber-200 dark:border-amber-900 bg-white dark:bg-zinc-900 shadow-[0_8px_32px_rgba(0,0,0,0.06)] p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><TriangleAlert size={18} aria-hidden="true" /> Predominio contratación directa</h2>
         <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
@@ -51,32 +84,15 @@ export default function PredominioDirecta({ token, depto }) {
           <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
             {data.total} alerta{data.total === 1 ? "" : "s"} con umbral {data.umbral}%{depto ? ` en ${depto}` : ""}
           </p>
-          <div className="mt-2 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                  <th className="py-2 pr-3">Entidad</th>
-                  <th className="py-2 pr-3 text-right">% directa</th>
-                  <th className="py-2 pr-3 text-right">Directas</th>
-                  <th className="py-2 pr-3 text-right">Monto directa</th>
-                  <th className="py-2 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.banderas.map((b) => (
-                  <tr key={b.entidad} className="border-t border-zinc-100 dark:border-zinc-800">
-                    <td className="py-2 pr-3">{b.entidad}</td>
-                    <td className="py-2 pr-3 text-right font-semibold text-amber-700 dark:text-amber-300 tabular-nums">{b.porcentaje_directa}%</td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{b.directas}/{b.total}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{formatoCOP(b.suma_directa)}</td>
-                    <td className="py-2 text-right tabular-nums">{formatoCOP(b.suma_total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <MiniDataTable
+            columns={columns}
+            data={data.banderas}
+            defaultSort={[{ id: "porcentaje_directa", desc: true }]}
+            pageSize={8}
+            label="Paginación de predominio de contratación directa"
+          />
         </>
       )}
-    </section>
+    </motion.section>
   )
 }

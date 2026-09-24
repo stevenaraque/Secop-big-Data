@@ -79,7 +79,6 @@ export default function ActualizacionMasiva({ token }) {
       if (lim > 50000) {
         const chunks = Math.ceil(lim / 50000);
         let totalNuevos = 0;
-        let lastId = null;
         for (let i = 0; i < chunks; i++) {
           const chunkLim = Math.min(50000, lim - i * 50000);
           const chunkOff = off + i * 50000;
@@ -94,7 +93,6 @@ export default function ActualizacionMasiva({ token }) {
           if (r.status === 403) throw new Error("Solo admin puede actualizar.");
           if (r.status === 409) throw new Error(data.detalle || "Ya hay una actualizacion en curso — espera 1s y reintenta.");
           if (!r.ok) throw new Error(data.detalle || `Bloque ${i + 1} fallo.`);
-          lastId = data.id;
           // Espera a que este bloque complete antes del siguiente (polling 1s)
           await new Promise((resolve, reject) => {
             const iv = setInterval(async () => {

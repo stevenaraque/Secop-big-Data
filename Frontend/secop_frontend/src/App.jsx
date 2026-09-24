@@ -4,12 +4,23 @@ import "./App.css";
 
 // Lazy por ruta: recharts/leaflet/graph no entran al chunk inicial.
 // DashboardModern ya hace lazy interno de Mapa/Grafo; aquí partimos Login/privado.
-const DashboardModern = lazy(() => import("./pages/DashboardModern.jsx"));
-const Login = lazy(() => import("./pages/Login.jsx"));
-const Registro = lazy(() => import("./pages/Registro.jsx"));
-const SolicitarRecuperacion = lazy(() => import("./pages/SolicitarRecuperacion.jsx"));
-const Restablecer = lazy(() => import("./pages/Restablecer.jsx"));
-const PrivateDashboard = lazy(() => import("./pages/PrivateDashboard.jsx"));
+// Mínimo 100ms por carga: el fallback parpadea si el chunk llega antes;
+// la espera corre en paralelo con la descarga, no la alarga en la práctica.
+const minimo = (fn) =>
+  lazy(() =>
+    Promise.all([fn(), new Promise((r) => setTimeout(r, 800))]).then(
+      ([mod]) => mod,
+    ),
+  );
+const DashboardModern = minimo(() => import("./pages/DashboardModern.jsx"));
+const Login = minimo(() => import("./pages/Login.jsx"));
+const Registro = minimo(() => import("./pages/Registro.jsx"));
+const SolicitarRecuperacion = minimo(
+  () => import("./pages/SolicitarRecuperacion.jsx"),
+);
+const Restablecer = minimo(() => import("./pages/Restablecer.jsx"));
+const PrivateDashboard = minimo(() => import("./pages/PrivateDashboard.jsx"));
+import PantallaCarga from "./components/PantallaCarga.jsx";
 
 // RNF-11: skip link para teclado — Qué: Tab salta a contenido. Por qué: WCAG 2.4.1
 function SkipLink() {
@@ -50,23 +61,67 @@ function App() {
       import("./pages/DashboardModern.jsx");
       import("./pages/Registro.jsx");
     };
-    if ("requestIdleCallback" in window) requestIdleCallback(prefetch, { timeout: 2500 });
+    if ("requestIdleCallback" in window)
+      requestIdleCallback(prefetch, { timeout: 2500 });
     else setTimeout(prefetch, 1800);
   }, []);
 
   return (
     <BrowserRouter>
-      <Suspense fallback={<p className="p-6 text-sm text-zinc-500">Cargando…</p>}>
+      <Suspense fallback={<PantallaCarga />}>
         <Routes>
-          <Route path="/login" element={<><SkipLink /><Login /></>} />
-          <Route path="/registro" element={<><SkipLink /><Registro /></>} />
-          <Route path="/recuperar" element={<><SkipLink /><SolicitarRecuperacion /></>} />
-          <Route path="/restablecer" element={<><SkipLink /><Restablecer /></>} />
-          <Route path="/restablecer/:token" element={<><SkipLink /><Restablecer /></>} />
+          <Route
+            path="/login"
+            element={
+              <>
+                <SkipLink />
+                <Login />
+              </>
+            }
+          />
+          <Route
+            path="/registro"
+            element={
+              <>
+                <SkipLink />
+                <Registro />
+              </>
+            }
+          />
+          <Route
+            path="/recuperar"
+            element={
+              <>
+                <SkipLink />
+                <SolicitarRecuperacion />
+              </>
+            }
+          />
+          <Route
+            path="/restablecer"
+            element={
+              <>
+                <SkipLink />
+                <Restablecer />
+              </>
+            }
+          />
+          <Route
+            path="/restablecer/:token"
+            element={
+              <>
+                <SkipLink />
+                <Restablecer />
+              </>
+            }
+          />
           <Route path="/app" element={<PrivateRoute />} />
           {/* Aliases históricos: conservan bookmarks, no duplican componente */}
           <Route path="/privado" element={<Navigate to="/app" replace />} />
-          <Route path="/mis-oportunidades" element={<Navigate to="/app" replace />} />
+          <Route
+            path="/mis-oportunidades"
+            element={<Navigate to="/app" replace />}
+          />
           <Route path="/" element={<PublicDashboardRoute />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

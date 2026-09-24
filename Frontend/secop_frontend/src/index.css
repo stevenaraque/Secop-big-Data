@@ -30,6 +30,8 @@ body {
   margin: 0;
   background: #fcfcfc;
   color: #374151;
+  overflow-x: clip;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Tema oscuro: .dark en <html> vía toggle (persistido secop-theme). */
@@ -45,6 +47,8 @@ body {
   min-height: 100svh;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  overflow-x: clip;
 }
 
 @layer base {

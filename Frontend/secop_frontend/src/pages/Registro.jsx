@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { motion, useMotionValue, useSpring } from "motion/react";
 import {
   ShieldCheck,
@@ -76,13 +76,9 @@ export default function Registro() {
   const [estado, setEstado] = useState("idle"); // idle | loading | error | ok
   const [mensaje, setMensaje] = useState("");
   const [fieldErrors, setFieldErrors] = useState({}); // {nombre_usuario, correo, contrasena, confirmar, _global}
-  const [sesionGuardada, setSesionGuardada] = useState(false);
-  const [checked, setChecked] = useState(false);
-
-  useEffect(() => {
-    setSesionGuardada(!!localStorage.getItem("access"));
-    setChecked(true);
-  }, []);
+  // Lectura inicial perezosa: evita setState en effect solo para leer localStorage al montar
+  const [sesionGuardada] = useState(() => !!localStorage.getItem("access"));
+  const [checked] = useState(true);
 
   async function handleSubmit(e) {
     e.preventDefault();

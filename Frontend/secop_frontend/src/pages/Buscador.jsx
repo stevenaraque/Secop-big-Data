@@ -9,26 +9,24 @@ export default function Buscador({ token }) {
   const [cargando, setCargando] = useState(false);
   const abortRef = useRef(null);
 
-  // debounce 300ms: espera a que dejes de escribir — setState en effect es intencional para debounce + abort
-  // oxlint-disable-next-line react/set-state-in-effect
+  // debounce 300ms: espera a que dejes de escribir — el reset dentro del effect es intencional
   useEffect(() => {
     if (texto.trim().length < 2) {
-      setQ("");
-      setDatos(null);
+      setQ(""); // oxlint-disable-line react/set-state-in-effect -- reset intencional del debounce
+      setDatos(null); // oxlint-disable-line react/set-state-in-effect -- reset intencional del debounce
       return;
     }
     const t = setTimeout(() => setQ(texto.trim()), 300);
     return () => clearTimeout(t);
   }, [texto]);
 
-  // abort: cancela la petición anterior si escribes de nuevo — setState en effect intencional para fetch + loading
-  // oxlint-disable-next-line react/set-state-in-effect
+  // abort: cancela la petición anterior si escribes de nuevo — el loading dentro del effect es intencional
   useEffect(() => {
     if (q.length < 2 || !token) return;
     if (abortRef.current) abortRef.current.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
-    setCargando(true);
+    setCargando(true); // oxlint-disable-line react/set-state-in-effect -- loading intencional del fetch con abort
     fetch(`${API}/buscar/?q=${encodeURIComponent(q)}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       signal: ctrl.signal,

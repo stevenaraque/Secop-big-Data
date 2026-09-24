@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { motion, useMotionValue, useSpring, AnimatePresence } from "motion/react";
 import {
   ShieldCheck,
@@ -18,6 +18,7 @@ import {
 } from "@phosphor-icons/react";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import UiverseInput from "../components/UiverseInput.jsx";
+import PageBackground from "../components/PageBackground.jsx";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
 
@@ -71,8 +72,9 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false);
   const [estado, setEstado] = useState("idle");
   const [mensaje, setMensaje] = useState("");
-  const [sesionGuardada, setSesionGuardada] = useState(false);
-  const [checked, setChecked] = useState(false);
+  // Lectura inicial perezosa: evita setState en effect solo para leer localStorage al montar
+  const [sesionGuardada] = useState(() => !!localStorage.getItem("access"));
+  const [checked] = useState(true);
   // flip + registro state (sin recarga)
   const [flipped, setFlipped] = useState(false);
   const [nombreUsuario, setNombreUsuario] = useState("");
@@ -84,11 +86,6 @@ export default function Login() {
   const [estadoReg, setEstadoReg] = useState("idle");
   const [mensajeReg, setMensajeReg] = useState("");
   const [fieldErrorsReg, setFieldErrorsReg] = useState({});
-
-  useEffect(() => {
-    setSesionGuardada(!!localStorage.getItem("access"));
-    setChecked(true);
-  }, []);
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -140,8 +137,8 @@ export default function Login() {
   if (!checked) return <div className="min-h-[100dvh] grid place-items-center bg-[#fcfcfc] dark:bg-zinc-950"><span className="size-6 rounded-full border-2 border-zinc-200 border-t-emerald-600 animate-spin" aria-label="Cargando" /></div>;
   if (sesionGuardada) {
     return (
-      <div className="min-h-[100dvh] bg-[#fcfcfc] dark:bg-zinc-950 relative overflow-hidden">
-        <div aria-hidden className="fixed inset-0 -z-10 pointer-events-none overflow-hidden"><div className="absolute -top-32 -right-32 size-[520px] rounded-full bg-emerald-200/30 dark:bg-emerald-900/20 blur-[80px]" /><div className="absolute top-40 -left-40 size-[640px] rounded-full bg-zinc-200/60 dark:bg-zinc-800/40 blur-[90px]" /><div className="absolute bottom-0 right-1/3 size-[360px] rounded-full bg-emerald-100/40 dark:bg-emerald-900/10 blur-[70px]" /></div>
+      <div className="min-h-[100dvh] bg-[#fcfcfc] dark:bg-zinc-950 relative isolate overflow-hidden">
+        <PageBackground />
         <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-6 flex items-center justify-between">
           <div className="flex items-center gap-3"><div className="size-8 rounded-xl bg-zinc-900 dark:bg-white grid place-items-center"><span className="text-white dark:text-zinc-900 font-mono text-[11px] font-bold tracking-tighter">SI</span></div><span className="text-[13px] font-semibold tracking-tighter text-zinc-900 dark:text-white">SECOP Insight</span><span className="hidden sm:inline text-[11px] tracking-wide text-zinc-500">· Observatorio SECOP II</span></div>
           <div className="flex items-center gap-2"><button onClick={flipToRegistro} className="hidden sm:inline-flex h-9 items-center justify-center rounded-full bg-emerald-600 px-4 text-xs font-medium text-white hover:bg-emerald-700">Registrarme</button><ThemeToggle /></div>
@@ -170,13 +167,8 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#fcfcfc] dark:bg-zinc-950 relative overflow-hidden flex flex-col">
-      <div aria-hidden className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
-        <div className="absolute -top-24 -right-24 size-[560px] rounded-full bg-emerald-200/25 dark:bg-emerald-900/15 blur-[86px]" />
-        <div className="absolute top-[18%] -left-32 size-[620px] rounded-full bg-zinc-200/70 dark:bg-zinc-800/30 blur-[95px]" />
-        <div className="absolute bottom-[-80px] right-[28%] size-[420px] rounded-full bg-emerald-100/30 dark:bg-emerald-900/10 blur-[75px]" />
-        <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E")` }} />
-      </div>
+    <div className="min-h-[100dvh] bg-[#fcfcfc] dark:bg-zinc-950 relative isolate overflow-hidden flex flex-col">
+      <PageBackground />
       <header className="w-full max-w-[1400px] mx-auto px-4 lg:px-8 py-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="size-8 rounded-xl bg-zinc-900 dark:bg-white grid place-items-center shadow-sm"><span className="font-mono text-[11px] font-bold tracking-tighter text-white dark:text-zinc-900">SI</span></div>
