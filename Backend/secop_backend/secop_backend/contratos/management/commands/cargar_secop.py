@@ -64,10 +64,8 @@ class Command(BaseCommand):
                     valor = Decimal("0")
                 else:
                     valor = Decimal(str(raw_val).replace(",", ""))
-                    # validar max_digits 18, decimal_places 2: si tiene >2 decimales, descartar
-                    if valor.as_tuple().exponent < -2:
-                        # redondear a 2 decimales no, descartar según RNF-04
-                        raise InvalidOperation("más de 2 decimales")
+                    # SODA trae 6 decimales (ej 5000000.000000) → cuantizar a 2 para Decimal(18,2)
+                    valor = valor.quantize(Decimal("0.01"))
                     if len(valor.as_tuple().digits) > 18:
                         raise InvalidOperation("más de 18 dígitos")
             except (InvalidOperation, ValueError, AttributeError) as e:
