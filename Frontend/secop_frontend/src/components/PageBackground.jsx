@@ -1,17 +1,33 @@
 import { useEffect, useState } from "react";
-import { useReducedMotion } from "motion/react";
 import Background from "./Background.jsx";
 import MoltenMetal from "./MoltenMetal.jsx";
+
+// Sin useReducedMotion de motion (mete warning en consola con reduced-motion).
+// Hook propio con matchMedia: misma señal, cero ruido.
+function useReduceMotionLocal() {
+  const [reduce, setReduce] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    if (!mq) return;
+    const sync = () => setReduce(mq.matches);
+    sync();
+    mq.addEventListener?.("change", sync);
+    return () => mq.removeEventListener?.("change", sync);
+  }, []);
+  return reduce;
+}
 
 // PageBackground — fondo compartido de toda la app (observatorio, login, /app).
 // Qué: aurora CSS de base + metal WebGL encima, paleta según tema.
 // Por qué: un solo lugar para el fondo; las 3 páginas se ven coordinadas.
-// El metal entra tras idle, solo con WebGL2 y sin reduced-motion.
+// El metal entra tras idle, solo con WebGL2. Con reduced-motion se monta
+// igual pero casi quieto (speed 0.12, sin mouse) para respetar accesibilidad.
 // `tema` ("dark"/"light"): congela la paleta con la que se entró — el loader
 // la usa para no parpadear si el usuario cambia el tema a mitad de carga.
 // Úsalo dentro de un contenedor `relative isolate` para que el -z-10 quede dentro.
 export default function PageBackground({ opacityDark = 0.85, opacityLight = 0.8, tema = null }) {
-  const reduce = useReducedMotion();
+  const reduce = useReduceMotionLocal();
 
   // Tema para el metal: carbón en oscuro, escarcha en claro.
   // Con `tema` fijo se usa ese y no se escucha más (el primero manda).
@@ -33,7 +49,6 @@ export default function PageBackground({ opacityDark = 0.85, opacityLight = 0.8,
   // Metal diferido: no bloquea el primer paint.
   const [metalListo, setMetalListo] = useState(false);
   useEffect(() => {
-    if (reduce) return;
     let cancelar = () => {};
     const listo = () => {
       try {
@@ -50,12 +65,12 @@ export default function PageBackground({ opacityDark = 0.85, opacityLight = 0.8,
       cancelar = () => clearTimeout(t);
     }
     return cancelar;
-  }, [reduce]);
+  }, []);
 
   return (
     <>
       <Background forzar={tema} />
-      {!reduce && metalListo && (
+      {metalListo && (
         <div className="fixed inset-0 -z-10 pointer-events-none" aria-hidden="true">
           <MoltenMetal
             color1={esOscuro ? "#04231b" : "#d1fae5"}
@@ -64,7 +79,7 @@ export default function PageBackground({ opacityDark = 0.85, opacityLight = 0.8,
             colorMode="frost"
             lightMode={!esOscuro}
             backgroundColor={esOscuro ? "#050505" : "#fcfcfc"}
-            speed={1.05}
+            speed={reduce ? 0.12 : 1.05}
             scale={8.4}
             detail={3}
             glow={1.6}

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { animate, useReducedMotion } from "motion/react";
+import { animate } from "motion/react";
 import { useTheme } from "../hooks/useTheme.js";
 import { dineroCorto, dineroExacto } from "../lib/formato.js";
 
@@ -38,7 +38,7 @@ function lineaSuave(pts) {
 }
 
 export default function ScrubChart({ data, titulo }) {
-  const reduce = useReducedMotion();
+  const reduce = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const { dark } = useTheme();
   // Paleta según tema: la tarjeta es blanca en claro y carbón en oscuro
   const C = {

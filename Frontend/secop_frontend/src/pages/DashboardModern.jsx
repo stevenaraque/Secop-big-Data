@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, memo, lazy, Suspense } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { animate } from "animejs";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { Toaster, toast } from "sonner";
 import Banderas from "./Banderas.jsx";
 import PredominioDirecta from "./PredominioDirecta.jsx";
@@ -105,7 +105,7 @@ export default function DashboardModern({ token }) {
   const [depto, setDepto] = useState("Boyacá");
   const [exportando, setExportando] = useState(false);
   const heroRef = useRef(null);
-  const reduce = useReducedMotion();
+  const reduce = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   // Para la píldora del CTA: clara sobre tarjeta oscura y viceversa
   const { dark } = useTheme();
   useEffect(() => {

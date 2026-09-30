@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
-import { animate, useMotionValue, useReducedMotion } from 'motion/react';
+import { animate, useMotionValue } from 'motion/react';
 import './StatusMark.css';
 const UI = { type: 'spring', duration: 0.3, bounce: 0 };
 const MORPH = { duration: 0.3, ease: [0.77, 0, 0.175, 1] };
@@ -9,7 +9,7 @@ const TEXT = { pending: 'Pending', running: 'In progress', done: 'Completed', fa
 const IDLE_DASH = 0.3;
 const clamp01 = v => Math.min(1, Math.max(0, v));
 export default function StatusMark({ status = 'pending', progress, label, color = 'currentColor', doneColor = '#22c55e', errorColor = '#ef4444', size = 20, strokeWidth = 2, dashes = 8, fontSize = 14, spinDuration = 1100, arcLength = 0.68, drawDuration = 240, fillOpacity = 0.06, strike = true, strikeDelay = 60, className = '', style }) {
-  const reduce = useReducedMotion();
+  const reduce = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const r = 10 - strokeWidth / 2;
   const C = 2 * Math.PI * r;
   const P = C / Math.max(1, dashes);

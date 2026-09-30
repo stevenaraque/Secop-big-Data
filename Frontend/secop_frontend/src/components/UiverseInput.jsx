@@ -1,6 +1,5 @@
 import { useRef, useEffect, useState } from "react";
 import { animate } from "animejs";
-import { useReducedMotion } from "motion/react";
 
 // Uiverse + animejs — input con floating label + line drawing + shake error
 // Mantiene aria: label htmlFor + input id para que getByLabelText funcione en tests
@@ -27,7 +26,7 @@ export default function UiverseInput({
   const [hasAutofill, setHasAutofill] = useState(false);
   const hasValue = String(value ?? "").length > 0 || hasAutofill;
   const floated = focused || hasValue;
-  const reduce = useReducedMotion();
+  const reduce = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
   // cross-browser autofill detection: Chrome/Safari autofill no dispara onChange en controlled inputs
   useEffect(() => {
