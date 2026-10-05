@@ -73,3 +73,36 @@ export function clearSession() {
   localStorage.removeItem("access");
   localStorage.removeItem("refresh");
 }
+
+export function doLogout(redirect = true) {
+  clearSession();
+  if (redirect && !window.location.pathname.startsWith("/login")) window.location.href = "/login";
+}
+
+// Refresh single-flight: todas las llamadas 401 concurrentes comparten una promesa.
+let _refreshPromise = null;
+export function refreshAccess() {
+  if (_refreshPromise) return _refreshPromise;
+  const refresh = localStorage.getItem("refresh");
+  if (!refresh) return Promise.resolve(null);
+  _refreshPromise = (async () => {
+    try {
+      const r = await fetch(`${API_URL}/auth/token/refresh/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh }),
+      });
+      if (!r.ok) return null;
+      const data = await r.json().catch(() => ({}));
+      if (!data.access) return null;
+      localStorage.setItem("access", data.access);
+      if (data.refresh) localStorage.setItem("refresh", data.refresh);
+      return data.access;
+    } catch {
+      return null;
+    } finally {
+      _refreshPromise = null;
+    }
+  })();
+  return _refreshPromise;
+}

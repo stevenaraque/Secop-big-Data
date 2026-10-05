@@ -23,23 +23,28 @@ import { useTheme } from "../hooks/useTheme.js";
 import { dineroCorto, dineroExacto } from "../lib/formato.js";
 import { ArrowRight, DownloadSimple as Download, X, Database, CurrencyCircleDollar, TrendUp, MapPin, ChartBar, BellRinging, Lightning, MagnifyingGlass } from "@phosphor-icons/react";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
+import { API_URL as API } from "../lib/api.js";
+async function errorConStatus(r, etiqueta) {
+  const e = new Error(etiqueta);
+  e.status = r.status;
+  throw e;
+}
 async function fetchResumen(d, t) {
   const headers = t ? { Authorization: `Bearer ${t}` } : {};
   const r = await fetch(`${API}/optimized/resumen/${d ? `?depto=${encodeURIComponent(d)}` : ""}`, { headers });
-  if (!r.ok) throw new Error();
+  if (!r.ok) errorConStatus(r, "Error resumen");
   return r.json();
 }
 async function fetchTop(d, t) {
   const headers = t ? { Authorization: `Bearer ${t}` } : {};
   const r = await fetch(`${API}/optimized/top-contratistas/?limit=5${d ? `&depto=${encodeURIComponent(d)}` : ""}`, { headers });
-  if (!r.ok) throw new Error();
+  if (!r.ok) errorConStatus(r, "Error top");
   return r.json();
 }
 async function fetchMapa(t) {
   const headers = t ? { Authorization: `Bearer ${t}` } : {};
   const r = await fetch(`${API}/optimized/mapa-directa/`, { headers });
-  if (!r.ok) throw new Error();
+  if (!r.ok) errorConStatus(r, "Error mapa");
   return r.json();
 }
 async function fetchContratos({ depto }, t) {
@@ -47,7 +52,7 @@ async function fetchContratos({ depto }, t) {
   if (depto) p.set("depto", depto);
   const headers = t ? { Authorization: `Bearer ${t}` } : {};
   const r = await fetch(`${API}/contratos/?${p}`, { headers });
-  if (!r.ok) throw new Error();
+  if (!r.ok) errorConStatus(r, "Error contratos");
   return r.json();
 }
 
@@ -97,7 +102,7 @@ const KPICard = memo(function KPICard({ label, value, sub, delay = 0, icon: Icon
 async function fetchSerie(depto, token) {
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
   const r = await fetch(`${API}/optimized/serie-mensual/${depto ? `?depto=${encodeURIComponent(depto)}` : ""}`, { headers });
-  if (!r.ok) throw new Error();
+  if (!r.ok) errorConStatus(r, "Error serie");
   return r.json();
 }
 
@@ -123,16 +128,18 @@ export default function DashboardModern({ token }) {
     window.location.href = "/login";
   }
 
-  // Público: queries funcionan anonimas (AllowAny) y con JWT; token null => headers vacios
-  const { data: resumen, isLoading: cargandoResumen } = useQuery({ queryKey: ["resumen", depto], queryFn: () => fetchResumen(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
-  const { data: topData } = useQuery({ queryKey: ["top", depto], queryFn: () => fetchTop(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
-  const { data: mapaData } = useQuery({ queryKey: ["mapa"], queryFn: () => fetchMapa(token), staleTime: 5 * 60 * 1000 });
+  // Público: queries funcionan anonimas (AllowAny) y con JWT; la key incluye modo
+  // para no mezclar caché anon/auth. token null => headers vacios
+  const modo = token ? "auth" : "anon";
+  const { data: resumen, isLoading: cargandoResumen } = useQuery({ queryKey: ["resumen", depto, modo], queryFn: () => fetchResumen(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
+  const { data: topData } = useQuery({ queryKey: ["top", depto, modo], queryFn: () => fetchTop(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
+  const { data: mapaData } = useQuery({ queryKey: ["mapa", modo], queryFn: () => fetchMapa(token), staleTime: 5 * 60 * 1000 });
   const territorios = [...(mapaData?.mapa || [])].sort((a, b) => String(a.departamento).localeCompare(String(b.departamento), "es"));
-  const { data: contratosPag, isFetching, isError: errorTabla } = useQuery({ queryKey: ["contratos", depto], queryFn: () => fetchContratos({ depto }, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
+  const { data: contratosPag, isFetching, isError: errorTabla } = useQuery({ queryKey: ["contratos", depto, modo], queryFn: () => fetchContratos({ depto }, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
   const rows = contratosPag?.results ?? [];
 
   // Serie mensual para el scrub: una sola serie manda (valor, cambio, %)
-  const { data: serieData } = useQuery({ queryKey: ["serie", depto], queryFn: () => fetchSerie(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
+  const { data: serieData } = useQuery({ queryKey: ["serie", depto, modo], queryFn: () => fetchSerie(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
   const serieMensual = (serieData?.serie ?? []).map((s) => ({
     label: String(s.mes ?? "").slice(0, 7),
     valor: Number(s.suma ?? 0),

@@ -4,12 +4,16 @@ import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import "./MapaRF15.css"
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
+import { API_URL as API } from "../lib/api.js";
 async function fetchMapa(token) {
   const r = await fetch(`${API}/optimized/mapa-directa/`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
-  if (!r.ok) throw new Error("Error mapa")
+  if (!r.ok) {
+    const e = new Error("Error mapa");
+    e.status = r.status;
+    throw e;
+  }
   return r.json()
 }
 
@@ -86,7 +90,8 @@ export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
   }, [deptoActivo, clickSel])
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["mapa"],
+    // Misma key que DashboardModern (["mapa", modo]): comparte UNA petición, sin doble fetch.
+    queryKey: ["mapa", token ? "auth" : "anon"],
     queryFn: () => fetchMapa(token),
     enabled: true,
     staleTime: 1000 * 60 * 5,

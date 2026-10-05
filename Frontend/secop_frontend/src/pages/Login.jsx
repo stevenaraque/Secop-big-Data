@@ -19,8 +19,7 @@ import {
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import UiverseInput from "../components/UiverseInput.jsx";
 import PageBackground from "../components/PageBackground.jsx";
-
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+import { API_URL as API } from "../lib/api.js";
 
 function MagneticButton({ children, disabled, className = "", ...props }) {
   const ref = useRef(null);
