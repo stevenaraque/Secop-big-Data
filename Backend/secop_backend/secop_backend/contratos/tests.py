@@ -171,3 +171,30 @@ class TestETLCarga(TestCase):
 
 
 # Ejecutar con: .\venv\Scripts\python.exe -m pytest Backend/secop_backend/pytest.ini -v
+
+
+class TestDetalleVersiones(TestCase):
+    """V3.3: id_contrato no unique → detalle devuelve versiones (200), no 500."""
+
+    def _crear(self, idc):
+        return Contrato.objects.create(
+            nombre_entidad="E", nit_entidad="1", departamento="Boyacá", ciudad="T",
+            orden="1", sector="S", id_contrato=idc, estado_contrato="X",
+            codigo_categoria_principal="C", descripcion_del_proceso="D",
+            valor_contrato=Decimal("10.00"), fecha_firma="2024-01-01",
+            modalidad="M", contratista_nit="1", contratista_nombre="N",
+        )
+
+    def test_detalle_devuelve_versiones(self):
+        from rest_framework.test import APIClient
+        self._crear("DUP-1")
+        self._crear("DUP-1")
+        r = APIClient().get("/api/contratos/DUP-1/")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["versiones"], 2)
+        self.assertEqual(len(r.data["resultados"]), 2)
+
+    def test_detalle_inexistente_404(self):
+        from rest_framework.test import APIClient
+        r = APIClient().get("/api/contratos/NO-EXISTE/")
+        self.assertEqual(r.status_code, 404)

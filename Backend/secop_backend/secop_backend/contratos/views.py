@@ -2,6 +2,7 @@ import csv
 import time
 import threading
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from rest_framework import status, permissions
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
@@ -11,7 +12,7 @@ from django.db.models import Count, Sum, Q
 from .models import TrabajoCarga, Contrato, Entidad, Radar, Oportunidad
 from .services import servicio_contratos
 from django.db.models.functions import TruncMonth
-from rest_framework.generics import ListAPIView, RetrieveAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView
+from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView
 from rest_framework.pagination import PageNumberPagination
 from .serializers import ContratoSerializer, EntidadSerializer, RadarSerializer, OportunidadSerializer
 
@@ -107,7 +108,7 @@ class VistaEstadoCarga(APIView):
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request, pk):
-        trabajo = TrabajoCarga.objects.get(id=pk)
+        trabajo = get_object_or_404(TrabajoCarga, id=pk)
         return Response({
             "id": trabajo.id,
             "estado": trabajo.estado,
@@ -258,12 +259,22 @@ class VistaListaContratos(ListAPIView):
             qs = qs.filter(fecha_firma__lte=fecha_hasta)
         return qs
 
-class VistaDetalleContrato(RetrieveAPIView):
-    serializer_class = ContratoSerializer
+class VistaDetalleContrato(APIView):
+    # V3.3: id_contrato no es unique (versiones del mismo proceso SECOP) → devuelve todas.
     permission_classes = [permissions.AllowAny]
     throttle_classes = []
-    lookup_field = "id_contrato"
-    queryset = Contrato.objects.all()
+
+    def get(self, request, id_contrato):
+        qs = Contrato.objects.filter(id_contrato=id_contrato).order_by("-id")
+        total = qs.count()
+        if total == 0:
+            return Response({"detalle": "Contrato no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({
+            "id_contrato": id_contrato,
+            "versiones": total,
+            "resultados": ContratoSerializer(qs[:50], many=True).data,
+            "nota": "" if total <= 50 else "Mostrando 50 de %d versiones." % total,
+        })
 
 
 class VistaSerieMensualOptimizado(APIView):
@@ -463,8 +474,12 @@ class VistaActualizarPeriodica(APIView):
     permission_classes = [permissions.IsAdminUser]
 
     def post(self, request):
-        limite = int(request.data.get("limit", 50))
-        offset = int(request.data.get("offset", 0))
+        limite, err = _parse_int_query_param(request.data.get("limit", 50), 50, 1, 1000, field_name="limit")
+        if err:
+            return err
+        offset, err = _parse_int_query_param(request.data.get("offset", 0), 0, 0, None, field_name="offset")
+        if err:
+            return err
         depto = request.data.get("depto")
         try:
             trabajo = servicio_contratos.programar_actualizacion_periodica(limite=limite, offset=offset, depto=depto)
@@ -554,9 +569,17 @@ class VistaDescargarBackup(APIView):
 
 
 # RF-36..40: Radares y Oportunidades SaaS Freemium
+class PaginacionSaaS(PageNumberPagination):
+    # V3.3: page_size explícito (sin PAGE_SIZE global, DRF devolvería lista sin paginar).
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
 class VistaRadarListaCrear(ListCreateAPIView):
     serializer_class = RadarSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = PaginacionSaaS
 
     def get_queryset(self):
         return Radar.objects.filter(usuario=self.request.user)
@@ -576,7 +599,7 @@ class VistaRadarDetalle(RetrieveUpdateDestroyAPIView):
 class VistaMisOportunidades(ListAPIView):
     serializer_class = OportunidadSerializer
     permission_classes = [permissions.IsAuthenticated]
-    pagination_class = PageNumberPagination
+    pagination_class = PaginacionSaaS
 
     def get_queryset(self):
         qs = Oportunidad.objects.filter(radar__usuario=self.request.user).select_related("contrato", "radar")

@@ -106,19 +106,26 @@ class Command(BaseCommand):
             trabajo.save(update_fields=["mensaje_error"])
             self.stdout.write(self.style.WARNING(f"RNF-04: {len(invalidas)} filas inválidas descartadas (ver mensaje_error)"))
 
-        # RF-26: evitar duplicados por id_contrato — contar nuevos reales
+        # V3.3: id_contrato ya no es unique (dups reales SECOP) → ignore_conflicts es no-op.
+        # Dedup explícito: contra BD + dentro del lote. Re-carga del mismo SODA = 0 nuevos.
         ids_a_crear = [c.id_contrato for c in a_crear if c.id_contrato]
         existentes = set(Contrato.objects.filter(id_contrato__in=ids_a_crear).values_list("id_contrato", flat=True)) if ids_a_crear else set()
-        nuevos = len([c for c in a_crear if c.id_contrato not in existentes])
+        vistos_lote = set()
+        a_insertar = []
+        for c in a_crear:
+            if c.id_contrato and c.id_contrato not in existentes and c.id_contrato not in vistos_lote:
+                vistos_lote.add(c.id_contrato)
+                a_insertar.append(c)
+        nuevos = len(a_insertar)
 
         with transaction.atomic():
-            Contrato.objects.bulk_create(a_crear, batch_size=1000, ignore_conflicts=True)
+            Contrato.objects.bulk_create(a_insertar, batch_size=1000)
 
         # RF-39 Fase 2 Matchmaking: cruzar nuevos contratos vs Radares activos
         nuevos_contratos = []
-        if nuevos and ids_a_crear:
+        if a_insertar:
             # obtener objetos reales con PK para FK
-            nuevos_ids = [c.id_contrato for c in a_crear if c.id_contrato not in existentes]
+            nuevos_ids = [c.id_contrato for c in a_insertar]
             if nuevos_ids:
                 nuevos_contratos = list(Contrato.objects.filter(id_contrato__in=nuevos_ids))
         if nuevos_contratos:
