@@ -33,5 +33,9 @@ build/
 # Postgres
 *.dump
 
+# CSV locales de carga masiva (8.63GB, no versionar; el backlog SECOP_*.csv sí se versiona)
+secop_piloto.csv
+secop_9m.csv
+
 # Backups locales RNF-09 (se generan con POST /api/cargar/backup/, no se versionan)
 Backend/secop_backend/secop_backend/backups/*.json

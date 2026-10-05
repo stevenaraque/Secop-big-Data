@@ -26,12 +26,12 @@ class Contrato(models.Model):
     ciudad = models.CharField(max_length=100)
     orden = models.CharField(max_length=100)
     sector = models.CharField(max_length=100)
-    id_contrato = models.CharField(max_length=100, unique=True)
+    id_contrato = models.CharField(max_length=100, db_index=True)  # V3.3: sin unique para guardar las 9.274.086 filas (dup reales en SECOP). Dups permitidos.
     estado_contrato = models.CharField(max_length=100)
     codigo_categoria_principal = models.CharField(max_length=100)
     descripcion_del_proceso = models.TextField()
-    valor_contrato = models.DecimalField(max_digits=18, decimal_places=2)
-    fecha_firma = models.DateField()
+    valor_contrato = models.DecimalField(max_digits=30, decimal_places=2, null=True, blank=True)  # V3.3: 30 digitos (habia overflow con 18) + nullable
+    fecha_firma = models.DateField(null=True, blank=True)  # V3.3: nullable (127k filas sin fecha valida en SECOP)
     modalidad = models.CharField(max_length=100)
     contratista_nit = models.CharField(max_length=50)
     contratista_nombre = models.CharField(max_length=255)
