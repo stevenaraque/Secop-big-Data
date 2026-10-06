@@ -1,6 +1,17 @@
 from django.core.cache import cache
 from django.db import connection
-from django.db.models import Count, Sum, Avg, Q
+from django.db.models import Count, Sum, Avg, Q, CharField, TextField, Transform
+
+
+class Unaccent(Transform):
+    # V3.4: lookup `campo__unaccent__icontains` insensible a tildes. Requiere
+    # extensión unaccent en Postgres (CREATE EXTENSION unaccent).
+    lookup_name = "unaccent"
+    function = "unaccent"
+
+
+CharField.register_lookup(Unaccent)
+TextField.register_lookup(Unaccent)
 from .models import Contrato, Entidad, UmbralAlerta, ResumenGlobal, ResumenDepto, ContratistaTotal, SerieMensual, TopDepto, SerieDepto, BanderaDet, EntidadDepto, PredominioEnt
 
 class ServicioContratos:
@@ -37,6 +48,25 @@ class ServicioContratos:
             qs = qs.filter(departamento__in=vals)
         return qs
 
+    def _variantes_modalidad(self, modalidad):
+        # V3.4: modalidad insensible a tildes (contratacion == Contratación).
+        # Conjunto cerrado (~10): DISTINCT una vez + cache 1h.
+        if not modalidad:
+            return None
+        k = self._clave(modalidad)
+        todas = cache.get("modalidades_distintas")
+        if todas is None:
+            todas = list(self.modelo.objects.values_list("modalidad", flat=True).distinct())
+            cache.set("modalidades_distintas", todas, 3600)
+        vals = [v for v in todas if v and self._clave(v) == k]
+        return vals or [modalidad]
+
+    def _filtrar_modalidad(self, qs, modalidad):
+        vals = self._variantes_modalidad(modalidad)
+        if vals:
+            qs = qs.filter(modalidad__in=vals)
+        return qs
+
     def resumen_optimizado(self, depto=None, anio=None, modalidad=None):
         # V3.4: sin filtros → ResumenGlobal. Solo depto → ResumenDepto. El resto → vivo.
         if not depto and not anio and not modalidad:
@@ -56,7 +86,7 @@ class ServicioContratos:
         if anio:
             qs = qs.filter(fecha_firma__year=int(anio))
         if modalidad:
-            qs = qs.filter(modalidad=modalidad)
+            qs = self._filtrar_modalidad(qs, modalidad)
         return qs.aggregate(total=Count("id"), suma_valor=Sum("valor_contrato"), promedio_valor=Avg("valor_contrato"))
 
     def resumen_naive(self, depto=None, anio=None, modalidad=None):
@@ -73,7 +103,7 @@ class ServicioContratos:
         if anio:
             qs = qs.filter(fecha_firma__year=int(anio))
         if modalidad:
-            qs = qs.filter(modalidad=modalidad)
+            qs = self._filtrar_modalidad(qs, modalidad)
         contratos = list(qs)
         total = len(contratos)
         suma = sum((c.valor_contrato or 0) for c in contratos)
@@ -126,10 +156,21 @@ class ServicioContratos:
         q = (q or "").strip()
         if len(q) < 2:
             return {"contratos": [], "empresas": [], "entidades": []}
+        # V3.4: cache 10min por query (3 full-scans en frío duelen con 9.3M + 8GB RAM).
+        ck = f"buscar:{q[:80]}:{limite}"
+        hit = cache.get(ck)
+        if hit is not None:
+            return hit
+        # V3.4: insensible a tildes en ambos lados (unaccent BD + norm Python).
+        # OJO: unaccent SOLO en campos cortos; en descripcion (TEXT largo) es 20x
+        # más caro y tumba el query (medido 230s). Ahí icontains plano.
+        import unicodedata
+        q_plano = "".join(
+            c for c in unicodedata.normalize("NFD", q) if unicodedata.category(c) != "Mn")
         base = (
-            Q(contratista_nombre__icontains=q)
-            | Q(contratista_nit__icontains=q)
-            | Q(nombre_entidad__icontains=q)
+            Q(contratista_nombre__unaccent__icontains=q_plano)
+            | Q(contratista_nit__icontains=q_plano)
+            | Q(nombre_entidad__unaccent__icontains=q_plano)
             | Q(descripcion_del_proceso__icontains=q)
         )
         contratos = list(
@@ -149,7 +190,9 @@ class ServicioContratos:
             .annotate(total=Count("id"))
             .order_by("-total")[:limite]
         )
-        return {"contratos": contratos, "empresas": empresas, "entidades": entidades}
+        out = {"contratos": contratos, "empresas": empresas, "entidades": entidades}
+        cache.set(ck, out, 600)
+        return out
 
     def _banderas_fast(self, umbral=30, depto=None):
         umbral = float(umbral)

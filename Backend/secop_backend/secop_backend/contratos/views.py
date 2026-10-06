@@ -252,7 +252,7 @@ class VistaListaContratos(ListAPIView):
             # RF-16: tolera tildes (Boyacá cuenta Boyaca+Boyacá) y se combina con los demás filtros
             qs = servicio_contratos._filtrar_depto(qs, depto)
         if modalidad:
-            qs = qs.filter(modalidad=modalidad)
+            qs = servicio_contratos._filtrar_modalidad(qs, modalidad)
         if fecha_desde:
             qs = qs.filter(fecha_firma__gte=fecha_desde)
         if fecha_hasta:
@@ -289,13 +289,14 @@ class VistaSerieMensualOptimizado(APIView):
                      for s in SerieMensual.objects.all()]
             return Response({"filtro": "todos", "serie": datos})
         if SerieDepto.objects.exists():
-            # V3.4: serie por depto precalculada.
+            # V3.4: serie por depto precalculada (variantes con/sin tilde).
+            vals = servicio_contratos._variantes(depto)
             datos = [{"mes": s.mes.isoformat()[:7], "total": s.total, "suma": float(s.suma or 0)}
-                     for s in SerieDepto.objects.filter(departamento=depto).order_by("mes")]
+                     for s in SerieDepto.objects.filter(departamento__in=vals).order_by("mes")]
             return Response({"filtro": depto, "serie": datos})
         qs = Contrato.objects.all()
         if depto:
-            qs = qs.filter(departamento=depto)
+            qs = servicio_contratos._filtrar_depto(qs, depto)
         datos = (qs.annotate(mes=TruncMonth("fecha_firma"))
                    .values("mes")
                    .annotate(total=Count("id"), suma=Sum("valor_contrato"))
@@ -458,7 +459,7 @@ class VistaExportarContratos(APIView):
         if depto:
             qs = servicio_contratos._filtrar_depto(qs, depto)
         if modalidad:
-            qs = qs.filter(modalidad=modalidad)
+            qs = servicio_contratos._filtrar_modalidad(qs, modalidad)
         if fecha_desde:
             qs = qs.filter(fecha_firma__gte=fecha_desde)
         if fecha_hasta:
