@@ -1,5 +1,6 @@
+from django.core.cache import cache
 from django.db.models import Count, Sum, Avg, Q
-from .models import Contrato, Entidad, UmbralAlerta
+from .models import Contrato, Entidad, UmbralAlerta, ResumenGlobal, ResumenDepto, ContratistaTotal, SerieMensual, TopDepto, SerieDepto
 
 class ServicioContratos:
     """Service Layer para SECOP - evita vistas gordas y centraliza ORM (Repository + Service)"""
@@ -16,10 +17,16 @@ class ServicioContratos:
     def _variantes(self, depto):
         # RF-16: el clic del mapa manda el nombre canónico con tilde,
         # pero la BD tiene variantes (Boyaca/Boyacá). Filtra por todas.
+        # V3.4: 34 deptos salen de resumen_depto (instantáneo), no DISTINCT 9.3M.
         if not depto:
             return None
         k = self._clave(depto)
-        todos = self.modelo.objects.values_list("departamento", flat=True).distinct()
+        todos = cache.get("deptos_distintos")
+        if todos is None:
+            todos = list(ResumenDepto.objects.values_list("departamento", flat=True))
+            if not todos:
+                todos = list(self.modelo.objects.values_list("departamento", flat=True).distinct())
+            cache.set("deptos_distintos", todos, 3600)
         vals = [v for v in todos if self._clave(v) == k]
         return vals or [depto]
 
@@ -30,6 +37,19 @@ class ServicioContratos:
         return qs
 
     def resumen_optimizado(self, depto=None, anio=None, modalidad=None):
+        # V3.4: sin filtros → ResumenGlobal. Solo depto → ResumenDepto. El resto → vivo.
+        if not depto and not anio and not modalidad:
+            g = ResumenGlobal.objects.first()
+            if g is not None:
+                return {"total": g.total, "suma_valor": g.suma, "promedio_valor": g.promedio}
+        if depto and not anio and not modalidad and ResumenDepto.objects.exists():
+            vals = self._variantes(depto)
+            agg = ResumenDepto.objects.filter(departamento__in=vals).aggregate(
+                total=Sum("total"), suma_valor=Sum("suma"))
+            total = agg["total"] or 0
+            suma = agg["suma_valor"] or 0
+            return {"total": total, "suma_valor": suma,
+                    "promedio_valor": (suma / total) if total else 0}
         qs = self.modelo.objects.all()
         qs = self._filtrar_depto(qs, depto)
         if anio:
@@ -60,6 +80,20 @@ class ServicioContratos:
         return {"total": total, "suma_valor": suma, "promedio_valor": promedio}
 
     def top_contratistas_optimizado(self, depto=None, limite=5):
+        # V3.4: tablas preagregadas (vacías en tests → vivo como fallback).
+        if not depto and ContratistaTotal.objects.exists():
+            return list(
+                ContratistaTotal.objects.order_by("-suma_valor").values(
+                    "contratista_nit", "contratista_nombre", "total_contratos", "suma_valor"
+                )[:limite]
+            )
+        if depto and TopDepto.objects.exists():
+            vals = self._variantes(depto)
+            return list(
+                TopDepto.objects.filter(departamento__in=vals).order_by("-suma_valor").values(
+                    "contratista_nit", "contratista_nombre", "total_contratos", "suma_valor"
+                )[:limite]
+            )
         qs = self.modelo.objects.all()
         qs = self._filtrar_depto(qs, depto)
         return list(
@@ -180,16 +214,23 @@ class ServicioContratos:
 
     def mapa_directa_optimizado(self):
         import unicodedata
-        datos = list(
-            self.modelo.objects.values("departamento")
-            .annotate(
-                total=Count("id"),
-                directas=Count("id", filter=Q(modalidad__in=["Contratación directa", "Contratacion directa"])),
-                suma_total=Sum("valor_contrato"),
-                suma_directa=Sum("valor_contrato", filter=Q(modalidad__in=["Contratación directa", "Contratacion directa"])),
+        # V3.4: 34 filas precalculadas en vez de GROUP BY 9.3M.
+        datos = [
+            {"departamento": r.departamento, "total": r.total, "directas": r.directas,
+             "suma_total": r.suma, "suma_directa": r.suma_directa}
+            for r in ResumenDepto.objects.all()
+        ]
+        if not datos:
+            datos = list(
+                self.modelo.objects.values("departamento")
+                .annotate(
+                    total=Count("id"),
+                    directas=Count("id", filter=Q(modalidad__in=["Contratación directa", "Contratacion directa"])),
+                    suma_total=Sum("valor_contrato"),
+                    suma_directa=Sum("valor_contrato", filter=Q(modalidad__in=["Contratación directa", "Contratacion directa"])),
+                )
+                .order_by("-total")
             )
-            .order_by("-total")
-        )
         def arreglar(s):
             # Corrige mojibake tipo BogotÃ¡ -> Bogotá (UTF-8 leído como latin1)
             if s and "Ã" in s:

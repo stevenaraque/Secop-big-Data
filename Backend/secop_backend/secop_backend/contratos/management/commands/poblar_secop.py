@@ -328,6 +328,12 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"OK {n_chunk} chunks | leidas {total_leidas:,} | insertadas {total_insert:,} | {mins:.1f} min | {gb:.2f} GB")
         )
+        # V3.4: recalcula resúmenes para dashboard instantáneo (2 min con 9.3M).
+        try:
+            from django.core.management import call_command as _cc
+            _cc("actualizar_resumenes")
+        except Exception as e:
+            self.stderr.write(self.style.WARNING(f"Resúmenes no recalculados: {str(e)[:200]} (corre actualizar_resumenes manual)"))
 
     def _recuperar(self, ruta_csv, chunksize, opciones, t0, gb):
         """V3.3: una pasada streaming que inserta SOLO lo faltante:

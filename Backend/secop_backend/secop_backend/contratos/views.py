@@ -281,7 +281,18 @@ class VistaSerieMensualOptimizado(APIView):
     permission_classes = [permissions.AllowAny]
     throttle_classes = []
     def get(self, request):
+        from .models import SerieMensual, SerieDepto
         depto = request.query_params.get("depto")
+        if not depto:
+            # V3.4: serie global precalculada (140 filas, 5ms).
+            datos = [{"mes": s.mes.isoformat()[:7], "total": s.total, "suma": float(s.suma or 0)}
+                     for s in SerieMensual.objects.all()]
+            return Response({"filtro": "todos", "serie": datos})
+        if SerieDepto.objects.exists():
+            # V3.4: serie por depto precalculada.
+            datos = [{"mes": s.mes.isoformat()[:7], "total": s.total, "suma": float(s.suma or 0)}
+                     for s in SerieDepto.objects.filter(departamento=depto).order_by("mes")]
+            return Response({"filtro": depto, "serie": datos})
         qs = Contrato.objects.all()
         if depto:
             qs = qs.filter(departamento=depto)

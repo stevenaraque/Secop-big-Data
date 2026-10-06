@@ -19,9 +19,10 @@ function buildUrl(path, params) {
   return qs ? `${base}?${qs}` : base;
 }
 
-// fetch con JWT + timeout 15s + mensajes de error útiles.
+// fetch con JWT + timeout 45s + mensajes de error útiles.
+// 45s: los agregados fríos sobre 9.3M pueden tardar (luego van por caché/resumen).
 // No hace logout global: eso lo hace el interceptor de main.jsx solo para /api (no login).
-export async function authFetch(path, { params, token, timeoutMs = 15000, ...init } = {}) {
+export async function authFetch(path, { params, token, timeoutMs = 45000, ...init } = {}) {
   const t = token ?? getToken();
   const ctrl = new AbortController();
   const id = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -58,7 +59,7 @@ export async function authFetch(path, { params, token, timeoutMs = 15000, ...ini
     return r;
   } catch (err) {
     if (err?.name === "AbortError") {
-      const e = new Error("Tiempo de espera agotado (15s). Revisa backend /api.");
+      const e = new Error(`Tiempo de espera agotado (${Math.round(timeoutMs / 1000)}s). Revisa backend /api.`);
       e.status = 408;
       e.url = path;
       throw e;

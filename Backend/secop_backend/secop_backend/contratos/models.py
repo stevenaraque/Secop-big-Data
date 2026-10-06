@@ -201,3 +201,85 @@ class Oportunidad(models.Model):
 
     def __str__(self):
         return f"Oportunidad {self.id} {self.radar_id}->{self.contrato_id} {self.estado}"
+
+
+class ResumenGlobal(models.Model):
+    """V3.4: KPIs globales precalculados (COUNT/SUM/AVG 9.3M = 30s en vivo, 5ms aquí)."""
+
+    total = models.BigIntegerField(default=0)
+    suma = models.DecimalField(max_digits=30, decimal_places=2, default=0)
+    promedio = models.DecimalField(max_digits=30, decimal_places=2, default=0)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "resumen_global"
+
+
+class ResumenDepto(models.Model):
+    """V3.4: agregados por departamento para mapa + KPIs (34 filas)."""
+
+    departamento = models.CharField(max_length=100, primary_key=True)
+    total = models.BigIntegerField(default=0)
+    suma = models.DecimalField(max_digits=30, decimal_places=2, default=0)
+    directas = models.BigIntegerField(default=0)
+    suma_directa = models.DecimalField(max_digits=30, decimal_places=2, default=0)
+
+    class Meta:
+        db_table = "resumen_depto"
+
+
+class ContratistaTotal(models.Model):
+    """V3.4: top contratistas preagregado (GROUP BY 9.3M = 34s en vivo, 5ms aquí)."""
+
+    contratista_nit = models.CharField(max_length=50)
+    contratista_nombre = models.CharField(max_length=255)
+    total_contratos = models.BigIntegerField(default=0)
+    suma_valor = models.DecimalField(max_digits=30, decimal_places=2, default=0)
+
+    class Meta:
+        db_table = "contratista_total"
+        indexes = [
+            models.Index(fields=["-suma_valor"], name="idx_ctop_suma"),
+        ]
+
+
+class SerieMensual(models.Model):
+    """V3.4: serie mensual precalculada (140 filas)."""
+
+    mes = models.DateField(primary_key=True)
+    total = models.BigIntegerField(default=0)
+    suma = models.DecimalField(max_digits=30, decimal_places=2, default=0)
+
+    class Meta:
+        db_table = "serie_mensual"
+        ordering = ["mes"]
+
+
+class TopDepto(models.Model):
+    """V3.4: top contratistas por departamento (dashboard filtra por depto siempre)."""
+
+    departamento = models.CharField(max_length=100)
+    contratista_nit = models.CharField(max_length=50)
+    contratista_nombre = models.CharField(max_length=255)
+    total_contratos = models.BigIntegerField(default=0)
+    suma_valor = models.DecimalField(max_digits=30, decimal_places=2, default=0)
+
+    class Meta:
+        db_table = "top_depto"
+        indexes = [
+            models.Index(fields=["departamento", "-suma_valor"], name="idx_topdepto_depto"),
+        ]
+
+
+class SerieDepto(models.Model):
+    """V3.4: serie mensual por departamento (scrub con filtro)."""
+
+    departamento = models.CharField(max_length=100)
+    mes = models.DateField()
+    total = models.BigIntegerField(default=0)
+    suma = models.DecimalField(max_digits=30, decimal_places=2, default=0)
+
+    class Meta:
+        db_table = "serie_depto"
+        unique_together = [("departamento", "mes")]
+        ordering = ["departamento", "mes"]
