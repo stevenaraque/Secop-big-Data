@@ -42,6 +42,72 @@ function detalleError(j, fallback) {
 
 const FORM_VACIO = { departamento_objetivo: "Boyaca", palabras_clave: "", rango_cuantia_min: "", rango_cuantia_max: "", ciudad: "", modalidad: "", filtros_extras: "" };
 
+// Card de oportunidad: detalle completo del contrato que hizo match con el radar.
+// Qué: entidad, objeto expandible, valor/fecha/modalidad/contratista + acciones.
+// Por qué: la fila anterior no mostraba ni la descripción (el serializer no la traía).
+function OpoCard({ op, onGuardar, onPostular, deshabilitado }) {
+  const [expandida, setExpandida] = useState(false);
+  const c = op.contrato ?? {};
+  const objeto = c.descripcion_del_proceso || "Sin objeto registrado.";
+  const larga = objeto.length > 220;
+  const valorTxt = c.valor_contrato == null || c.valor_contrato === ""
+    ? "Sin valor"
+    : `$${Number(c.valor_contrato).toLocaleString("es-CO")}`;
+  const campos = [
+    ["Valor", valorTxt],
+    ["Firma", (c.fecha_firma || "").slice(0, 10) || "Sin fecha"],
+    ["Modalidad", c.modalidad || "—"],
+    ["Ubicación", [c.ciudad, c.departamento].filter(Boolean).join(" · ") || "—"],
+    ["Contratista", c.contratista_nombre || "No definido"],
+    ["NIT contratista", c.contratista_nit || "—"],
+    ["Estado SECOP", c.estado_contrato || "—"],
+    ["Entidad NIT", c.nit_entidad || "—"],
+  ];
+  return (
+    <article className="rounded-xl border border-zinc-200 dark:border-zinc-700 p-4 bg-white dark:bg-zinc-900">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <StatusMark status={op.estado === "Nueva" ? "running" : "done"} label={op.estado} size={18} doneColor={op.estado === "Postulado" ? "#0ea5e9" : "#22c55e"} />
+          <p className="text-sm font-semibold truncate font-mono">{c.id_contrato || `#${op.id}`}</p>
+        </div>
+        <span className="shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900">Radar: {op.radar_palabras}</span>
+      </div>
+      <p className="mt-1 text-[13px] font-medium text-zinc-800 dark:text-zinc-200">{c.nombre_entidad || "Entidad sin nombre"}</p>
+      <p className="mt-1 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+        {larga && !expandida ? `${objeto.slice(0, 220)}… ` : objeto}
+        {larga && (
+          <button type="button" onClick={() => setExpandida((v) => !v)} className="font-medium text-emerald-700 dark:text-emerald-400 hover:underline">
+            {expandida ? "ver menos" : "ver más"}
+          </button>
+        )}
+      </p>
+      <dl className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
+        {campos.map(([k, v]) => (
+          <div key={k} className="min-w-0">
+            <dt className="text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{k}</dt>
+            <dd className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate" title={String(v)}>{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Detectada: {op.creado_en ? new Date(op.creado_en).toLocaleString("es-CO") : "—"}</p>
+        <div className="flex gap-1">
+          {op.estado === "Nueva" && (
+            <>
+              <button disabled={deshabilitado} onClick={() => onGuardar(op.id)} className="h-7 px-3 rounded-full bg-emerald-600 text-white text-xs hover:bg-emerald-700 disabled:opacity-50">Guardar</button>
+              <button disabled={deshabilitado} onClick={() => onPostular(op.id)} className="h-7 px-3 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50">Postular</button>
+            </>
+          )}
+          {op.estado === "Guardada" && (
+            <button disabled={deshabilitado} onClick={() => onPostular(op.id)} className="h-7 px-3 rounded-full bg-sky-600 text-white text-xs hover:bg-sky-700 disabled:opacity-50">Postular</button>
+          )}
+          {op.estado === "Postulado" && <span className="text-[11px] px-2 py-1 rounded-full bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-900">Postulado</span>}
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function PrivateDashboard({ token }) {
   const qc = useQueryClient();
   const [filtroEstado, setFiltroEstado] = useState("");
@@ -217,14 +283,6 @@ export default function PrivateDashboard({ token }) {
   function cancelarEdicion() {
     setEditandoId(null);
     setForm(FORM_VACIO);
-  }
-
-  // mapeo estado -> StatusMark
-  function statusForOpo(estado) {
-    if (estado === "Nueva") return "running";
-    if (estado === "Guardada") return "done";
-    if (estado === "Postulado") return "done";
-    return "pending";
   }
 
   const guardando = crearRadar.isPending || guardarEdicion.isPending;
@@ -404,27 +462,13 @@ export default function PrivateDashboard({ token }) {
               <>
                 <div className="mt-4 space-y-3">
                   {oposPag.map((op) => (
-                    <div key={op.id} className="rounded-xl border border-zinc-200 dark:border-zinc-700 p-4 flex items-start gap-3">
-                      <StatusMark status={statusForOpo(op.estado)} label={op.estado} size={20} doneColor={op.estado === "Postulado" ? "#0ea5e9" : "#22c55e"} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{op.contrato?.id_contrato} · {op.contrato?.departamento} — {op.contrato?.modalidad}</p>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 truncate">{op.contrato?.descripcion_del_proceso?.slice(0, 80) || op.contrato?.nombre_entidad}</p>
-                        <p className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400">${Number(op.contrato?.valor_contrato || 0).toLocaleString("es-CO")} · {op.contrato?.fecha_firma?.slice(0, 10) || ""}</p>
-                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Radar: {op.radar_palabras} · {op.creado_en ? new Date(op.creado_en).toLocaleString("es-CO") : "—"}</p>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        {op.estado === "Nueva" && (
-                          <>
-                            <button disabled={cambiarEstado.isPending} onClick={() => cambiarEstado.mutate({ id: op.id, estado: "Guardada" })} className="h-7 px-3 rounded-full bg-emerald-600 text-white text-xs hover:bg-emerald-700 disabled:opacity-50">Guardar</button>
-                            <button disabled={cambiarEstado.isPending} onClick={() => cambiarEstado.mutate({ id: op.id, estado: "Postulado" })} className="h-7 px-3 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50">Postular</button>
-                          </>
-                        )}
-                        {op.estado === "Guardada" && (
-                          <button disabled={cambiarEstado.isPending} onClick={() => cambiarEstado.mutate({ id: op.id, estado: "Postulado" })} className="h-7 px-3 rounded-full bg-sky-600 text-white text-xs hover:bg-sky-700 disabled:opacity-50">Postular</button>
-                        )}
-                        {op.estado === "Postulado" && <span className="text-[11px] px-2 py-1 rounded-full bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-900">Postulado</span>}
-                      </div>
-                    </div>
+                    <OpoCard
+                      key={op.id}
+                      op={op}
+                      deshabilitado={cambiarEstado.isPending}
+                      onGuardar={(id) => cambiarEstado.mutate({ id, estado: "Guardada" })}
+                      onPostular={(id) => cambiarEstado.mutate({ id, estado: "Postulado" })}
+                    />
                   ))}
                   {oportunidades.length === 0 && <p className="text-sm text-zinc-500 dark:text-zinc-400 border border-dashed rounded-xl p-6 text-center">Sin oportunidades para este filtro. Crea un Radar y espera al próximo ETL.</p>}
                 </div>

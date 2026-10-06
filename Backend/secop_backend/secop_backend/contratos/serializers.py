@@ -6,7 +6,9 @@ class ContratoSerializer(serializers.ModelSerializer):
         model = Contrato
         fields = [
             "id", "id_contrato", "nombre_entidad", "nit_entidad",
-            "departamento", "ciudad", "modalidad", "estado_contrato",
+            "departamento", "ciudad", "orden", "sector", "modalidad",
+            "estado_contrato", "codigo_categoria_principal",
+            "descripcion_del_proceso",
             "valor_contrato", "fecha_firma", "contratista_nit", "contratista_nombre"
         ]
 
