@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Enlace from "../components/Enlace.jsx";
@@ -45,66 +45,91 @@ const FORM_VACIO = { departamento_objetivo: "Boyaca", palabras_clave: "", rango_
 // Card de oportunidad: detalle completo del contrato que hizo match con el radar.
 // Qué: entidad, objeto expandible, valor/fecha/modalidad/contratista + acciones.
 // Por qué: la fila anterior no mostraba ni la descripción (el serializer no la traía).
-function OpoCard({ op, onGuardar, onPostular, deshabilitado }) {
-  const [expandida, setExpandida] = useState(false);
+function OpoCard({ op, onGuardar, onPostular, onInfo, deshabilitado }) {
   const c = op.contrato ?? {};
-  const objeto = c.descripcion_del_proceso || "Sin objeto registrado.";
-  const larga = objeto.length > 220;
+  const valorTxt = c.valor_contrato == null || c.valor_contrato === ""
+    ? "Sin valor"
+    : `$${Number(c.valor_contrato).toLocaleString("es-CO")}`;
+  return (
+    <article className="rounded-xl border border-zinc-200 dark:border-zinc-700 px-4 py-3 bg-white dark:bg-zinc-900 flex items-center gap-3">
+      <StatusMark status={op.estado === "Nueva" ? "running" : "done"} label={op.estado} size={18} doneColor={op.estado === "Postulado" ? "#0ea5e9" : "#22c55e"} />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold truncate font-mono">{c.id_contrato || `#${op.id}`}</p>
+        <p className="text-xs text-zinc-600 dark:text-zinc-400 truncate">{c.nombre_entidad || "Entidad sin nombre"} · {valorTxt}</p>
+      </div>
+      <span className="hidden sm:inline shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900">{op.radar_palabras}</span>
+      <button type="button" onClick={() => onInfo(op)} className="shrink-0 h-7 px-3 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-medium hover:bg-zinc-700 dark:hover:bg-zinc-200">Info</button>
+      <div className="shrink-0 flex gap-1">
+        {op.estado === "Nueva" && (
+          <>
+            <button disabled={deshabilitado} onClick={() => onGuardar(op.id)} className="h-7 px-3 rounded-full bg-emerald-600 text-white text-xs hover:bg-emerald-700 disabled:opacity-50">Guardar</button>
+            <button disabled={deshabilitado} onClick={() => onPostular(op.id)} className="h-7 px-3 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50">Postular</button>
+          </>
+        )}
+        {op.estado === "Guardada" && (
+          <button disabled={deshabilitado} onClick={() => onPostular(op.id)} className="h-7 px-3 rounded-full bg-sky-600 text-white text-xs hover:bg-sky-700 disabled:opacity-50">Postular</button>
+        )}
+        {op.estado === "Postulado" && <span className="text-[11px] px-2 py-1 rounded-full bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-900">Postulado</span>}
+      </div>
+    </article>
+  );
+}
+
+// Modal con el detalle completo del contrato: se abre con Info, cierra con
+// backdrop, Escape o el botón. Atrapa el foco en Cerrar al abrir.
+function ModalContrato({ op, onCerrar }) {
+  const refCerrar = useRef(null);
+  useEffect(() => {
+    refCerrar.current?.focus();
+    const alTeclar = (e) => { if (e.key === "Escape") onCerrar(); };
+    document.addEventListener("keydown", alTeclar);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", alTeclar);
+      document.body.style.overflow = "";
+    };
+  }, [onCerrar]);
+  if (!op) return null;
+  const c = op.contrato ?? {};
   const valorTxt = c.valor_contrato == null || c.valor_contrato === ""
     ? "Sin valor"
     : `$${Number(c.valor_contrato).toLocaleString("es-CO")}`;
   const campos = [
+    ["Entidad", c.nombre_entidad || "—"],
+    ["NIT entidad", c.nit_entidad || "—"],
+    ["Ubicación", [c.ciudad, c.departamento].filter(Boolean).join(" · ") || "—"],
+    ["Orden / Sector", [c.orden, c.sector].filter(Boolean).join(" · ") || "—"],
+    ["Modalidad", c.modalidad || "—"],
+    ["Estado SECOP", c.estado_contrato || "—"],
+    ["Categoría", c.codigo_categoria_principal || "—"],
     ["Valor", valorTxt],
     ["Firma", (c.fecha_firma || "").slice(0, 10) || "Sin fecha"],
-    ["Modalidad", c.modalidad || "—"],
-    ["Ubicación", [c.ciudad, c.departamento].filter(Boolean).join(" · ") || "—"],
     ["Contratista", c.contratista_nombre || "No definido"],
     ["NIT contratista", c.contratista_nit || "—"],
-    ["Estado SECOP", c.estado_contrato || "—"],
-    ["Entidad NIT", c.nit_entidad || "—"],
+    ["Detectada", op.creado_en ? new Date(op.creado_en).toLocaleString("es-CO") : "—"],
   ];
   return (
-    <article className="rounded-xl border border-zinc-200 dark:border-zinc-700 p-4 bg-white dark:bg-zinc-900">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <StatusMark status={op.estado === "Nueva" ? "running" : "done"} label={op.estado} size={18} doneColor={op.estado === "Postulado" ? "#0ea5e9" : "#22c55e"} />
-          <p className="text-sm font-semibold truncate font-mono">{c.id_contrato || `#${op.id}`}</p>
-        </div>
-        <span className="shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900">Radar: {op.radar_palabras}</span>
-      </div>
-      <p className="mt-1 text-[13px] font-medium text-zinc-800 dark:text-zinc-200">{c.nombre_entidad || "Entidad sin nombre"}</p>
-      <p className="mt-1 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
-        {larga && !expandida ? `${objeto.slice(0, 220)}… ` : objeto}
-        {larga && (
-          <button type="button" onClick={() => setExpandida((v) => !v)} className="font-medium text-emerald-700 dark:text-emerald-400 hover:underline">
-            {expandida ? "ver menos" : "ver más"}
-          </button>
-        )}
-      </p>
-      <dl className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
-        {campos.map(([k, v]) => (
-          <div key={k} className="min-w-0">
-            <dt className="text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{k}</dt>
-            <dd className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate" title={String(v)}>{v}</dd>
+    <div className="fixed inset-0 z-50 grid place-items-center p-4" role="dialog" aria-modal="true" aria-label={`Contrato ${c.id_contrato || op.id}`}>
+      <button type="button" aria-label="Cerrar detalle" onClick={onCerrar} className="absolute inset-0 bg-black/50 dark:bg-black/70 cursor-default" />
+      <div className="relative w-full max-w-[560px] max-h-[85dvh] overflow-y-auto rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5 shadow-xl">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold font-mono truncate">{c.id_contrato || `#${op.id}`}</p>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Radar: {op.radar_palabras} · {op.estado}</p>
           </div>
-        ))}
-      </dl>
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Detectada: {op.creado_en ? new Date(op.creado_en).toLocaleString("es-CO") : "—"}</p>
-        <div className="flex gap-1">
-          {op.estado === "Nueva" && (
-            <>
-              <button disabled={deshabilitado} onClick={() => onGuardar(op.id)} className="h-7 px-3 rounded-full bg-emerald-600 text-white text-xs hover:bg-emerald-700 disabled:opacity-50">Guardar</button>
-              <button disabled={deshabilitado} onClick={() => onPostular(op.id)} className="h-7 px-3 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50">Postular</button>
-            </>
-          )}
-          {op.estado === "Guardada" && (
-            <button disabled={deshabilitado} onClick={() => onPostular(op.id)} className="h-7 px-3 rounded-full bg-sky-600 text-white text-xs hover:bg-sky-700 disabled:opacity-50">Postular</button>
-          )}
-          {op.estado === "Postulado" && <span className="text-[11px] px-2 py-1 rounded-full bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-900">Postulado</span>}
+          <button ref={refCerrar} type="button" onClick={onCerrar} className="shrink-0 h-8 w-8 grid place-items-center rounded-full border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800" aria-label="Cerrar">✕</button>
         </div>
+        <p className="mt-3 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">{c.descripcion_del_proceso || "Sin objeto registrado."}</p>
+        <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+          {campos.map(([k, v]) => (
+            <div key={k} className="min-w-0 border-t border-zinc-100 dark:border-zinc-800 pt-1.5">
+              <dt className="text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{k}</dt>
+              <dd className="text-xs font-medium text-zinc-900 dark:text-zinc-100 break-words">{String(v)}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
-    </article>
+    </div>
   );
 }
 
@@ -116,6 +141,7 @@ export default function PrivateDashboard({ token }) {
   const [confirmBorrar, setConfirmBorrar] = useState(null);
   const [pagRadares, setPagRadares] = useState(0);
   const [pagOpos, setPagOpos] = useState(0);
+  const [detalleOp, setDetalleOp] = useState(null);
 
   const { data: radaresData, isLoading: cargandoRadares, isError: errorRadares, refetch: reintentarRadares } = useQuery({ queryKey: ["radares"], queryFn: () => fetchRadares(token), enabled: !!token, staleTime: 1000 * 60 * 5 });
   const radares = Array.isArray(radaresData) ? radaresData : radaresData?.results ?? [];
@@ -468,8 +494,10 @@ export default function PrivateDashboard({ token }) {
                       deshabilitado={cambiarEstado.isPending}
                       onGuardar={(id) => cambiarEstado.mutate({ id, estado: "Guardada" })}
                       onPostular={(id) => cambiarEstado.mutate({ id, estado: "Postulado" })}
+                      onInfo={(o) => setDetalleOp(o)}
                     />
                   ))}
+                  {detalleOp && <ModalContrato op={detalleOp} onCerrar={() => setDetalleOp(null)} />}
                   {oportunidades.length === 0 && <p className="text-sm text-zinc-500 dark:text-zinc-400 border border-dashed rounded-xl p-6 text-center">Sin oportunidades para este filtro. Crea un Radar y espera al próximo ETL.</p>}
                 </div>
                 {oportunidades.length > PAGE_OPOS && (
