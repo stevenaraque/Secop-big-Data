@@ -25,6 +25,14 @@ function ScrollArriba() {
   return null;
 }
 
+// Fondo único: misma instancia siempre (sin remount = sin flash WebGL).
+// Intensidad por ruta sin desmontar: /app usa la sutil de PrivateDashboard.
+function FondoPersistente() {
+  const { pathname } = useLocation();
+  const suave = pathname.startsWith("/app");
+  return <PageBackground opacityDark={suave ? 0.7 : 0.85} opacityLight={suave ? 0.65 : 0.8} />;
+}
+
 // RNF-11: skip link para teclado — Qué: Tab salta a contenido. Por qué: WCAG 2.4.1
 function SkipLink() {
   return (
@@ -73,7 +81,7 @@ function App() {
     <BrowserRouter>
       {/* Layout persistente: fondo + toasts montan UNA vez, no parpadean al navegar */}
       <ScrollArriba />
-      <PageBackground />
+      <FondoPersistente />
       <Toaster richColors closeButton position="bottom-left" toastOptions={{ style: { fontFamily: "Geist, system-ui, sans-serif" } }} />
       <Suspense fallback={<PantallaCarga />}>
         <Routes>
