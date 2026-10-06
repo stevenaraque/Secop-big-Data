@@ -149,7 +149,7 @@ export default function DashboardModern({ token }) {
   }));
 
   return (
-    <div className="relative isolate min-h-[100dvh] bg-[#fcfcfc] dark:bg-[#050505] text-zinc-900 dark:text-white antialiased selection:bg-emerald-500/30 transition-colors duration-300" style={{ fontFamily: "Geist, system-ui, sans-serif" }}>
+    <div className="relative isolate min-h-[100dvh] text-zinc-900 dark:text-white antialiased selection:bg-emerald-500/30 transition-colors duration-300" style={{ fontFamily: "Geist, system-ui, sans-serif" }}>
       {/* Fondo + Toaster viven en App (layout persistente) */}
 
       <header className="sticky top-0 z-20 backdrop-blur-2xl bg-white/80 dark:bg-[#050505]/70 border-b border-zinc-200 dark:border-white/[0.06] transition-colors duration-300">

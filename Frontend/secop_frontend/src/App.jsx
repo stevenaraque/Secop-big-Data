@@ -79,12 +79,15 @@ function App() {
 
   return (
     <BrowserRouter>
-      {/* Layout persistente: fondo + toasts montan UNA vez, no parpadean al navegar */}
-      <ScrollArriba />
-      <FondoPersistente />
-      <Toaster richColors closeButton position="bottom-left" toastOptions={{ style: { fontFamily: "Geist, system-ui, sans-serif" } }} />
-      <Suspense fallback={<PantallaCarga />}>
-        <Routes>
+      {/* Layout persistente: isolate propio para que el fondo -z-10 quede visible;
+          las páginas usan fondo transparente y el metal pinta la base */}
+      <div className="relative isolate min-h-[100dvh]">
+        <ScrollArriba />
+        <FondoPersistente />
+        <Toaster richColors closeButton position="bottom-left" toastOptions={{ style: { fontFamily: "Geist, system-ui, sans-serif" } }} />
+        <Suspense fallback={<PantallaCarga />}>
+          <div className="relative">
+          <Routes>
           <Route
             path="/login"
             element={
@@ -139,8 +142,10 @@ function App() {
           />
           <Route path="/" element={<PublicDashboardRoute />} />
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+          </Routes>
+          </div>
+        </Suspense>
+      </div>
     </BrowserRouter>
   );
 }

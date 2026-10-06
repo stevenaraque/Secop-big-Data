@@ -27,8 +27,7 @@ export default function PantallaCarga({ texto = "Cargando observatorio…" }) {
 
   return (
     <div
-      className="min-h-[100dvh] grid place-items-center relative isolate"
-      style={{ backgroundColor: oscuro ? "#050505" : "#fcfcfc" }}
+      className="min-h-[100dvh] grid place-items-center relative isolate bg-transparent"
     >
       <div className="relative flex flex-col items-center gap-4 p-6">
         <div

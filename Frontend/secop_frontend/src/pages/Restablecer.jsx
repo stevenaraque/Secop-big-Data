@@ -63,7 +63,7 @@ export default function Restablecer() {
     } catch (err) { setEstado("error"); setMensaje(err.message); }
   }
   return (
-    <div className="min-h-[100dvh] bg-[#fcfcfc] dark:bg-zinc-950 relative overflow-hidden flex flex-col">
+    <div className="min-h-[100dvh] relative overflow-hidden flex flex-col">
       <div aria-hidden className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
         <div className="absolute -top-24 -right-24 size-[560px] rounded-full bg-emerald-200/25 dark:bg-emerald-900/15 blur-[86px]" />
         <div className="absolute top-[18%] -left-32 size-[620px] rounded-full bg-zinc-200/70 dark:bg-zinc-800/30 blur-[95px]" />

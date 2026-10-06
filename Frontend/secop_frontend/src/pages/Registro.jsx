@@ -153,7 +153,7 @@ export default function Registro() {
 
   if (!checked) {
     return (
-      <div className="min-h-[100dvh] grid place-items-center bg-[#fcfcfc] dark:bg-zinc-950">
+      <div className="min-h-[100dvh] grid place-items-center">
         <span className="size-6 rounded-full border-2 border-zinc-200 border-t-emerald-600 animate-spin" aria-label="Cargando" />
       </div>
     );
@@ -161,7 +161,7 @@ export default function Registro() {
 
   if (sesionGuardada) {
     return (
-      <div className="min-h-[100dvh] bg-[#fcfcfc] dark:bg-zinc-950 relative overflow-hidden">
+      <div className="min-h-[100dvh] relative overflow-hidden">
         <div aria-hidden className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
           <div className="absolute -top-32 -right-32 size-[520px] rounded-full bg-emerald-200/30 dark:bg-emerald-900/20 blur-[80px]" />
           <div className="absolute top-40 -left-40 size-[640px] rounded-full bg-zinc-200/60 dark:bg-zinc-800/40 blur-[90px]" />
@@ -197,7 +197,7 @@ export default function Registro() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#fcfcfc] dark:bg-zinc-950 relative overflow-hidden flex flex-col">
+    <div className="min-h-[100dvh] relative overflow-hidden flex flex-col">
       <div aria-hidden className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
         <div className="absolute -top-24 -right-24 size-[560px] rounded-full bg-emerald-200/25 dark:bg-emerald-900/15 blur-[86px]" />
         <div className="absolute top-[18%] -left-32 size-[620px] rounded-full bg-zinc-200/70 dark:bg-zinc-800/30 blur-[95px]" />

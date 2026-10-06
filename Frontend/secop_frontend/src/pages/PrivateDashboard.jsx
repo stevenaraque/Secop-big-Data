@@ -230,7 +230,7 @@ export default function PrivateDashboard({ token }) {
   const guardando = crearRadar.isPending || guardarEdicion.isPending;
 
   return (
-    <div className="min-h-[100dvh] bg-[#fcfcfc] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 antialiased relative isolate">
+    <div className="min-h-[100dvh] text-zinc-900 dark:text-zinc-100 antialiased relative isolate">
       {/* Fondo + Toaster viven en App (layout persistente) */}
       <header className="sticky top-0 z-10 bg-white dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-700">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 h-[64px] flex items-center justify-between">

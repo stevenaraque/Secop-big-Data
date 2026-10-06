@@ -135,10 +135,10 @@ export default function Login() {
   function flipToRegistro(e) { e?.preventDefault(); setFlipped(true); }
   function flipToLogin(e) { e?.preventDefault(); setFlipped(false); }
 
-  if (!checked) return <div className="min-h-[100dvh] grid place-items-center bg-[#fcfcfc] dark:bg-zinc-950"><span className="size-6 rounded-full border-2 border-zinc-200 border-t-emerald-600 animate-spin" aria-label="Cargando" /></div>;
+  if (!checked) return <div className="min-h-[100dvh] grid place-items-center"><span className="size-6 rounded-full border-2 border-zinc-200 border-t-emerald-600 animate-spin" aria-label="Cargando" /></div>;
   if (sesionGuardada) {
     return (
-      <div className="min-h-[100dvh] bg-[#fcfcfc] dark:bg-zinc-950 relative isolate overflow-hidden">
+      <div className="min-h-[100dvh] relative isolate overflow-hidden">
         <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-6 flex items-center justify-between">
           <div className="flex items-center gap-3"><div className="size-8 rounded-xl bg-zinc-900 dark:bg-white grid place-items-center"><span className="text-white dark:text-zinc-900 font-mono text-[11px] font-bold tracking-tighter">SI</span></div><span className="text-[13px] font-semibold tracking-tighter text-zinc-900 dark:text-white">SECOP Insight</span><span className="hidden sm:inline text-[11px] tracking-wide text-zinc-500">· Observatorio SECOP II</span></div>
           <div className="flex items-center gap-2"><button onClick={flipToRegistro} className="hidden sm:inline-flex h-9 items-center justify-center rounded-full bg-emerald-600 px-4 text-xs font-medium text-white hover:bg-emerald-700">Registrarme</button><ThemeToggle /></div>
@@ -167,7 +167,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#fcfcfc] dark:bg-zinc-950 relative isolate overflow-hidden flex flex-col">
+    <div className="min-h-[100dvh] relative isolate overflow-hidden flex flex-col">
       <header className="w-full max-w-[1400px] mx-auto px-4 lg:px-8 py-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="size-8 rounded-xl bg-zinc-900 dark:bg-white grid place-items-center shadow-sm"><span className="font-mono text-[11px] font-bold tracking-tighter text-white dark:text-zinc-900">SI</span></div>
