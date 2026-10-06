@@ -7,6 +7,13 @@ from contratos.models import Contrato, Entidad, TrabajoCarga, Radar, Oportunidad
 
 SODA_URL = "https://www.datos.gov.co/resource/jbjy-vk9h.json"
 
+
+def _norm(s):
+    """Minúsculas sin tildes para comparar (Boyaca == Boyacá)."""
+    import unicodedata
+    t = unicodedata.normalize("NFD", str(s or "").lower())
+    return "".join(c for c in t if unicodedata.category(c) != "Mn")
+
 class Command(BaseCommand):
     help = "Carga contratos SECOP II desde SODA 2.1 con bulk_create 1000"
 
@@ -132,14 +139,15 @@ class Command(BaseCommand):
             radares = list(Radar.objects.filter(activo=True).select_related("usuario"))
             oportunidades = []
             for contrato in nuevos_contratos:
-                desc = (contrato.descripcion_del_proceso or "").lower()
-                nombre = (contrato.contratista_nombre or "").lower()
+                desc = _norm(contrato.descripcion_del_proceso)
+                nombre = _norm(contrato.contratista_nombre)
+                depto_c = _norm(contrato.departamento)
                 for radar in radares:
-                    # filtro depto
-                    if radar.departamento_objetivo and radar.departamento_objetivo.strip().lower() not in contrato.departamento.lower():
+                    # filtro depto (insensible a tildes: Boyaca == Boyacá)
+                    if radar.departamento_objetivo and _norm(radar.departamento_objetivo).strip() not in depto_c:
                         continue
-                    # filtro palabras_clave (ILIKE)
-                    kw = (radar.palabras_clave or "").strip().lower()
+                    # filtro palabras_clave (ILIKE insensible a tildes)
+                    kw = _norm(radar.palabras_clave).strip()
                     if kw and kw not in desc and kw not in nombre:
                         continue
                     # filtro rango cuantia
@@ -153,7 +161,7 @@ class Command(BaseCommand):
                         ok = True
                         for k, v in filtros.items():
                             contrato_val = getattr(contrato, k, None)
-                            if contrato_val is None or str(v).strip().lower() not in str(contrato_val).lower():
+                            if contrato_val is None or _norm(v).strip() not in _norm(contrato_val):
                                 ok = False
                                 break
                         if not ok:
