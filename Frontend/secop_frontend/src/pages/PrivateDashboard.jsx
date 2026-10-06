@@ -1,25 +1,30 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
+import Enlace from "../components/Enlace.jsx";
 import StatusMark from "../components/StatusMark.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
-import PageBackground from "../components/PageBackground.jsx";
 import { ArrowLeft, PencilSimple, Trash, Pause, Play, CaretLeft, CaretRight } from "@phosphor-icons/react";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
+import { API_URL as API } from "../lib/api.js";
 const PAGE_RADARES = 4;
 const PAGE_OPOS = 5;
 
+function errorConStatus(r, etiqueta) {
+  const e = new Error(etiqueta);
+  e.status = r.status;
+  throw e;
+}
 async function fetchRadares(token) {
   const r = await fetch(`${API}/radares/`, { headers: { Authorization: `Bearer ${token}` } });
-  if (!r.ok) throw new Error("radares");
+  if (!r.ok) errorConStatus(r, "radares");
   const j = await r.json();
   return j.results ?? j.value ?? j;
 }
 async function fetchOpos(token, estado) {
   const q = estado ? `?estado=${estado}` : "";
   const r = await fetch(`${API}/mis-oportunidades/${q}`, { headers: { Authorization: `Bearer ${token}` } });
-  if (!r.ok) throw new Error("oportunidades");
+  if (!r.ok) errorConStatus(r, "oportunidades");
   const j = await r.json();
   return j;
 }
@@ -226,8 +231,7 @@ export default function PrivateDashboard({ token }) {
 
   return (
     <div className="min-h-[100dvh] bg-[#fcfcfc] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 antialiased relative isolate">
-      <PageBackground opacityDark={0.7} opacityLight={0.65} />
-      <Toaster richColors closeButton position="bottom-left" />
+      {/* Fondo + Toaster viven en App (layout persistente) */}
       <header className="sticky top-0 z-10 bg-white dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-700">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 h-[64px] flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -239,7 +243,7 @@ export default function PrivateDashboard({ token }) {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <a href="/" className="text-xs px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1"><ArrowLeft size={14} aria-hidden="true" /> Público</a>
+            <Enlace to="/" className="text-xs px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1"><ArrowLeft size={14} aria-hidden="true" /> Público</Enlace>
           </div>
         </div>
       </header>

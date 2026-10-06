@@ -17,7 +17,7 @@ class Command(BaseCommand):
     def handle(self, *args, **opciones):
         t0 = time.time()
         with connection.cursor() as cur:
-            cur.execute("TRUNCATE resumen_global, resumen_depto, contratista_total, serie_mensual, top_depto, serie_depto")
+            cur.execute("TRUNCATE resumen_global, resumen_depto, contratista_total, serie_mensual, top_depto, serie_depto, bandera_det, entidad_depto, predominio_ent")
             cur.execute(
                 "INSERT INTO resumen_global (total, suma, promedio, actualizado_en) "
                 "SELECT COUNT(*), COALESCE(SUM(valor_contrato),0), COALESCE(AVG(valor_contrato),0), NOW() "
@@ -57,4 +57,28 @@ class Command(BaseCommand):
                 "FROM contrato WHERE fecha_firma IS NOT NULL GROUP BY departamento, 2"
             )
             self.stdout.write(f"serie_depto OK ({time.time()-t0:.0f}s)")
+            cur.execute(
+                "INSERT INTO bandera_det (departamento, nombre_entidad, contratista_nit, contratista_nombre, monto, contratos) "
+                "SELECT departamento, nombre_entidad, contratista_nit, contratista_nombre, "
+                "COALESCE(SUM(valor_contrato),0), COUNT(*) "
+                "FROM contrato GROUP BY departamento, nombre_entidad, contratista_nit, contratista_nombre"
+            )
+            self.stdout.write(f"bandera_det OK ({time.time()-t0:.0f}s)")
+            cur.execute(
+                "INSERT INTO entidad_depto (departamento, nombre_entidad, total) "
+                "SELECT departamento, nombre_entidad, COALESCE(SUM(valor_contrato),0) "
+                "FROM contrato GROUP BY departamento, nombre_entidad"
+            )
+            self.stdout.write(f"entidad_depto OK ({time.time()-t0:.0f}s)")
+            cur.execute(
+                "INSERT INTO predominio_ent (departamento, nombre_entidad, total, directas, pct, suma_total, suma_directa) "
+                "SELECT departamento, nombre_entidad, COUNT(*), "
+                "COUNT(*) FILTER (WHERE modalidad = ANY(%s)), "
+                "CASE WHEN COUNT(*)=0 THEN 0 ELSE ROUND(COUNT(*) FILTER (WHERE modalidad = ANY(%s)) * 100.0 / COUNT(*), 2) END, "
+                "COALESCE(SUM(valor_contrato),0), "
+                "COALESCE(SUM(valor_contrato) FILTER (WHERE modalidad = ANY(%s)),0) "
+                "FROM contrato GROUP BY departamento, nombre_entidad",
+                [list(MODALIDADES_DIRECTA), list(MODALIDADES_DIRECTA), list(MODALIDADES_DIRECTA)],
+            )
+            self.stdout.write(f"predominio OK ({time.time()-t0:.0f}s)")
         self.stdout.write(self.style.SUCCESS(f"Resúmenes listos en {(time.time()-t0)/60:.1f} min"))

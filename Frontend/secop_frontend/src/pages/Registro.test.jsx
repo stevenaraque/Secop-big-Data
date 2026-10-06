@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { expect, beforeEach, afterEach, vi } from "vitest";
 import Registro from "./Registro.jsx";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -6,7 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const queryClient = new QueryClient();
 
 function renderWithProviders(ui) {
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  return render(<MemoryRouter><QueryClientProvider client={queryClient}>{ui}</QueryClientProvider></MemoryRouter>);
 }
 
 beforeEach(() => {

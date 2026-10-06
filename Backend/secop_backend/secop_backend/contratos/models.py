@@ -283,3 +283,52 @@ class SerieDepto(models.Model):
         db_table = "serie_depto"
         unique_together = [("departamento", "mes")]
         ordering = ["departamento", "mes"]
+
+
+class BanderaDet(models.Model):
+    """V3.4: monto por (depto, entidad, contratista) para banderas (401k filas, no GROUP BY 9.3M)."""
+
+    departamento = models.CharField(max_length=100)
+    nombre_entidad = models.CharField(max_length=255)
+    contratista_nit = models.CharField(max_length=50)
+    contratista_nombre = models.CharField(max_length=255)
+    monto = models.DecimalField(max_digits=30, decimal_places=2, default=0)
+    contratos = models.BigIntegerField(default=0)
+
+    class Meta:
+        db_table = "bandera_det"
+        indexes = [
+            models.Index(fields=["departamento", "-monto"], name="idx_bdet_depto"),
+            models.Index(fields=["-monto"], name="idx_bdet_monto"),
+        ]
+
+
+class EntidadDepto(models.Model):
+    """V3.4: total por (depto, entidad), denominador de pct en banderas."""
+
+    departamento = models.CharField(max_length=100)
+    nombre_entidad = models.CharField(max_length=255)
+    total = models.DecimalField(max_digits=30, decimal_places=2, default=0)
+
+    class Meta:
+        db_table = "entidad_depto"
+        unique_together = [("departamento", "nombre_entidad")]
+
+
+class PredominioEnt(models.Model):
+    """V3.4: predominio directa por (depto, entidad) con pct precalculado."""
+
+    departamento = models.CharField(max_length=100)
+    nombre_entidad = models.CharField(max_length=255)
+    total = models.BigIntegerField(default=0)
+    directas = models.BigIntegerField(default=0)
+    pct = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    suma_total = models.DecimalField(max_digits=30, decimal_places=2, default=0)
+    suma_directa = models.DecimalField(max_digits=30, decimal_places=2, default=0)
+
+    class Meta:
+        db_table = "predominio_ent"
+        indexes = [
+            models.Index(fields=["departamento", "-pct"], name="idx_pred_depto"),
+            models.Index(fields=["-pct"], name="idx_pred_pct"),
+        ]

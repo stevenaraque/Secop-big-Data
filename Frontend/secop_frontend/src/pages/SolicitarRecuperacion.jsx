@@ -3,8 +3,8 @@ import { motion, useMotionValue, useSpring } from "motion/react";
 import { EnvelopeSimple, ClockClockwise, ShieldCheck, ArrowRight, Lightning, CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import UiverseInput from "../components/UiverseInput.jsx";
-
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+import Enlace from "../components/Enlace.jsx";
+import { API_URL as API } from "../lib/api.js";
 
 function MagneticButton({ children, disabled, className = "", ...props }) {
   const ref = useRef(null);
@@ -70,7 +70,7 @@ export default function SolicitarRecuperacion() {
           <div className="leading-none"><div className="text-[13px] font-semibold tracking-tighter text-zinc-900 dark:text-white">SECOP Insight</div><div className="text-[11px] tracking-wide text-zinc-500 hidden sm:block">Observatorio · Recuperación</div></div>
         </div>
         <div className="flex items-center gap-2">
-          <a href="/login" className="hidden sm:inline text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white underline-offset-4 hover:underline">Volver a login</a>
+          <Enlace to="/login" className="hidden sm:inline text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white underline-offset-4 hover:underline">Volver a login</Enlace>
           <ThemeToggle />
         </div>
       </header>
@@ -119,8 +119,8 @@ export default function SolicitarRecuperacion() {
 
               <div className="mt-6 flex items-center gap-3"><div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" /><span className="text-[11px] tracking-wide text-zinc-500">o</span><div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" /></div>
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <a href="/login" className="h-10 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800">Volver a login</a>
-                <a href="/" className="h-10 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 grid place-items-center text-xs font-medium">Ver demo</a>
+                <Enlace to="/login" className="h-10 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800">Volver a login</Enlace>
+                <Enlace to="/" className="h-10 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 grid place-items-center text-xs font-medium">Ver demo</Enlace>
               </div>
             </div>
             <div className="border-t border-zinc-200/50 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-800/30 px-8 py-3 flex items-center justify-between"><span className="text-[11px] text-zinc-500 flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> 30 min · 1 uso</span><span className="text-[11px] text-zinc-500">console.EmailBackend en dev</span></div>

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { expect, beforeEach, afterEach, vi } from "vitest";
 import Login from "./Login.jsx";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -7,9 +8,11 @@ const queryClient = new QueryClient();
 
 function renderWithProviders(ui) {
   return render(
-    <QueryClientProvider client={queryClient}>
-      {ui}
-    </QueryClientProvider>
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        {ui}
+      </QueryClientProvider>
+    </MemoryRouter>
   );
 }
 

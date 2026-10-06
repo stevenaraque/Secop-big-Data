@@ -1,5 +1,7 @@
 import { useState } from "react";
-import PageBackground from "./PageBackground.jsx";
+
+// PantallaCarga — fallback de Suspense a página completa.
+// Qué: spinner esmeralda sobre el fondo de App (layout persistente, sin duplicar WebGL).
 
 // PantallaCarga — fallback de Suspense a página completa.
 // Qué: spinner esmeralda + metal líquido de fondo. Por qué: la carga de
@@ -28,7 +30,6 @@ export default function PantallaCarga({ texto = "Cargando observatorio…" }) {
       className="min-h-[100dvh] grid place-items-center relative isolate"
       style={{ backgroundColor: oscuro ? "#050505" : "#fcfcfc" }}
     >
-      <PageBackground tema={tema} />
       <div className="relative flex flex-col items-center gap-4 p-6">
         <div
           className={`w-12 h-12 rounded-2xl grid place-items-center font-bold text-[15px] tracking-tighter ${oscuro ? "bg-white text-black" : "bg-zinc-900 text-white"}`}

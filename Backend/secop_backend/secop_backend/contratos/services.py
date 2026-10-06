@@ -1,6 +1,7 @@
 from django.core.cache import cache
+from django.db import connection
 from django.db.models import Count, Sum, Avg, Q
-from .models import Contrato, Entidad, UmbralAlerta, ResumenGlobal, ResumenDepto, ContratistaTotal, SerieMensual, TopDepto, SerieDepto
+from .models import Contrato, Entidad, UmbralAlerta, ResumenGlobal, ResumenDepto, ContratistaTotal, SerieMensual, TopDepto, SerieDepto, BanderaDet, EntidadDepto, PredominioEnt
 
 class ServicioContratos:
     """Service Layer para SECOP - evita vistas gordas y centraliza ORM (Repository + Service)"""
@@ -150,7 +151,51 @@ class ServicioContratos:
         )
         return {"contratos": contratos, "empresas": empresas, "entidades": entidades}
 
+    def _banderas_fast(self, umbral=30, depto=None):
+        umbral = float(umbral)
+        vals = self._variantes(depto) if depto else None
+        if vals:
+            sql = (
+                "SELECT d.nombre_entidad, d.contratista_nit, d.contratista_nombre, "
+                "SUM(d.monto) AS monto, SUM(d.contratos) AS contratos, "
+                "SUM(d.monto)*100/NULLIF(SUM(e.total),0) AS pct "
+                "FROM bandera_det d JOIN entidad_depto e "
+                "ON e.departamento = ANY(%s) AND e.nombre_entidad = d.nombre_entidad "
+                "WHERE d.departamento = ANY(%s) "
+                "GROUP BY d.nombre_entidad, d.contratista_nit, d.contratista_nombre "
+                "HAVING SUM(d.monto)*100/NULLIF(SUM(e.total),0) >= %s "
+                "ORDER BY pct DESC"
+            )
+            params = [vals, vals, umbral]
+        else:
+            sql = (
+                "SELECT d.nombre_entidad, d.contratista_nit, d.contratista_nombre, "
+                "SUM(d.monto) AS monto, SUM(d.contratos) AS contratos, "
+                "SUM(d.monto)*100/NULLIF(SUM(e.total),0) AS pct "
+                "FROM bandera_det d JOIN entidad_depto e ON e.nombre_entidad = d.nombre_entidad "
+                "GROUP BY d.nombre_entidad, d.contratista_nit, d.contratista_nombre "
+                "HAVING SUM(d.monto)*100/NULLIF(SUM(e.total),0) >= %s "
+                "ORDER BY pct DESC"
+            )
+            params = [umbral]
+        banderas = []
+        with connection.cursor() as cur:
+            cur.execute(sql, params)
+            for ent, nit, nom, monto, n, pct in cur.fetchall():
+                banderas.append({
+                    "contratista_nit": nit,
+                    "contratista_nombre": nom,
+                    "entidad": ent,
+                    "porcentaje": round(float(pct or 0), 2),
+                    "monto": float(monto or 0),
+                    "contratos": n,
+                })
+        return {"umbral": umbral, "total": len(banderas), "banderas": banderas}
+
     def banderas_concentracion(self, umbral=30, depto=None):
+        # V3.4: tablas precalculadas (vacías en tests → vivo como fallback).
+        if BanderaDet.objects.exists():
+            return self._banderas_fast(umbral, depto)
         qs = self.modelo.objects.all()
         qs = self._filtrar_depto(qs, depto)
         totales = {
@@ -181,6 +226,21 @@ class ServicioContratos:
 
     def predominio_directa(self, umbral=80, depto=None):
         # RF-20: bandera por entidad si % directa supera umbral. Qué: GROUP BY entidad en BD. Por qué: detectar fraccionamiento.
+        # V3.4: tabla precalculada (vacía en tests → vivo como fallback).
+        if PredominioEnt.objects.exists():
+            umbral = float(umbral)
+            qs = PredominioEnt.objects.filter(pct__gte=umbral)
+            if depto:
+                qs = qs.filter(departamento__in=self._variantes(depto))
+            banderas = [{
+                "entidad": r.nombre_entidad,
+                "porcentaje_directa": float(r.pct or 0),
+                "total": r.total,
+                "directas": r.directas,
+                "suma_total": float(r.suma_total or 0),
+                "suma_directa": float(r.suma_directa or 0),
+            } for r in qs.order_by("-pct")]
+            return {"umbral": umbral, "total": len(banderas), "banderas": banderas}
         qs = self.modelo.objects.all()
         qs = self._filtrar_depto(qs, depto)
         directas_q = Q(modalidad__in=["Contratación directa", "Contratacion directa"])

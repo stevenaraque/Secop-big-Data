@@ -15,8 +15,8 @@ import {
 } from "@phosphor-icons/react";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import UiverseInput from "../components/UiverseInput.jsx";
-
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+import Enlace from "../components/Enlace.jsx";
+import { API_URL as API } from "../lib/api.js";
 
 function MagneticButton({ children, disabled, className = "", ...props }) {
   const ref = useRef(null);
@@ -181,8 +181,8 @@ export default function Registro() {
             </motion.h1>
             <motion.p variants={fadeUp} className="mt-4 text-base text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-[65ch]">Ve directo a <span className="font-medium text-zinc-900 dark:text-white">/app</span> y crea tus radares para notificaciones. O registra otra cuenta.</motion.p>
             <motion.div variants={fadeUp} className="mt-8 flex flex-wrap gap-3">
-              <a href="/app" className="inline-flex items-center gap-2 rounded-full bg-emerald-600 text-white h-11 px-6 text-sm font-medium hover:bg-emerald-700 active:scale-[0.98] transition-all">Ir a mis radares <ArrowRight size={16} weight="bold" /></a>
-              <a href="/login" className="h-11 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 grid place-items-center text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800">Ir a login</a>
+              <Enlace to="/app" className="inline-flex items-center gap-2 rounded-full bg-emerald-600 text-white h-11 px-6 text-sm font-medium hover:bg-emerald-700 active:scale-[0.98] transition-all">Ir a mis radares <ArrowRight size={16} weight="bold" /></Enlace>
+              <Enlace to="/login" className="h-11 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 grid place-items-center text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800">Ir a login</Enlace>
             </motion.div>
           </motion.div>
           <div className="rounded-[2.5rem] border border-zinc-200/50 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] max-w-[440px] mx-auto lg:mx-0 lg:justify-self-end w-full">
@@ -215,7 +215,7 @@ export default function Registro() {
           <span className="hidden md:inline-flex ml-2 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 px-2.5 py-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 backdrop-blur">v3.1 · Registro abierto</span>
         </div>
         <div className="flex items-center gap-2">
-          <a href="/login" className="hidden sm:inline text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white underline-offset-4 hover:underline">¿Ya tienes cuenta? Entrar</a>
+          <Enlace to="/login" className="hidden sm:inline text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white underline-offset-4 hover:underline">¿Ya tienes cuenta? Entrar</Enlace>
           <ThemeToggle />
         </div>
       </header>
@@ -319,8 +319,8 @@ export default function Registro() {
               <div className="mt-6 flex items-center gap-3"><div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" /><span className="text-[11px] tracking-wide text-zinc-500">o</span><div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" /></div>
 
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <a href="/login" className="h-10 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 active:scale-[0.98] transition-all">Ya tengo cuenta</a>
-                <a href="/" className="h-10 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 grid place-items-center text-xs font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 active:scale-[0.98] transition-all">Ver demo</a>
+                <Enlace to="/login" className="h-10 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 active:scale-[0.98] transition-all">Ya tengo cuenta</Enlace>
+                <Enlace to="/" className="h-10 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 grid place-items-center text-xs font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 active:scale-[0.98] transition-all">Ver demo</Enlace>
               </div>
             </div>
             <div className="border-t border-zinc-200/50 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-800/30 px-8 py-3 flex items-center justify-between">
@@ -333,7 +333,7 @@ export default function Registro() {
       </main>
 
       <footer className="w-full max-w-[1400px] mx-auto px-4 lg:px-8 py-6 flex flex-wrap items-center justify-between gap-3 text-[11px] text-zinc-500 border-t border-zinc-200/50 dark:border-zinc-800 mt-auto">
-        <span>© 2026 SECOP Insight · Registro abierto · <a href="/login" className="underline hover:text-zinc-700">¿Ya tienes cuenta? Entra</a></span>
+        <span>© 2026 SECOP Insight · Registro abierto · <Enlace to="/login" className="underline hover:text-zinc-700">¿Ya tienes cuenta? Entra</Enlace></span>
         <span className="flex items-center gap-3"><span className="inline-flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-emerald-500" /> API {API.replace("/api","")}</span><span>·</span><span>Radares → notificaciones</span></span>
       </footer>
     </div>

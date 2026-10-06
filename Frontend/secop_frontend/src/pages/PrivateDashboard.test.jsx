@@ -1,7 +1,9 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import PrivateDashboard from "./PrivateDashboard.jsx";
 import App from "../App.jsx";
+import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 function client() {
@@ -9,7 +11,7 @@ function client() {
 }
 
 function renderPrivate(ui) {
-  return render(<QueryClientProvider client={client()}>{ui}</QueryClientProvider>);
+  return render(<MemoryRouter><QueryClientProvider client={client()}><Toaster />{ui}</QueryClientProvider></MemoryRouter>);
 }
 
 beforeEach(() => {

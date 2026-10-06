@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, memo, lazy, Suspense } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { animate } from "animejs";
 import { motion } from "motion/react";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import Banderas from "./Banderas.jsx";
 import PredominioDirecta from "./PredominioDirecta.jsx";
 import Umbrales from "./Umbrales.jsx";
@@ -17,7 +18,6 @@ import DataTableSECOP from "./DataTableSECOP.jsx";
 import StatusMark from "../components/StatusMark.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import LazySection from "../components/LazySection.jsx";
-import PageBackground from "../components/PageBackground.jsx";
 import ScrubChart from "../components/ScrubChart.jsx";
 import { useTheme } from "../hooks/useTheme.js";
 import { dineroCorto, dineroExacto } from "../lib/formato.js";
@@ -59,15 +59,18 @@ async function fetchContratos({ depto }, t) {
 // CTA radar estándar: la misma píldora en header, hero y sección CTA.
 // Qué: un solo estilo h-10 + motion. Por qué: 3 versiones distintas confundían.
 // sobreOscuro: píldora clara para las tarjetas oscuras (CTA radar, gráfica viva).
+// SPA: navega sin recarga (antes motion.a + href = flash blanco + refetch).
 function EnlaceRadar({ href, children, icono, sobreOscuro }) {
+  const nav = useNavigate();
   const colores = sobreOscuro
     ? "bg-white text-black hover:bg-zinc-200"
     : "bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-700 dark:hover:bg-zinc-200";
   return (
     <motion.a
+      href={href}
+      onClick={(e) => { e.preventDefault(); nav(href); }}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.97 }}
-      href={href}
       className={`h-10 inline-flex items-center gap-1.5 rounded-full px-5 text-sm font-semibold transition-colors ${colores}`}
     >
       {children} {icono ?? <ArrowRight size={16} aria-hidden="true" />}
@@ -147,9 +150,7 @@ export default function DashboardModern({ token }) {
 
   return (
     <div className="relative isolate min-h-[100dvh] bg-[#fcfcfc] dark:bg-[#050505] text-zinc-900 dark:text-white antialiased selection:bg-emerald-500/30 transition-colors duration-300" style={{ fontFamily: "Geist, system-ui, sans-serif" }}>
-      <Toaster richColors closeButton position="bottom-left" toastOptions={{ style: { fontFamily: "Geist, system-ui, sans-serif" } }} />
-      {/* Fondo compartido: aurora CSS + metal WebGL */}
-      <PageBackground />
+      {/* Fondo + Toaster viven en App (layout persistente) */}
 
       <header className="sticky top-0 z-20 backdrop-blur-2xl bg-white/80 dark:bg-[#050505]/70 border-b border-zinc-200 dark:border-white/[0.06] transition-colors duration-300">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 min-h-[72px] py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">

@@ -3,8 +3,8 @@ import { motion, useMotionValue, useSpring } from "motion/react";
 import { ShieldCheck, LockKey, ClockClockwise, CheckCircle, WarningCircle, ArrowRight, Lightning, Key, Eye, EyeSlash } from "@phosphor-icons/react";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import UiverseInput from "../components/UiverseInput.jsx";
-
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+import Enlace from "../components/Enlace.jsx";
+import { API_URL as API } from "../lib/api.js";
 function leerTokenInicial() {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -76,7 +76,7 @@ export default function Restablecer() {
           <div className="leading-none"><div className="text-[13px] font-semibold tracking-tighter text-zinc-900 dark:text-white">SECOP Insight</div><div className="text-[11px] tracking-wide text-zinc-500 hidden sm:block">Restablecer · 30 min</div></div>
         </div>
         <div className="flex items-center gap-2">
-          <a href="/login" className="hidden sm:inline text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 underline-offset-4 hover:underline">Volver a login</a>
+          <Enlace to="/login" className="hidden sm:inline text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 underline-offset-4 hover:underline">Volver a login</Enlace>
           <ThemeToggle />
         </div>
       </header>
@@ -118,7 +118,7 @@ export default function Restablecer() {
                 <UiverseInput id="restablecer-nueva" label="Nueva contraseña" type={show ? "text" : "password"} value={nueva} onChange={(e) => setNueva(e.target.value)} placeholder="Ej: NuevaClave123" required autoComplete="new-password" icon={show ? EyeSlash : Eye} onIconClick={() => setShow((v) => !v)} iconLabel={show ? "Ocultar contraseña" : "Mostrar contraseña"} delay={80} />
                 <p className="text-[11px] text-zinc-500 -mt-2 px-1">8+ con mayúscula, minúscula y número.</p>
 
-                {estado === "ok" && (<motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2.5 flex gap-2.5"><CheckCircle size={18} weight="fill" className="text-emerald-600 shrink-0 mt-0.5" /><p className="text-sm text-emerald-800 dark:text-emerald-300">{mensaje} — <a href="/login" className="underline font-medium">ir a iniciar sesión</a></p></motion.div>)}
+                {estado === "ok" && (<motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2.5 flex gap-2.5"><CheckCircle size={18} weight="fill" className="text-emerald-600 shrink-0 mt-0.5" /><p className="text-sm text-emerald-800 dark:text-emerald-300">{mensaje} — <Enlace to="/login" className="underline font-medium">ir a iniciar sesión</Enlace></p></motion.div>)}
                 {estado === "error" && (<motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 px-3 py-2.5 flex gap-2.5"><WarningCircle size={18} weight="fill" className="text-red-600 shrink-0 mt-0.5" /><p role="alert" className="text-sm text-red-800 dark:text-red-300">{mensaje}</p></motion.div>)}
 
                 <MagneticButton type="submit" disabled={estado === "loading"} className="w-full">
@@ -128,8 +128,8 @@ export default function Restablecer() {
 
               <div className="mt-6 flex items-center gap-3"><div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" /><span className="text-[11px] tracking-wide text-zinc-500">o</span><div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" /></div>
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <a href="/recuperar" className="h-10 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800">Solicitar nuevo enlace</a>
-                <a href="/login" className="h-10 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 grid place-items-center text-xs font-medium">Volver a login</a>
+                <Enlace to="/recuperar" className="h-10 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800">Solicitar nuevo enlace</Enlace>
+                <Enlace to="/login" className="h-10 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 grid place-items-center text-xs font-medium">Volver a login</Enlace>
               </div>
             </div>
             <div className="border-t border-zinc-200/50 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-800/30 px-8 py-3 flex items-center justify-between"><span className="text-[11px] text-zinc-500 flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> 1 uso · SHA-256</span><span className="text-[11px] text-zinc-500">PBKDF2</span></div>

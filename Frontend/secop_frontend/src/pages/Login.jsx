@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, useMotionValue, useSpring, AnimatePresence } from "motion/react";
 import {
   ShieldCheck,
@@ -18,7 +19,7 @@ import {
 } from "@phosphor-icons/react";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import UiverseInput from "../components/UiverseInput.jsx";
-import PageBackground from "../components/PageBackground.jsx";
+import Enlace from "../components/Enlace.jsx";
 import { API_URL as API } from "../lib/api.js";
 
 function MagneticButton({ children, disabled, className = "", ...props }) {
@@ -76,6 +77,7 @@ export default function Login() {
   const [checked] = useState(true);
   // flip + registro state (sin recarga)
   const [flipped, setFlipped] = useState(false);
+  const nav = useNavigate();
   const [nombreUsuario, setNombreUsuario] = useState("");
   const [correoReg, setCorreoReg] = useState("");
   const [contrasenaReg, setContrasenaReg] = useState("");
@@ -95,7 +97,7 @@ export default function Login() {
       if (!r.ok) throw new Error(data.detalle || data.detail || data.error || "No se pudo iniciar sesión.");
       localStorage.setItem("access", data.access);
       localStorage.setItem("refresh", data.refresh);
-      window.location.href = "/";
+      nav("/");
     } catch (err) { setEstado("error"); setMensaje(err.message); }
   }
   async function handleRegistro(e) {
@@ -137,7 +139,6 @@ export default function Login() {
   if (sesionGuardada) {
     return (
       <div className="min-h-[100dvh] bg-[#fcfcfc] dark:bg-zinc-950 relative isolate overflow-hidden">
-        <PageBackground />
         <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-6 flex items-center justify-between">
           <div className="flex items-center gap-3"><div className="size-8 rounded-xl bg-zinc-900 dark:bg-white grid place-items-center"><span className="text-white dark:text-zinc-900 font-mono text-[11px] font-bold tracking-tighter">SI</span></div><span className="text-[13px] font-semibold tracking-tighter text-zinc-900 dark:text-white">SECOP Insight</span><span className="hidden sm:inline text-[11px] tracking-wide text-zinc-500">· Observatorio SECOP II</span></div>
           <div className="flex items-center gap-2"><button onClick={flipToRegistro} className="hidden sm:inline-flex h-9 items-center justify-center rounded-full bg-emerald-600 px-4 text-xs font-medium text-white hover:bg-emerald-700">Registrarme</button><ThemeToggle /></div>
@@ -148,14 +149,14 @@ export default function Login() {
             <motion.h1 variants={fadeUp} className="mt-6 text-4xl md:text-6xl font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white" style={{ fontFamily: "Geist, Satoshi, ui-sans-serif" }}>Ya tienes<br /><span className="text-zinc-500 dark:text-zinc-400">sesión guardada.</span></motion.h1>
             <motion.p variants={fadeUp} className="mt-4 text-base text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-[65ch]">Evita pedir la clave otra vez. Entra directo al dashboard o cambia de cuenta.</motion.p>
             <motion.div variants={fadeUp} className="mt-8 flex flex-wrap gap-3">
-              <a href="/" className="inline-flex items-center gap-2 rounded-full bg-emerald-600 text-white h-11 px-6 hover:bg-emerald-700">Entrar al dashboard <ArrowRight size={16} weight="bold" /></a>
+              <Enlace to="/" className="inline-flex items-center gap-2 rounded-full bg-emerald-600 text-white h-11 px-6 hover:bg-emerald-700">Entrar al dashboard <ArrowRight size={16} weight="bold" /></Enlace>
               <button type="button" onClick={usarOtraCuenta} className="h-11 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6">Usar otra cuenta</button>
             </motion.div>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.22 }} className="w-full max-w-[440px] mx-auto lg:mx-0 lg:justify-self-end">
             <div className="rounded-[2.5rem] border border-zinc-200/50 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)]">
               <div className="flex items-center gap-3"><div className="size-9 rounded-full bg-emerald-600 grid place-items-center text-white"><ShieldCheck size={18} weight="fill" /></div><div><div className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-white">Sesión activa</div><div className="text-xs text-zinc-500">Token guardado</div></div><span className="ml-auto size-2 rounded-full bg-emerald-500 animate-pulse" /></div>
-              <a href="/" className="mt-6 flex h-11 items-center justify-center gap-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900">Entrar al dashboard <ArrowRight size={16} /></a>
+              <Enlace to="/" className="mt-6 flex h-11 items-center justify-center gap-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900">Entrar al dashboard <ArrowRight size={16} /></Enlace>
               <button type="button" onClick={usarOtraCuenta} className="mt-3 w-full h-11 rounded-full border border-zinc-200 dark:border-zinc-700">Borrar sesión</button>
               <button onClick={flipToRegistro} className="mt-2 w-full h-10 rounded-full border-2 border-emerald-600 text-emerald-700 dark:text-emerald-400 grid place-items-center text-xs font-semibold hover:bg-emerald-600 hover:text-white">Registrar nueva empresa</button>
             </div>
@@ -167,7 +168,6 @@ export default function Login() {
 
   return (
     <div className="min-h-[100dvh] bg-[#fcfcfc] dark:bg-zinc-950 relative isolate overflow-hidden flex flex-col">
-      <PageBackground />
       <header className="w-full max-w-[1400px] mx-auto px-4 lg:px-8 py-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="size-8 rounded-xl bg-zinc-900 dark:bg-white grid place-items-center shadow-sm"><span className="font-mono text-[11px] font-bold tracking-tighter text-white dark:text-zinc-900">SI</span></div>
@@ -178,7 +178,7 @@ export default function Login() {
           <button onClick={flipped ? flipToLogin : flipToRegistro} className="hidden sm:inline-flex h-9 items-center justify-center rounded-full bg-emerald-600 px-4 text-xs font-medium text-white hover:bg-emerald-700 active:scale-[0.98] transition-all">
             {flipped ? "Iniciar sesión" : "Registrarme"}
           </button>
-          <a href="/" className="hidden sm:inline text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 underline-offset-4 hover:underline">Ver observatorio</a>
+          <Enlace to="/" className="hidden sm:inline text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 underline-offset-4 hover:underline">Ver observatorio</Enlace>
           <ThemeToggle />
         </div>
       </header>
@@ -255,15 +255,15 @@ export default function Login() {
                       <UiverseInput id="login-correo" label="Correo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="tu@correo.com" required autoComplete="email" delay={0} />
                       <p className="text-[11px] text-zinc-500 -mt-2">Usa el correo con el que te registraste. No compartas tu clave.</p>
                       <UiverseInput id="login-contrasena" label="Contraseña" type={showPass ? "text" : "password"} value={contrasena} onChange={(e) => setContrasena(e.target.value)} placeholder="Tu contraseña" required autoComplete="current-password" icon={showPass ? EyeSlash : Eye} onIconClick={() => setShowPass((v) => !v)} iconLabel={showPass ? "Ocultar contraseña" : "Mostrar contraseña"} delay={80} />
-                      <div className="flex justify-end -mt-3"><a href="/recuperar" className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 underline-offset-4 hover:underline">Olvidé mi clave</a></div>
+                      <div className="flex justify-end -mt-3"><Enlace to="/recuperar" className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 underline-offset-4 hover:underline">Olvidé mi clave</Enlace></div>
                       {estado === "error" && (<motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 px-3 py-2.5 flex gap-2.5"><WarningCircle size={18} weight="fill" className="text-red-600 shrink-0 mt-0.5" /><p role="alert" className="text-sm leading-relaxed text-red-800 dark:text-red-300">{mensaje}</p></motion.div>)}
                       <div className="pt-1"><MagneticButton type="submit" disabled={estado === "loading"} className="w-full">Entrar <ArrowRight size={16} weight="bold" /></MagneticButton><p className="mt-2 text-center text-[11px] text-zinc-500">Al entrar aceptas trazabilidad y auditoría de accesos.</p></div>
                     </form>
                   )}
                   <div className="mt-6 flex items-center gap-3"><div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" /><span className="text-[11px] tracking-wide text-zinc-500">o</span><div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" /></div>
                   <div className="mt-4 grid grid-cols-2 gap-2">
-                    <a href="/recuperar" className="h-10 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center text-xs font-medium hover:bg-zinc-50">Recuperar acceso</a>
-                    <a href="/" className="h-10 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 grid place-items-center text-xs font-medium">Ver demo pública</a>
+                    <Enlace to="/recuperar" className="h-10 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center text-xs font-medium hover:bg-zinc-50">Recuperar acceso</Enlace>
+                    <Enlace to="/" className="h-10 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 grid place-items-center text-xs font-medium">Ver demo pública</Enlace>
                   </div>
                   <div className="mt-4 grid gap-2">
                     <button onClick={flipToRegistro} className="w-full h-11 rounded-full border-2 border-emerald-600 text-emerald-700 dark:text-emerald-400 dark:border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 grid place-items-center text-sm font-semibold hover:bg-emerald-600 hover:text-white active:scale-[0.98] transition-all">Registrarme — crear cuenta en 30s</button>
@@ -272,7 +272,7 @@ export default function Login() {
                 </div>
                 <div className="border-t border-zinc-200/50 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-800/30 px-8 py-3 flex items-center justify-between"><span className="text-[11px] text-zinc-500 flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> Cifrado en tránsito · TLS 1.3</span><span className="text-[11px] text-zinc-500">SOC 2 · 47.2% menos fricción</span></div>
               </div>
-              <p className="mt-3 text-center text-[11px] text-zinc-500 px-4">Protegido con rate-limit y JWT rotativo. <a href="/recuperar" className="underline hover:text-zinc-700">¿Problemas?</a></p>
+              <p className="mt-3 text-center text-[11px] text-zinc-500 px-4">Protegido con rate-limit y JWT rotativo. <Enlace to="/recuperar" className="underline hover:text-zinc-700">¿Problemas?</Enlace></p>
             </div>
 
             {/* BACK — Registro (volteo) */}

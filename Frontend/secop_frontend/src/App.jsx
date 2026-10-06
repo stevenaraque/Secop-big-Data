@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Toaster } from "sonner";
 import "./App.css";
 
 // Lazy por ruta: recharts/leaflet/graph no entran al chunk inicial.
@@ -13,6 +14,16 @@ const SolicitarRecuperacion = lazy(
 const Restablecer = lazy(() => import("./pages/Restablecer.jsx"));
 const PrivateDashboard = lazy(() => import("./pages/PrivateDashboard.jsx"));
 import PantallaCarga from "./components/PantallaCarga.jsx";
+import PageBackground from "./components/PageBackground.jsx";
+
+// Scroll arriba al cambiar de ruta (SPA: el navegador ya no lo hace solo).
+function ScrollArriba() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [pathname]);
+  return null;
+}
 
 // RNF-11: skip link para teclado — Qué: Tab salta a contenido. Por qué: WCAG 2.4.1
 function SkipLink() {
@@ -60,6 +71,10 @@ function App() {
 
   return (
     <BrowserRouter>
+      {/* Layout persistente: fondo + toasts montan UNA vez, no parpadean al navegar */}
+      <ScrollArriba />
+      <PageBackground />
+      <Toaster richColors closeButton position="bottom-left" toastOptions={{ style: { fontFamily: "Geist, system-ui, sans-serif" } }} />
       <Suspense fallback={<PantallaCarga />}>
         <Routes>
           <Route
