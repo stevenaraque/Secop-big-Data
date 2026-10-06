@@ -51,12 +51,10 @@ class VistaRegistro(generics.CreateAPIView):
                     status=status.HTTP_200_OK,
                 )
             raise
-        headers = self.get_success_headers(serializer.data)
-        # Unifica forma: 200 genérico (no 201) para que status no sea oracle; mantiene detalle idéntico
+        # Fix hunter-auth/register-body-oracle:v1: forma idéntica ambas ramas (solo detalle, sin usuario ni headers).
         return Response(
-            {"detalle": "Si el correo no existía, cuenta creada; si ya existía, se envió notificación a tu email.", "usuario": serializer.data},
+            {"detalle": "Si el correo no existía, cuenta creada; si ya existía, se envió notificación a tu email."},
             status=status.HTTP_200_OK,
-            headers=headers,
         )
 
 
