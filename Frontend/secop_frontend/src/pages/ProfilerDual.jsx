@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
+import { API_URL as API } from "../lib/api.js";
 
 // Barra fuera del render: crear componentes dentro del render resetea su estado.
 function Barra({ label, ms, color, total }) {

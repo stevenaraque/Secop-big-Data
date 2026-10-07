@@ -17,13 +17,11 @@
     "@tanstack/react-virtual": "^3.14.11",
     "animejs": "^4.5.0",
     "leaflet": "^1.9.4",
-    "lucide-react": "^1.47.0",
     "motion": "^13.4.0",
     "ogl": "^1.0.11",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-force-graph-2d": "^1.29.1",
-    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.18.4",
     "recharts": "^3.10.1",
     "sonner": "^2.0.8"
