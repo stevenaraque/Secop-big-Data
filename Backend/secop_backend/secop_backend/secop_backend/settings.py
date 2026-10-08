@@ -178,6 +178,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
         # Público observatorio AllowAny sin token: 8-10 req por depto/clic (resumen opt+naive+top+mapa+contratos+banderas+predominio+grafo)
@@ -185,6 +186,11 @@ REST_FRAMEWORK = {
         # Fix: observatorio público exento de throttle (agregados <50KB, índice B-tree), privado /app mantiene user 100/min. Ver views.py throttle_classes=[]
         "anon": "200/min",
         "user": "100/min",
+        # P0-4: frena fuerza bruta en auth sin afectar observatorio.
+        # login 10/min: 200/min permitía 288k intentos/día/IP. register/recuperar 20/min: evita spam + enumeración masiva.
+        "login": "10/min",
+        "register": "20/min",
+        "recuperar": "20/min",
     },
     "EXCEPTION_HANDLER": "contratos.exceptions.secop_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

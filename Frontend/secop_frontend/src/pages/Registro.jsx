@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import "../components/glass-card.css";
 import { motion, useMotionValue, useSpring } from "motion/react";
 import {
@@ -80,6 +81,8 @@ export default function Registro() {
   // Lectura inicial perezosa: evita setState en effect solo para leer localStorage al montar
   const [sesionGuardada] = useState(() => !!localStorage.getItem("access"));
   const [checked] = useState(true);
+  // P1-2: router SPA en vez de window.location.href (conserva Query cache, sin reload full)
+  const nav = useNavigate();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -117,13 +120,18 @@ export default function Registro() {
       return;
     }
     setEstado("loading");
+    // P1-1: mismo timeout 15s + 429 que Login (antes fetch pelado = cuelgue en red lenta)
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 15000);
     try {
       const r = await fetch(`${API}/auth/register/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre_usuario: nombreUsuario.trim(), correo: correo.trim(), contrasena }),
+        body: JSON.stringify({ nombre_usuario: nombreUsuario.trim(), correo: correo.trim().toLowerCase(), contrasena }),
+        signal: ctrl.signal,
       });
       const data = await r.json().catch(() => ({}));
+      if (r.status === 429) throw new Error("Demasiados intentos. Espera un minuto e intenta de nuevo.");
       if (!r.ok) {
         // unifica errores por campo: backend devuelve {correo: [...], nombre_usuario: [...], contrasena: [...], non_field_errors: [...] } o {detalle}
         const fe = {};
@@ -144,11 +152,15 @@ export default function Registro() {
       }
       setFieldErrors({});
       setEstado("ok");
-      setMensaje("Cuenta creada. Ya puedes entrar al dashboard y crear tus radares de notificaciones.");
-      setTimeout(() => { window.location.href = "/login"; }, 1400);
+      // P0-1: backend siempre retorna 200 genérico anti-enumeración (existe vs nuevo idéntico).
+      // Mostrar data.detalle evita mentir "Cuenta creada" cuando el correo ya existía.
+      setMensaje(data.detalle || "Si el correo no existía, cuenta creada; si ya existía, se envió notificación a tu email.");
+      setTimeout(() => { nav("/login"); }, 1400);
     } catch (err) {
       setEstado("error");
-      setMensaje(err.message);
+      setMensaje(err?.name === "AbortError" ? "Tiempo de espera agotado (15s). Revisa tu conexión o el backend." : err.message);
+    } finally {
+      clearTimeout(t);
     }
   }
 

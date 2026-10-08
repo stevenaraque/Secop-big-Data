@@ -16,17 +16,22 @@ class VistaRegistro(generics.CreateAPIView):
     Espejo de VistaSolicitarRecuperacion (RF-22) que ya es genérica. Último punto de decisión confiable."""
     serializer_class = RegistroSerializer
     permission_classes = [permissions.AllowAny]
+    # P0-4: scope register 20/min frena enumeración masiva sin tocar anon 200/min del observatorio.
+    throttle_scope = "register"
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         correo = serializer.validated_data.get("email")
+        nombre_usuario = serializer.validated_data.get("username")
         from django.contrib.auth.models import User
         from django.core.mail import send_mail
         from django.conf import settings
 
-        # Si ya existe, no revelar: envía notificación best-effort y responde 200 genérico idéntico a éxito
-        if correo and User.objects.filter(email=correo).exists():
+        DETALLE_GENERICO = "Si el correo no existía, cuenta creada; si ya existía, se envió notificación a tu email."
+        # Si ya existe (correo o username), no revelar: misma respuesta 200 genérica idéntica a éxito
+        # P0-3: iexact evita duplicado Test@X vs test@x (antes exact creaba 2 filas)
+        if correo and User.objects.filter(email__iexact=correo).exists():
             try:
                 send_mail(
                     subject="Intento de registro — SECOP Insight",
@@ -38,28 +43,43 @@ class VistaRegistro(generics.CreateAPIView):
             except Exception:
                 pass
             return Response(
-                {"detalle": "Si el correo no existía, cuenta creada; si ya existía, se envió notificación a tu email."},
+                {"detalle": DETALLE_GENERICO},
+                status=status.HTTP_200_OK,
+            )
+        # P0-2: username duplicado también retorna 200 genérico (antes 500 IntegrityError = oráculo)
+        if nombre_usuario and User.objects.filter(username=nombre_usuario).exists():
+            return Response(
+                {"detalle": DETALLE_GENERICO},
                 status=status.HTTP_200_OK,
             )
         try:
             self.perform_create(serializer)
         except Exception as e:
-            # Carrera: si servicio detecta duplicado tras nuestro check, unifica a 200 genérico (no 400 oracle)
-            if "ya está registrado" in str(e):
+            # Carrera: duplicado tras nuestro check (email o username) o IntegrityError UNIQUE → 200 genérico
+            msg = str(e).lower()
+            if (
+                "ya está registrado" in str(e)
+                or "ya está en uso" in str(e)
+                or "unique" in msg
+                or "duplicate" in msg
+                or "unique constraint" in msg
+            ):
                 return Response(
-                    {"detalle": "Si el correo no existía, cuenta creada; si ya existía, se envió notificación a tu email."},
+                    {"detalle": DETALLE_GENERICO},
                     status=status.HTTP_200_OK,
                 )
             raise
         # Fix hunter-auth/register-body-oracle:v1: forma idéntica ambas ramas (solo detalle, sin usuario ni headers).
         return Response(
-            {"detalle": "Si el correo no existía, cuenta creada; si ya existía, se envió notificación a tu email."},
+            {"detalle": DETALLE_GENERICO},
             status=status.HTTP_200_OK,
         )
 
 
 class VistaLogin(APIView):
     permission_classes = [permissions.AllowAny]
+    # P0-4: scope login 10/min frena fuerza bruta (antes anon 200/min = 288k/día/IP).
+    throttle_scope = "login"
 
     def post(self, request):
         serializador = InicioSesionSerializer(data=request.data)
@@ -94,6 +114,8 @@ class VistaSolicitarRecuperacion(APIView):
     """RF-22: POST {correo} siempre 200, no revela si existe. Qué: enlace 30min. Por qué: OWASP."""
 
     permission_classes = [permissions.AllowAny]
+    # P0-4: scope recuperar 20/min evita spam de emails + enumeración.
+    throttle_scope = "recuperar"
 
     def post(self, request):
         serializador = SolicitarRecuperacionSerializer(data=request.data)
@@ -109,6 +131,8 @@ class VistaConfirmarRecuperacion(APIView):
     """RF-22: POST {token, nueva_contrasena} valida 30min + un solo uso + política. Qué: set_password. Por qué: PBKDF2."""
 
     permission_classes = [permissions.AllowAny]
+    # P0-4: mismo scope recuperar 20/min (quema de tokens + prueba de enlaces).
+    throttle_scope = "recuperar"
 
     def post(self, request):
         serializador = ConfirmarRecuperacionSerializer(data=request.data)

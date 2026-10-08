@@ -49,7 +49,7 @@ export default function SolicitarRecuperacion() {
     setEstado("loading");
     setMensaje("");
     try {
-      const r = await fetch(`${API}/auth/recuperar/`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ correo }) });
+      const r = await fetch(`${API}/auth/recuperar/`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ correo: correo.trim().toLowerCase() }) });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detalle || JSON.stringify(data));
       setEstado("ok");

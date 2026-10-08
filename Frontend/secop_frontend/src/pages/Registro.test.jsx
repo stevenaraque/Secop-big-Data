@@ -48,7 +48,7 @@ test("valida contraseñas no coinciden sin hacer POST", async () => {
 test("hace POST a /api/auth/register/ y muestra ok al enviar válido", async () => {
   global.fetch.mockResolvedValueOnce({
     ok: true,
-    json: async () => ({ id: 1, nombre_usuario: "andina_sas", correo: "test@empresa.com" }),
+    json: async () => ({ detalle: "Si el correo no existía, cuenta creada; si ya existía, se envió notificación a tu email." }),
   });
 
   renderWithProviders(<Registro />);
@@ -72,7 +72,7 @@ test("hace POST a /api/auth/register/ y muestra ok al enviar válido", async () 
   });
 
   await waitFor(() => {
-    expect(screen.getByRole("status")).toHaveTextContent("Cuenta creada");
+    expect(screen.getByRole("status")).toHaveTextContent(/cuenta creada/i);
   });
 });
 
@@ -93,5 +93,26 @@ test("muestra error si correo ya existe", async () => {
 
   await waitFor(() => {
     expect(screen.getAllByRole("alert")[0]).toHaveTextContent("El correo ya está registrado");
+  });
+});
+
+test("P1-1: muestra mensaje 429 sin colgarse", async () => {
+  global.fetch.mockResolvedValueOnce({
+    ok: false,
+    status: 429,
+    json: async () => ({ detalle: "throttled" }),
+  });
+
+  renderWithProviders(<Registro />);
+  await waitFor(() => expect(screen.getByLabelText("Nombre de usuario")).toBeInTheDocument());
+
+  fireEvent.change(screen.getByLabelText("Nombre de usuario"), { target: { value: "andina_sas" } });
+  fireEvent.change(screen.getByLabelText("Correo"), { target: { value: "test@empresa.com" } });
+  fireEvent.change(screen.getByLabelText("Contraseña"), { target: { value: "Test1234A" } });
+  fireEvent.change(screen.getByLabelText("Confirmar contraseña"), { target: { value: "Test1234A" } });
+  fireEvent.click(screen.getByRole("button", { name: /crear cuenta/i }));
+
+  await waitFor(() => {
+    expect(screen.getAllByRole("alert")[0]).toHaveTextContent("Demasiados intentos");
   });
 });

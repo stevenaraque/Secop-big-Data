@@ -24,6 +24,12 @@ def _validar_politica_contrasena(contrasena: str):
         raise ValueError("La contraseña debe tener al menos un número.")
 
 
+def _normalizar_correo(correo: str) -> str:
+    """P0-3: normaliza email para evitar duplicados por caso/espacios.
+    Qué: strip + lower completo. Por qué: Test@X.com vs test@x.com creaban 2 filas y .get() → 500."""
+    return (correo or "").strip().lower()
+
+
 class ServicioUsuarios:
     """Service Layer para identidad - evita vistas gordas (SRP + DIP)"""
 
@@ -34,16 +40,20 @@ class ServicioUsuarios:
         self.modelo_token = modelo_token
 
     def registrar(self, nombre_usuario, correo, contrasena):
-        if self.modelo_usuario.objects.filter(email=correo).exists():
+        correo = _normalizar_correo(correo)
+        if self.modelo_usuario.objects.filter(email__iexact=correo).exists():
             raise ValueError("El correo ya está registrado.")
+        if nombre_usuario and self.modelo_usuario.objects.filter(username=nombre_usuario).exists():
+            raise ValueError("El nombre de usuario ya está en uso.")
         return self.modelo_usuario.objects.create_user(
             username=nombre_usuario, email=correo, password=contrasena
         )
 
     def autenticar(self, correo, contrasena):
-        try:
-            usuario = self.modelo_usuario.objects.get(email=correo)
-        except self.modelo_usuario.DoesNotExist:
+        correo = _normalizar_correo(correo)
+        # P0-3: iexact + first() tolera duplicados legacy sin 500 MultipleObjectsReturned
+        usuario = self.modelo_usuario.objects.filter(email__iexact=correo).order_by("id").first()
+        if not usuario:
             raise ValueError("Credenciales inválidas.")
         usuario_auth = authenticate(username=usuario.username, password=contrasena)
         if not usuario_auth:
@@ -76,9 +86,10 @@ class ServicioUsuarios:
 
     def solicitar_recuperacion(self, correo: str):
         """Crea token 30min si correo existe. No revela si no existe (OWASP). Qué: enlace único. Por qué: 200 siempre."""
-        try:
-            usuario = self.modelo_usuario.objects.get(email=correo)
-        except self.modelo_usuario.DoesNotExist:
+        correo = _normalizar_correo(correo)
+        # P0-3: iexact + first() — mismo criterio que autenticar, sin 500 en duplicados legacy
+        usuario = self.modelo_usuario.objects.filter(email__iexact=correo).order_by("id").first()
+        if not usuario:
             return None  # no revelar — caller responde 200 igual
         ModeloToken = self._get_modelo_token()
         token_str = uuid.uuid4().hex  # 32 chars hex único (va en el email, nunca se guarda en claro)

@@ -17,7 +17,9 @@ class RegistroSerializer(serializers.ModelSerializer):
         # Fix secop-user-enumeration-register-001: no revelar existencia en validación.
         # La verificación se hace en VistaRegistro.create con respuesta genérica (200) para ambos casos,
         # espejo de VistaSolicitarRecuperacion que ya es genérica. Evita oracle 400 vs 201.
-        return value
+        # P0-3: normaliza aquí para que validated_data ya venga lower (servicio + vista usan iexact de respaldo).
+        from .services import _normalizar_correo
+        return _normalizar_correo(value)
 
     def validate_contrasena(self, value):
         # RF-03 política: 8+ may/min/número — reutiliza servicio para mensaje único
@@ -43,6 +45,11 @@ class InicioSesionSerializer(serializers.Serializer):
     contrasena = serializers.CharField(write_only=True)
     access = serializers.CharField(read_only=True)
     refresh = serializers.CharField(read_only=True)
+
+    def validate_correo(self, value):
+        # P0-3: normaliza login igual que registro (servicio usa iexact de respaldo)
+        from .services import _normalizar_correo
+        return _normalizar_correo(value)
 
     def validate(self, data):
         from .services import servicio_usuarios
@@ -76,6 +83,11 @@ class CierreSesionSerializer(serializers.Serializer):
 
 class SolicitarRecuperacionSerializer(serializers.Serializer):
     correo = serializers.EmailField()
+
+    def validate_correo(self, value):
+        # P0-3: normaliza recuperar igual que login/registro
+        from .services import _normalizar_correo
+        return _normalizar_correo(value)
 
     def save(self):
         from .services import servicio_usuarios

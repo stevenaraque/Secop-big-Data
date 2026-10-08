@@ -46,7 +46,7 @@ export default function Login() {
 
   async function handleLogin(e) {
     e.preventDefault();
-    const correoLimpio = correo.trim();
+    const correoLimpio = correo.trim().toLowerCase();
     if (!correoLimpio || !contrasena) { setEstado("error"); setMensaje("Escribe tu correo y contraseña."); return; }
     setEstado("loading"); setMensaje("");
     const ctrl = new AbortController();
