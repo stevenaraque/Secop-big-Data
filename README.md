@@ -1,11 +1,11 @@
 # SECOP Insight — Observatorio y SaaS Freemium SECOP II
 
-> **Inteligencia de negocios sobre 5.98M de contratos electrónicos | Django + PostgreSQL local + React | V3 — Freemium (Público + Privado) + 85 columnas + Profiler Dual + Matchmaking**
+> **Inteligencia de negocios sobre 5.98M de contratos electrónicos | Django + PostgreSQL local + React | V3 — Freemium (Público + Privado) + 95 columnas + Profiler Dual + Matchmaking**
 > Grupo 8 — ADSO 3171062 — Steven Alejandro Araque Castro | Yesid Amaya — Instructor Gustavo Jiménez Suancha — CIMM — Septiembre 2026 — Sogamoso
 
 ## Qué es
 
-**SECOP Insight V3** es un **SaaS Freemium 2 en 1** que demuestra el stack Django + PostgreSQL + React manejando **6M de contratos (85 columnas)** sin congelar el navegador.
+**SECOP Insight V3** es un **SaaS Freemium 2 en 1** que demuestra el stack Django + PostgreSQL + React manejando **6M de contratos (95 columnas)** sin congelar el navegador.
 
 - **Público (Observatorio):** cualquier ciudadano filtra 500k contratos por departamento/modalidad/fecha y ve KPIs, mapa y grafo en <300ms. El patrón es **agregar en BD y enviar <50KB** al front, nunca 6M filas (anti-patrón 100MB).
 - **Privado (SaaS B2B):** el contratista crea **Radares** (filtros guardados sobre 85 columnas elegibles) y recibe **Oportunidades** automáticas en su bandeja privada + email. El motor **ETL + Matchmaking** cruza contratos nuevos contra radares sin intervención.
@@ -171,6 +171,15 @@ Big data/
 
 Paginación obligatoria SODA: `?$limit=50000&$offset=50000&$order=:id&$where=departamento='Boyaca'` — 120 requests para 5.98M. Con `X-App-Token` 10k req/h. Índices `idx_contrato_depto` + `idx_radar_usuario` pasan de segundos a ms. **Filtros elegibles:** `Radar.filtros_extras = {"ciudad":"Sogamoso","modalidad":"Licitación pública"}` → matchmaking hace `WHERE ciudad ILIKE '%Sogamoso%'` en BD, no en cliente. Escalar a 85 cols es añadir campo a `Contrato` + `migrate`.
 
+## Actualización esquema SECOP II — 85 → 95 columnas (08/10/2026, verificado)
+
+Datos Abiertos **no publica changelog** de columnas: las agregan en silencio. Verificación propia contra `https://www.datos.gov.co/api/views/jbjy-vk9h.json` (arreglo `"columns"`, posiciones 1–95, actualización diaria):
+
+- **10 columnas nuevas (pos. 86–95):** bloque sostenibilidad ambiental — `criterios_de_sostenibilidad_ambiental`, `requisitos_ambientales_en_las_especificaciones_t_cnicas`, `criterios_ambientales_en_la_evaluaci_n_de_las_ofertas`, `obligaciones_contractuales_o_poscontractuales_a_nivel_ambiental`, `uso_de_etiquetado_ecol_gico`, `obligaciones_posconsumo` + 4 fechas (`fecha_inicio/fin_obligaciones_posconsumo`, `fecha_inicio/fin_reversi_n`).
+- **ETL intacto:** `cargar_secop.py` accede por **nombre** (`fila.get("valor_del_contrato")`), nunca por índice — las 15 columnas físicas que persistimos (pos. 1–35) siguen existiendo y el código no se rompe con columnas nuevas.
+- **Radares cubren las 95 sin migración:** cualquier columna nueva ya es filtrable vía `filtros_extras` JSON (ej. `{"criterios_de_sostenibilidad_ambiental":"Sí"}`); solo se migra a columna física si se necesita índice/GROUP BY.
+- **Regla:** jamás usar `columna[86]`; siempre `item.valor_del_contrato`.
+
 ## Procedimiento de Restauración — RNF-09 (7 días retención)
 
 **Backup:** `POST /api/cargar/backup/` (solo admin) crea `backups/secop_backup_YYYYMMDD_HHMMSS.json` (100k cap) + `backup_registro` y purga >7 días. Listar: `GET /api/cargar/backup/listar/` — Descargar: `GET /api/cargar/backup/<id>/descargar/` — Admin: `/admin/contratos/backupregistro/`.
@@ -192,7 +201,7 @@ python manage.py shell
 - **`CONTEXT.md`** — memoria viva: decisiones, estado 56 historias, verificación requisito por requisito, clave buenas prácticas, revisión Guía 4.
 - **`ERRORES.md`** — 36 errores con causa y solución.
 - **Fuentes y artefactos V3.1 Freemium**
-  - Dataset: https://www.datos.gov.co/resource/jbjy-vk9h.json (SECOP II, 5.98M, 85 cols, 2.72M vistas)
+  - Dataset: https://www.datos.gov.co/resource/jbjy-vk9h.json (SECOP II, 5.98M, 95 cols verificadas 08/10/2026 vía `/api/views/jbjy-vk9h.json`, metadata `columns` pos. 1–95)
   - SODA 2.1 paginación: https://support.socrata.com (Tyler Tech, 2025 — $limit 50k + $offset)
   - Guía SENA GFPI-F-135 V04 — Fase Desarrollo — ADSO 3171062
   - Planificación: `SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx` V3.1 Freemium (13 secciones, 85 cols, único)
@@ -200,4 +209,4 @@ python manage.py shell
   - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs) — ver `CONTEXT.md:8`
 
 ---
-*Última actualización: 08/10/2026 — V3.3 Carga total: ETL 9.3M vía COPY + migraciones 0012..0017 + perf 34s→ms + auth single-flight + tildes insensibles + bandeja modal Info + auditoría P0/P1 — HEAD `df83925` + tags `v1.2-privado` + `v1.3-auditoria` — Autor: Steven Alejandro Araque Castro*
+*Última actualización: 08/10/2026 — V3.3 + esquema SECOP 85→95 cols verificadas (10 nuevas sostenibilidad pos. 86–95, ETL por nombre intacto) + login funcional/diseño (redirect /app, timeout 15s, sin flip duplicado) — HEAD `f95b363` — Autor: Steven Alejandro Araque Castro*

@@ -212,7 +212,7 @@ export default function Registro() {
             <div className="text-[13px] font-semibold tracking-tighter text-zinc-900 dark:text-white">SECOP Insight</div>
             <div className="text-[11px] tracking-wide text-zinc-500 hidden sm:block">Observatorio · Contratación pública</div>
           </div>
-          <span className="hidden md:inline-flex ml-2 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 px-2.5 py-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 backdrop-blur">v3.1 · Registro abierto</span>
+          <span className="hidden md:inline-flex ml-2 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 px-2.5 py-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 backdrop-blur">v3.3 · Registro abierto</span>
         </div>
         <div className="flex items-center gap-2">
           <Enlace to="/login" className="hidden sm:inline text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white underline-offset-4 hover:underline">¿Ya tienes cuenta? Entrar</Enlace>
