@@ -27,12 +27,12 @@
 - **Base de datos:** PostgreSQL 16 local (pgAdmin, localhost:5432) — *local permite 6M completos sin techo 500MB; 85 columnas completas; índices B-tree + JSON para Radares*
 - **Frontend:** React 19.2.8 + Vite 8.2 + Tailwind 3.4.17 + TanStack Query (cache 5min) + TanStack Table 8.21 + TanStack Virtual 3.14 (60 FPS) + Recharts 3.10 + Leaflet 1.9 + `react-force-graph` + `motion` 13.4 + `animejs` 4.5 (stagger + line drawing) + `@phosphor-icons/react` 2.1 (unificado, lucide eliminado) + `sonner` + `ogl` 1.0 (metal WebGL) + `UiverseInput` (floating label + glow uiverse.io) + `vite-plugin-compression` (gzip + brotli)
 - **Manejo masivo:** Agregación en BD (50KB), paginación `page_size 20-50`, virtualización (solo visibles), `keepPreviousData` sin recarga
-- **Control:** Git + GitHub (`main` al día, tag `v1.1-profiler`, PR #1 mergeado)
+- **Control:** Git + GitHub (`main` al día `df83925`, tags `v1.1-profiler` + `v1.2-privado` + `v1.3-auditoria`, PR #1 mergeado)
 - **Gestión:** Notion (5 Sprints, 56 requisitos 399 pts) + `EstructuraSesion_v2.xlsx` (5 sesiones × 6h) + `SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx` V3.1 Freemium + `SECOP_Backlog_Producto.xlsx` (56 historias)
 
 ## Estado
 
-Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transferencia)**. **56 requisitos (49 base + 7 Freemium RF-36..42) + RNF-04/07/08/09/10/11/12** completados y verificados (`manage.py check` 0 issues, `npm run build` OK, `pytest 5` + `vitest 11` passing, lint 0). **BD 24/09: 470.540 contratos + 6 Radares activos + email SMTP** (console en dev, Gmail en prod). **Front V3.2 (24/09):** dashboard rediseñado (hero + KPIs + `ScrubChart` scrub continuo con rangos 6M/1A/Todo + `MiniDataTable` 8 fijas + `LazySection` + fondo aurora/metal + loader 100ms anti-flash) + radar CRUD completo (pausar/editar/eliminar + toasts + paginación) + dinero compacto `$1,5 billones`. Evidencia en `CONTEXT.md:4`, errores en `ERRORES.md` (#32-#36).
+Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transferencia)**. **56 requisitos (49 base + 7 Freemium RF-36..42) + RNF-04/07/08/09/10/11/12** completados y verificados (`manage.py check` 0 issues, `npm run build` OK, `pytest 5` + `vitest 11` passing, lint 0). **BD 07/10: carga total SECOP II 9.3M vía COPY + migraciones 0001..0017** (0013 sin unique en `id_contrato`, 0014 covering 9M, 0015-0017 precalculados) **+ perf dashboard 34s→ms + auth single-flight + registro anti-enumeración + tildes insensibles + bandeja modal Info**. **Front V3.3 (07/10):** observatorio público `AllowAny` + privado `IsAuthenticated` + layout persistente WebGL + `VITE_API_URL` env + `react-router` + CSP prod + auditoría P0/P1 + tags `v1.2-privado` + `v1.3-auditoria` (HEAD `df83925`). Evidencia en `CONTEXT.md:6`, errores en `ERRORES.md` (#32-#36).
 
 ## Módulos (detalle en `CONTEXT.md:4`)
 
@@ -61,7 +61,7 @@ Big data/
 │   ├── Dockerfile            # RNF-10: python:3.12-slim + migrate --no-input + gunicorn
 │   ├── requirements.txt      # Django 6.1 + DRF + SimpleJWT + drf-spectacular + gunicorn + python-dotenv + psycopg2
 │   ├── secop_backend/        # proyecto Django (settings.py con env, urls.py con /api/docs/, wsgi.py)
-│   │   ├── contratos/        # Contrato 85 cols* + Entidad + TrabajoCarga + Radar(filtros_extras JSON) + Oportunidad + Umbral + Config + Backup + Auditoria (migrations 0001-0011), services.py, exceptions.py (503), management/commands/cargar_secop.py (2 fases)
+│   │   ├── contratos/        # Contrato 85 cols* + Entidad + TrabajoCarga + Radar(filtros_extras JSON) + Oportunidad + Umbral + Config + Backup + Auditoria (migrations 0001-0017), services.py, exceptions.py (503), management/commands/cargar_secop.py (2 fases)
 │   │   ├── users/            # Registro/Login/Logout + TokenRecuperacion 30min (hash SHA-256, select_for_update)
 │   │   └── manage.py
 │   └── venv/                 # venv Python 3.14.5 (no versionado)
@@ -200,4 +200,4 @@ python manage.py shell
   - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs) — ver `CONTEXT.md:8`
 
 ---
-*Última actualización: 24/09/2026 — V3.2 Rediseño: dashboard hero+KPIs+ScrubChart+MiniDataTable+LazySection, radar CRUD+toasts, fondo aurora+metal en 3 páginas, loader 100ms anti-flash, naive filtrado real (Boyacá 200), 470.540 contratos + 6 Radares — check 0 + pytest 5 + vitest 11 + lint 0 — Autor: Steven Alejandro Araque Castro*
+*Última actualización: 08/10/2026 — V3.3 Carga total: ETL 9.3M vía COPY + migraciones 0012..0017 + perf 34s→ms + auth single-flight + tildes insensibles + bandeja modal Info + auditoría P0/P1 — HEAD `df83925` + tags `v1.2-privado` + `v1.3-auditoria` — Autor: Steven Alejandro Araque Castro*

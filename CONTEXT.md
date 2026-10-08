@@ -64,7 +64,13 @@ Colombia publica **5.98M de contratos** en SECOP II con **85 columnas** planas q
 1. **Dashboard rediseñado:** hero con CTAs + KPIs con iconos/skeleton + `ScrubChart` con scrub continuo (una serie manda, rangos 6M/1A/Todo, `serie-mensual` real, spring solo al soltar) + `MiniDataTable` (sort + 8 fijas + relleno) en Banderas/Predominio + `LazySection` (4 queries al abrir, resto al scroll) + `PageBackground` (aurora CSS + metal WebGL `ogl`, paleta por tema) en `/`, `/login`, `/app` + `PantallaCarga` (100ms mín + tema congelado) + `public/tema.js` anti-flash + `vite polling` (OneDrive) + dinero compacto (`$1,5 billones`, `lib/formato.js`) + estándar blanco en claro.
 2. **Radar CRUD completo:** pausar/activar, editar inline, eliminar con confirmación, skeletons, reintentar, paginación 4+5, toasts `sonner`, Ciudad/Modalidad con sugerencias + JSON avanzado, dark legible, `vitest 11 passed`.
 3. **Backend naive alineado:** guard 413 por total FILTRADO (COUNT optimizado) + servicio filtra con WHERE antes de `list()` → Boyacá 200 real (BD 29ms vs Python 167ms), Todos 413 omitido sin ruido (`ERRORES.md #32/#33`).
-4. **Calidad sesión:** `check 0` + `pytest 5 passed` + `vitest 11 passed` + lint 0 + build 1.6s. Pendiente: video 3min pitch 45s + `EstructuraSesion` V3 + reflexión 3.1 (ver §9).
+4. **Calidad sesión:** `check 0` + `pytest 5 passed` + `vitest 11 passed` + lint 0 + build 1.6s.
+
+### Sesión 25/09–07/10 — Carga total 9.3M + perf + auditoría + pulido (DONE)
+1. **ETL total + migraciones 0012..0017:** `Decimal` cuantizado a 2 decimales (SODA trae 6) + script descarga 6M paginado + carga total SECOP II **9.3M vía COPY** + migración **0013 sin unique** en `id_contrato` (API adaptada: no-unique + 404s + paginación SaaS) + **0014 índices covering 9M** + **0015 resúmenes precalculados** + **0016 top/serie/depto** + **0017 banderas precalculadas**.
+2. **Perf dashboard 34s → ms:** resúmenes precalculados + covering idx + banderas precalculadas + SPA sin parpadeo (layout persistente, WebGL no se desmonta, intensidad por ruta).
+3. **Auth + Freemium real:** refresh JWT single-flight sin delay 800ms + `api` central + registro 200 genérico sin oracle por clave/usuario (anti-enumeración) + reset token hash SHA-256 + observatorio público `AllowAny` + privado `IsAuthenticated` + throttle anon 100/min + fondo Frost/metal con `reduced-motion`.
+4. **Frontend pulido:** tildes insensibles (depto/modalidad/buscador + matchmaking + backfill bandeja) + bandeja card con detalle + modal Info liviano + Dashboard legacy eliminado + `VITE_API_URL` env + `react-router` + vite chunks + CSP prod + lint + auditoría P0/P1 (`AUDITORIA_2026-09-18.md`, tags `v1.2-privado` + `v1.3-auditoria`, HEAD `df83925` 07/10). Pendiente: video 3min pitch 45s + `EstructuraSesion` V3 + reflexión 3.1 (ver §9).
 
 ### Historial previo (conservado)
 1. **RF-36..42 Freemium DONE (18/09)** — 5 Radares + 4 Oportunidades + email SMTP + filtros 85 `filtros_extras` + matchmaking 2 fases. Probado `Sogamoso MATCH` vs `Tunja NO MATCH` + `Duitama` 201.
@@ -108,7 +114,7 @@ Colombia publica **5.98M de contratos** en SECOP II con **85 columnas** planas q
 
 - **Proyecto de software OK:** 56 requisitos Freemium (42 base + 7 frontend + 7 SaaS) con Django 6M 85 cols + React DataTable 60 FPS + SaaS bandeja + email SMTP.
 - **Código fuente OK:** P0-1/2/3 fixes + SOLID/DRY, `check 0` + `build 37KB` OK, manejo masivo con virtualización (50 visibles, no 5.000).
-- **Repositorio OK:** `main` al día `e9efb7d` con 56 historias + `v1.0-sprint4` + `v1.1-profiler`, PR #1 mergeado, `feature/actualizacion-masiva` → `main`. `git config` `steven araque`.
+- **Repositorio OK (07/10):** `main` al día `df83925` + tags `v1.0-sprint4` + `v1.1-profiler` + `v1.2-privado` + `v1.3-auditoria`, migraciones 0001..0017, PR #1 mergeado. `git config` `steven araque`.
 - **Herramienta de gestión OK:** Notion 56/56 Hecho, `SECOP_Backlog_Producto.xlsx` 57 filas estandarizado + CSV 70KB único, `SECOP_Insight_Planificacion...docx` V3.1 13 secciones único.
 - **Pruebas OK:** 5 pytest + 3 vitest = 8 passing (RF-22 email console/SMTP probado).
 - **Autoría OK:** historial con `steven araque <stevenldssaac@gmail.com>` desde 17/09.
@@ -116,4 +122,4 @@ Colombia publica **5.98M de contratos** en SECOP II con **85 columnas** planas q
 - **Hallazgos estilo 18/09 ( resueltos):** Tailwind 37KB OK, routing `pathname` sin React Router (pendiente migrar a `react-router-dom` — explicado como trade-off), profiler dual en pantalla, DataTable 6 cols con sorting, 85 cols vía JSON sin recorte.
 
 ---
-*Actualizado: 24/09/2026 — V3.2 Rediseño: dashboard hero+KPIs+ScrubChart+MiniDataTable+LazySection, radar CRUD+toasts, fondo aurora+metal en 3 páginas, loader 100ms anti-flash, naive filtrado real, 470.540 contratos + 6 Radares — check 0 + pytest 5 + vitest 11 + lint 0 — Pendiente video 3min + EstructuraSesion V3 + reflexión 3.1 (ver §9).*
+*Actualizado: 08/10/2026 — V3.3 Carga total: ETL 9.3M vía COPY + migraciones 0012..0017 + perf 34s→ms + auth single-flight + tildes insensibles + bandeja modal Info + auditoría P0/P1 — HEAD `df83925` + tags `v1.2-privado` + `v1.3-auditoria` — Pendiente video 3min + EstructuraSesion V3 + reflexión 3.1 (ver §9).*
