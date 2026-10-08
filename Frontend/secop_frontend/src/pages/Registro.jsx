@@ -88,7 +88,7 @@ export default function Registro() {
     e.preventDefault();
     setMensaje("");
     setFieldErrors({});
-    // validación cliente unificada con backend (8+ may/min/número) — mensajes idénticos a _validar_politica_contrasena
+    // validación cliente unificada con backend (8-128, may/min/número, común, similitud) — mensajes idénticos a _validar_politica_contrasena
     if (contrasena !== confirmar) {
       setFieldErrors({ confirmar: "Las contraseñas no coinciden." });
       setEstado("error");
@@ -99,6 +99,12 @@ export default function Registro() {
       setFieldErrors({ contrasena: "La contraseña debe tener al menos 8 caracteres." });
       setEstado("error");
       setMensaje("La contraseña debe tener al menos 8 caracteres.");
+      return;
+    }
+    if (contrasena.length > 128) {
+      setFieldErrors({ contrasena: "La contraseña debe tener máximo 128 caracteres." });
+      setEstado("error");
+      setMensaje("La contraseña debe tener máximo 128 caracteres.");
       return;
     }
     if (!/[A-Z]/.test(contrasena)) {
@@ -118,6 +124,30 @@ export default function Registro() {
       setEstado("error");
       setMensaje("La contraseña debe tener al menos un número.");
       return;
+    }
+    // P1-3: comunes (subconjunto top — backend valida lista Django 20k completa, incluye Password1)
+    const COMUNES = new Set(["password", "password1", "12345678", "123456789", "qwerty", "abc123", "1234567", "letmein", "welcome", "admin123", "contrasena1"]);
+    if (COMUNES.has(contrasena.toLowerCase())) {
+      setFieldErrors({ contrasena: "La contraseña es demasiado común. Elige otra menos predecible." });
+      setEstado("error");
+      setMensaje("La contraseña es demasiado común. Elige otra menos predecible.");
+      return;
+    }
+    // P1-3: similitud con usuario/correo (pre-chequeo substring min 5 — backend aplica SimilarityValidator 0.7 autoritativo).
+    // Min 5 evita falsos positivos con locales cortos (ej: "test" no bloquea Test1234A, el backend tampoco).
+    {
+      const clave = contrasena.toLowerCase();
+      const attrs = [nombreUsuario, correo.split("@")[0], correo];
+      const similar = attrs.some((a) => {
+        const n = (a || "").trim().toLowerCase();
+        return n.length >= 5 && (n.includes(clave) || clave.includes(n));
+      });
+      if (similar) {
+        setFieldErrors({ contrasena: "La contraseña es demasiado similar al usuario o correo. Elige otra." });
+        setEstado("error");
+        setMensaje("La contraseña es demasiado similar al usuario o correo. Elige otra.");
+        return;
+      }
     }
     setEstado("loading");
     // P1-1: mismo timeout 15s + 429 que Login (antes fetch pelado = cuelgue en red lenta)
@@ -304,7 +334,7 @@ export default function Registro() {
                 <p className="text-[11px] text-zinc-500 -mt-2 px-1">Debe ser único. Usaremos este correo para notificaciones de radar.</p>
 
                 <UiverseInput id="registro-contrasena" label="Contraseña" type={showPass ? "text" : "password"} value={contrasena} onChange={(e) => { setContrasena(e.target.value); if (fieldErrors.contrasena) setFieldErrors((p) => ({ ...p, contrasena: undefined })); }} placeholder="Mín 8, may/min/número" required autoComplete="new-password" icon={showPass ? EyeSlash : Eye} onIconClick={() => setShowPass((v) => !v)} iconLabel={showPass ? "Ocultar contraseña" : "Mostrar contraseña"} delay={160} error={fieldErrors.contrasena} />
-                <p className="text-[11px] text-zinc-500 -mt-2 px-1">PBKDF2 · 8+ con mayúscula, minúscula y número.</p>
+                <p className="text-[11px] text-zinc-500 -mt-2 px-1">PBKDF2 · 8-128, mayúscula, minúscula, número, no común ni similar a tu usuario.</p>
 
                 <UiverseInput id="registro-confirmar" label="Confirmar contraseña" type={showConfirm ? "text" : "password"} value={confirmar} onChange={(e) => { setConfirmar(e.target.value); if (fieldErrors.confirmar) setFieldErrors((p) => ({ ...p, confirmar: undefined })); }} placeholder="Repite tu contraseña" required autoComplete="new-password" icon={showConfirm ? EyeSlash : Eye} onIconClick={() => setShowConfirm((v) => !v)} iconLabel={showConfirm ? "Ocultar confirmación" : "Mostrar confirmación"} delay={240} error={fieldErrors.confirmar} />
 

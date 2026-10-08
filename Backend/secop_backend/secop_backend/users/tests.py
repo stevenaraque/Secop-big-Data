@@ -7,6 +7,9 @@ class TestRegistroSinOraculo(TestCase):
     """Fix hunter-auth/register-body-oracle:v1: misma forma 200 para existe vs nuevo."""
 
     def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
         self.client = APIClient()
         self.url = "/api/auth/register/"
         self.existente = "victima@example.com"
@@ -70,6 +73,45 @@ class TestRegistroSinOraculo(TestCase):
         )
         self.assertEqual(r_login.status_code, 200)
         self.assertIn("access", r_login.data)
+
+
+class TestPoliticaContrasena(TestCase):
+    """P1-3: común, similar y max 128 se rechazan con 400 (antes Password1 pasaba)."""
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.client = APIClient()
+        self.url = "/api/auth/register/"
+
+    def test_password_comun_rechazada(self):
+        r = self.client.post(
+            self.url,
+            {"nombre_usuario": "nuevo1", "correo": "nuevo1@example.com", "contrasena": "Password1"},
+            format="json",
+        )
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("común", str(r.data))
+
+    def test_password_similar_a_usuario_rechazada(self):
+        r = self.client.post(
+            self.url,
+            {"nombre_usuario": "andina_sas", "correo": "otro@example.com", "contrasena": "Andina_sas9X"},
+            format="json",
+        )
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("similar", str(r.data))
+
+    def test_password_max_128_rechazada(self):
+        larga = "Aa1" + "x" * 126  # 129 chars, cumple may/min/num
+        r = self.client.post(
+            self.url,
+            {"nombre_usuario": "nuevo2", "correo": "nuevo2@example.com", "contrasena": larga},
+            format="json",
+        )
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("128", str(r.data))
 
 
 class TestLoginThrottle(TestCase):

@@ -96,6 +96,38 @@ test("muestra error si correo ya existe", async () => {
   });
 });
 
+test("P1-3: rechaza común Password1 sin hacer POST", async () => {
+  renderWithProviders(<Registro />);
+  await waitFor(() => expect(screen.getByLabelText("Nombre de usuario")).toBeInTheDocument());
+
+  fireEvent.change(screen.getByLabelText("Nombre de usuario"), { target: { value: "usuario_nuevo" } });
+  fireEvent.change(screen.getByLabelText("Correo"), { target: { value: "nuevo@empresa.com" } });
+  fireEvent.change(screen.getByLabelText("Contraseña"), { target: { value: "Password1" } });
+  fireEvent.change(screen.getByLabelText("Confirmar contraseña"), { target: { value: "Password1" } });
+  fireEvent.click(screen.getByRole("button", { name: /crear cuenta/i }));
+
+  await waitFor(() => {
+    expect(screen.getAllByRole("alert")[0]).toHaveTextContent("demasiado común");
+  });
+  expect(global.fetch).not.toHaveBeenCalled();
+});
+
+test("P1-3: rechaza similar al usuario sin hacer POST", async () => {
+  renderWithProviders(<Registro />);
+  await waitFor(() => expect(screen.getByLabelText("Nombre de usuario")).toBeInTheDocument());
+
+  fireEvent.change(screen.getByLabelText("Nombre de usuario"), { target: { value: "andina_sas" } });
+  fireEvent.change(screen.getByLabelText("Correo"), { target: { value: "otro@empresa.com" } });
+  fireEvent.change(screen.getByLabelText("Contraseña"), { target: { value: "Andina_sas9X" } });
+  fireEvent.change(screen.getByLabelText("Confirmar contraseña"), { target: { value: "Andina_sas9X" } });
+  fireEvent.click(screen.getByRole("button", { name: /crear cuenta/i }));
+
+  await waitFor(() => {
+    expect(screen.getAllByRole("alert")[0]).toHaveTextContent("demasiado similar");
+  });
+  expect(global.fetch).not.toHaveBeenCalled();
+});
+
 test("P1-1: muestra mensaje 429 sin colgarse", async () => {
   global.fetch.mockResolvedValueOnce({
     ok: false,

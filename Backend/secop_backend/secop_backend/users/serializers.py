@@ -22,11 +22,15 @@ class RegistroSerializer(serializers.ModelSerializer):
         return _normalizar_correo(value)
 
     def validate_contrasena(self, value):
-        # RF-03 política: 8+ may/min/número — reutiliza servicio para mensaje único
+        # RF-03 + P1-3: reutiliza servicio para mensaje único (incluye común/similitud con attrs del request)
         from .services import _validar_politica_contrasena
 
         try:
-            _validar_politica_contrasena(value)
+            _validar_politica_contrasena(
+                value,
+                nombre_usuario=self.initial_data.get("nombre_usuario"),
+                correo=self.initial_data.get("correo"),
+            )
         except ValueError as e:
             raise serializers.ValidationError(str(e))
         return value

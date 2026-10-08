@@ -12,16 +12,36 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
-def _validar_politica_contrasena(contrasena: str):
-    """RF-03/RF-22: 8+ chars, 1 mayúscula, 1 minúscula, 1 número. Qué: evita clave débil. Por qué: criterio RF-03."""
+def _validar_politica_contrasena(contrasena: str, nombre_usuario=None, correo=None):
+    """RF-03/RF-22 + P1-3: 8-128 chars, may/min/número, no común, no similar a usuario/correo.
+    Qué: bloquea Password1 y claves con el username dentro. Por qué: la política anterior dejaba pasar comunes."""
+    contrasena = contrasena or ""
     if len(contrasena) < 8:
         raise ValueError("La contraseña debe tener al menos 8 caracteres.")
+    if len(contrasena) > 128:
+        raise ValueError("La contraseña debe tener máximo 128 caracteres.")
     if not re.search(r"[A-Z]", contrasena):
         raise ValueError("La contraseña debe tener al menos una mayúscula.")
     if not re.search(r"[a-z]", contrasena):
         raise ValueError("La contraseña debe tener al menos una minúscula.")
     if not re.search(r"[0-9]", contrasena):
         raise ValueError("La contraseña debe tener al menos un número.")
+    # P1-3: comunes vía lista Django (20k, incluye Password1) — antes solo may/min/num la dejaba pasar
+    from django.core.exceptions import ValidationError as DjangoValidationError
+    from django.contrib.auth.password_validation import CommonPasswordValidator
+    try:
+        CommonPasswordValidator().validate(contrasena)
+    except DjangoValidationError:
+        raise ValueError("La contraseña es demasiado común. Elige otra menos predecible.")
+    # P1-3: similitud vía UserAttributeSimilarityValidator estándar (SequenceMatcher 0.7).
+    # Antes ni se chequeaba; un substring casero habría sido demasiado agresivo (ej: "test" bloqueaba Test1234A).
+    if nombre_usuario or correo:
+        from django.contrib.auth.password_validation import UserAttributeSimilarityValidator
+        candidato = User(username=nombre_usuario or "", email=correo or "")
+        try:
+            UserAttributeSimilarityValidator().validate(contrasena, candidato)
+        except DjangoValidationError:
+            raise ValueError("La contraseña es demasiado similar al usuario o correo. Elige otra.")
 
 
 def _normalizar_correo(correo: str) -> str:
@@ -41,6 +61,8 @@ class ServicioUsuarios:
 
     def registrar(self, nombre_usuario, correo, contrasena):
         correo = _normalizar_correo(correo)
+        # P1-3: defensa en profundidad — el serializer ya valida, pero llamadas directas también quedan cubiertas
+        _validar_politica_contrasena(contrasena, nombre_usuario=nombre_usuario, correo=correo)
         if self.modelo_usuario.objects.filter(email__iexact=correo).exists():
             raise ValueError("El correo ya está registrado.")
         if nombre_usuario and self.modelo_usuario.objects.filter(username=nombre_usuario).exists():
@@ -130,6 +152,10 @@ class ServicioUsuarios:
                 if token_obj.esta_expirado():
                     raise ValueError("Enlace expirado.")
                 usuario = token_obj.usuario
+                # P1-3: similitud se valida con el usuario real (antes solo formato, sin contexto)
+                _validar_politica_contrasena(
+                    nueva_contrasena, nombre_usuario=usuario.username, correo=usuario.email
+                )
                 usuario.set_password(nueva_contrasena)
                 usuario.save(update_fields=["password"])
                 token_obj.usado = True
