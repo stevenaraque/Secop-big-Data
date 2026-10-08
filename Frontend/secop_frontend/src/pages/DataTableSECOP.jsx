@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from "react";
+import "../components/glass-card.css";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   createColumnHelper,
@@ -102,7 +103,7 @@ export default function DataTableSECOP({ rows, isFetching, count }) {
 
   // Sólida a propósito: blur sobre canvas animado = repaint por frame. Glass solo en header.
   return (
-    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-[0_8px_32px_rgba(0,0,0,0.06)] p-4 sm:p-5 min-w-0 w-full overflow-hidden">
+    <div className="rounded-2xl glass-card p-4 sm:p-5 min-w-0 w-full overflow-hidden">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold tracking-tight">
           Contratos · DataTable masivo
@@ -140,7 +141,7 @@ export default function DataTableSECOP({ rows, isFetching, count }) {
           role="region"
           aria-label="Tabla de contratos"
           tabIndex={0}
-          className="h-[320px] sm:h-[360px] overflow-auto bg-white dark:bg-zinc-900 focus-visible:ring-2 focus-visible:ring-emerald-600"
+          className="h-[320px] sm:h-[360px] overflow-auto bg-transparent focus-visible:ring-2 focus-visible:ring-emerald-600"
         >
           <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
             {virtualizer.getVirtualItems().map((v) => {

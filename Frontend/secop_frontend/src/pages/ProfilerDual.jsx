@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 
 import { API_URL as API } from "../lib/api.js";
+import "../components/glass-card.css";
 
 // Barra fuera del render: crear componentes dentro del render resetea su estado.
 function Barra({ label, ms, color, total }) {
@@ -119,7 +120,7 @@ export default function ProfilerDual({ token, depto }) {
   return (
     <section
       aria-label="Profiler dual"
-      className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-[0_8px_32px_rgba(0,0,0,0.06)] p-5"
+      className="rounded-2xl glass-card p-5"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>

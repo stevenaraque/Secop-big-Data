@@ -127,6 +127,24 @@ class Command(BaseCommand):
 
         with transaction.atomic():
             Contrato.objects.bulk_create(a_insertar, batch_size=1000)
+            # RF-28: catálogo Entidad siempre poblado — upsert por lote desde
+            # los NITs nuevos (ignore_conflicts por unique). Sin esto
+            # /api/entidades/ queda vacío aunque haya 9M contratos.
+            vistos_nit = set()
+            a_entidades = []
+            for c in a_insertar:
+                nit = (c.nit_entidad or "").strip()
+                if nit and nit not in vistos_nit:
+                    vistos_nit.add(nit)
+                    a_entidades.append(Entidad(
+                        nombre_entidad=c.nombre_entidad,
+                        nit_entidad=nit,
+                        departamento=c.departamento,
+                        ciudad=c.ciudad,
+                        sector=c.sector,
+                    ))
+            if a_entidades:
+                Entidad.objects.bulk_create(a_entidades, batch_size=1000, ignore_conflicts=True)
 
         # RF-39 Fase 2 Matchmaking: cruzar nuevos contratos vs Radares activos
         nuevos_contratos = []
@@ -155,7 +173,7 @@ class Command(BaseCommand):
                         continue
                     if radar.rango_cuantia_max is not None and contrato.valor_contrato > radar.rango_cuantia_max:
                         continue
-                    # RF-42: filtros elegibles 85 cols via JSON (ej. {"ciudad":"Sogamoso","modalidad":"Licitacion publica"})
+                    # RF-42: filtros elegibles 95 cols via JSON (ej. {"ciudad":"Sogamoso","modalidad":"Licitacion publica"})
                     filtros = getattr(radar, "filtros_extras", None) or {}
                     if filtros:
                         ok = True

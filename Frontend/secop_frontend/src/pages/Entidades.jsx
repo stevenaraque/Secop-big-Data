@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { CaretLeft as ChevronLeft, CaretRight as ChevronRight, Buildings as Landmark } from "@phosphor-icons/react"
+import { CaretLeft as ChevronLeft, CaretRight as ChevronRight, Buildings as Landmark } from "@phosphor-icons/react";
+import "../components/glass-card.css";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
@@ -44,7 +45,7 @@ export default function Entidades({ token }) {
   })
 
   return (
-    <section aria-label="Entidades" className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+    <section aria-label="Entidades" className="rounded-2xl glass-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><Landmark size={18} aria-hidden="true" /> Entidades</h2>
         <input

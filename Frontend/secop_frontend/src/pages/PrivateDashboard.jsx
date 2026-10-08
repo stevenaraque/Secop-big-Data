@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import Enlace from "../components/Enlace.jsx";
 import StatusMark from "../components/StatusMark.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
+import "../components/glass-card.css";
 import { ArrowLeft, PencilSimple, Trash, Pause, Play, CaretLeft, CaretRight } from "@phosphor-icons/react";
 
 import { API_URL as API } from "../lib/api.js";
@@ -51,7 +52,7 @@ function OpoCard({ op, onGuardar, onPostular, onInfo, deshabilitado }) {
     ? "Sin valor"
     : `$${Number(c.valor_contrato).toLocaleString("es-CO")}`;
   return (
-    <article className="rounded-xl border border-zinc-200 dark:border-zinc-700 px-4 py-3 bg-white dark:bg-zinc-900 flex items-center gap-3">
+    <article className="rounded-xl glass-card px-4 py-3 flex items-center gap-3">
       <StatusMark status={op.estado === "Nueva" ? "running" : "done"} label={op.estado} size={18} doneColor={op.estado === "Postulado" ? "#0ea5e9" : "#22c55e"} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold truncate font-mono">{c.id_contrato || `#${op.id}`}</p>
@@ -111,7 +112,7 @@ function ModalContrato({ op, onCerrar }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4" role="dialog" aria-modal="true" aria-label={`Contrato ${c.id_contrato || op.id}`}>
       <button type="button" aria-label="Cerrar detalle" onClick={onCerrar} className="absolute inset-0 bg-black/50 dark:bg-black/70 cursor-default" />
-      <div className="relative w-full max-w-[560px] max-h-[85dvh] overflow-y-auto rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5 shadow-xl">
+      <div className="relative w-full max-w-[560px] max-h-[85dvh] overflow-y-auto rounded-2xl glass-card p-5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-sm font-semibold font-mono truncate">{c.id_contrato || `#${op.id}`}</p>
@@ -316,7 +317,7 @@ export default function PrivateDashboard({ token }) {
   return (
     <div className="min-h-[100dvh] text-zinc-900 dark:text-zinc-100 antialiased relative isolate">
       {/* Fondo + Toaster viven en App (layout persistente) */}
-      <header className="sticky top-0 z-10 bg-white dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-700">
+      <header className="sticky top-0 z-10 glass-card border-x-0 border-t-0">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 h-[64px] flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 grid place-items-center text-[11px] font-mono">PR</div>
@@ -334,7 +335,7 @@ export default function PrivateDashboard({ token }) {
 
       <main className="max-w-[1200px] mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="lg:col-span-1 space-y-6">
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+          <div className="rounded-2xl glass-card p-5">
             <h2 className="text-sm font-semibold tracking-tight">{editandoId ? "Editar Radar" : "Nuevo Radar"}</h2>
             <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">Tus preferencias — 85 cols elegibles via JSON</p>
             <form onSubmit={handleCrear} className="mt-4 space-y-3">
@@ -388,7 +389,7 @@ export default function PrivateDashboard({ token }) {
             </form>
           </div>
 
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+          <div className="rounded-2xl glass-card p-5">
             <h3 className="text-sm font-semibold">Mis Radares ({radares.length})</h3>
             {cargandoRadares && (
               <div className="mt-3 space-y-2" aria-label="Cargando radares">
@@ -455,7 +456,7 @@ export default function PrivateDashboard({ token }) {
         </section>
 
         <section className="lg:col-span-2">
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+          <div className="rounded-2xl glass-card p-5">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold">Bandeja de Oportunidades</h2>
               <span className="text-[11px] px-2 py-1 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 font-mono">{oportunidades.length} total</span>

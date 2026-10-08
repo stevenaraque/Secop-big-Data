@@ -76,6 +76,7 @@ Colombia publica **6.11M de contratos** (verificado 08/10/2026, actualización d
 1. **Login funcional (E1–E6):** redirect post-login `/`→`/app` + lee `non_field_errors` + `trim` + valida vacíos + timeout 15s + mensaje 429 + sin `checked` muerto ni `reload` (router) + registro muestra detalle genérico backend (anti-enumeración intacta).
 2. **Login diseño (D1–D5):** stats honestos (`<50KB`, `85→95`, `29×`, `60 FPS`) + LivePulse sin ms falsos + testimonio con tag ejemplo + footer con `API` var + badge V3.3 + registro duplicado eliminado (`/login` solo entra, registro vive en `/registro`) + form siempre montado con spinner (320→230 líneas). `vitest 3/3` + `build` OK.
 3. **Esquema SECOP 95 verificado + Apify:** sin changelog oficial → `/api/views/jbjy-vk9h.json` (`columns` 1–95) + fecha estimada 27/09/2026 (`viewLastModified` + lote IDs 172M) + origen Decreto 0997 04/08/2026 + ABC CCE 10/09/2026 + Guía MinAmbiente/CCE + Circular 003/2025 (pos. 83–84) + `count(*)` 6.111.521 + `max(ultima_actualizacion)` 2026-10-06 + frecuencia diaria. ETL por nombre intacto, `filtros_extras` cubre las 95 sin migración. README con sección `85→95` + CONTEXT actualizado.
+4. **Entidades vacías corregido (RF-28):** `cargar_secop` nunca poblaba tabla `entidad` (0 filas con 9.3M contratos) → backfill SQL `DISTINCT` por NIT (11.582 entidades) + upsert por lote en ETL (`bulk_create ignore_conflicts`, mismo `atomic`) + test regresión. `pytest 8/8`.
 
 ### Historial previo (conservado)
 1. **RF-36..42 Freemium DONE (18/09)** — 5 Radares + 4 Oportunidades + email SMTP + filtros 95 `filtros_extras` + matchmaking 2 fases. Probado `Sogamoso MATCH` vs `Tunja NO MATCH` + `Duitama` 201.
@@ -127,4 +128,4 @@ Colombia publica **6.11M de contratos** (verificado 08/10/2026, actualización d
 - **Hallazgos estilo 18/09 ( resueltos):** Tailwind 37KB OK, routing `pathname` sin React Router (pendiente migrar a `react-router-dom` — explicado como trade-off), profiler dual en pantalla, DataTable 6 cols con sorting, 95 cols vía JSON sin recorte.
 
 ---
-*Actualizado: 08/10/2026 — V3.3 + esquema SECOP 95 (27/09/2026, Decreto 0997 + ABC, 6.11M diario) + login E1–E6/D1–D5 + Apify — HEAD `7b26f74` — Pendiente video 3min + EstructuraSesion V3 + reflexión 3.1 (ver §9).*
+*Actualizado: 08/10/2026 — V3.3 + esquema SECOP 95 (27/09/2026, Decreto 0997 + ABC, 6.11M diario) + login E1–E6/D1–D5 + vidrio global + entidades RF-28 (11.582, ETL upsert, pytest 8/8) — HEAD `1482dfb` — Pendiente video 3min + EstructuraSesion V3 + reflexión 3.1 (ver §9).*

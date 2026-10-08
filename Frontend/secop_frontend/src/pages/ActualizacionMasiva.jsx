@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import "../components/glass-card.css";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
@@ -231,7 +232,7 @@ export default function ActualizacionMasiva({ token }) {
   return (
     <section
       aria-label="Actualizacion masiva"
-      className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5"
+      className="rounded-2xl glass-card p-5"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-sm font-semibold tracking-tight">
@@ -335,7 +336,7 @@ export default function ActualizacionMasiva({ token }) {
           </div>
         )}
         {fase === "done" && trabajo && (
-          <div className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900">
+          <div className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded-xl border border-white/20 bg-white/40 dark:bg-zinc-900/40 backdrop-blur">
             <div className="px-4 py-3 flex items-baseline justify-between gap-3">
               <p className="text-xs text-zinc-600 dark:text-zinc-400">Nuevos registros</p>
               <p className="font-mono text-2xl tracking-tighter">

@@ -22,6 +22,7 @@ import ScrubChart from "../components/ScrubChart.jsx";
 import { useTheme } from "../hooks/useTheme.js";
 import { dineroCorto, dineroExacto } from "../lib/formato.js";
 import { ArrowRight, DownloadSimple as Download, X, Database, CurrencyCircleDollar, TrendUp, MapPin, ChartBar, BellRinging, Lightning, MagnifyingGlass } from "@phosphor-icons/react";
+import "../components/glass-card.css";
 
 import { API_URL as API } from "../lib/api.js";
 async function errorConStatus(r, etiqueta) {
@@ -79,7 +80,7 @@ function EnlaceRadar({ href, children, icono, sobreOscuro }) {
 }
 
 const KPICard = memo(function KPICard({ label, value, sub, delay = 0, icon: Icon, loading, title }) {  return (
-    <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }} transition={{ type: "spring", stiffness: 110, damping: 20, delay: delay * 0.001 }} whileHover={{ y: -2 }} className="group relative rounded-[24px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-6 overflow-hidden transition-shadow duration-300 hover:shadow-[0_16px_48px_rgba(16,185,129,0.14)]" style={{ contain: "layout paint" }}>
+    <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }} transition={{ type: "spring", stiffness: 110, damping: 20, delay: delay * 0.001 }} whileHover={{ y: -2 }} className="group relative rounded-[24px] glass-card p-6 overflow-hidden transition-shadow duration-300 hover:shadow-[0_16px_48px_rgba(16,185,129,0.14)]" style={{ contain: "layout paint" }}>
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.04] via-transparent to-sky-500/[0.04] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       <div className="absolute -top-12 -right-12 w-24 h-24 bg-gradient-to-br from-emerald-500/10 to-sky-500/10 rounded-full blur-2xl" />
       <div className="flex items-center justify-between relative">
@@ -182,7 +183,7 @@ export default function DashboardModern({ token }) {
 
       <main id="contenido" className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 w-full min-w-0" role="main" tabIndex={-1}>
         <section ref={heroRef} className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 min-w-0">
-          <div className="lg:col-span-8 rounded-[24px] sm:rounded-[32px] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.06)] p-6 sm:p-8 md:p-10 overflow-hidden relative min-w-0">
+          <div className="lg:col-span-8 rounded-[24px] sm:rounded-[32px] glass-card text-zinc-900 dark:text-zinc-100 p-6 sm:p-8 md:p-10 overflow-hidden relative min-w-0">
             <motion.div aria-hidden="true" className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-emerald-500/20 to-sky-500/20 rounded-full blur-3xl pointer-events-none" animate={reduce ? undefined : { scale: [1, 1.1, 1], opacity: [0.7, 1, 0.7] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} />
             <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-2">
               <span className="relative flex size-2">
@@ -206,7 +207,7 @@ export default function DashboardModern({ token }) {
             <div className="mt-6 flex flex-wrap gap-2">
               <span className="px-3 py-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-mono inline-flex items-center gap-1.5"><Lightning size={13} aria-hidden="true" /> 100 FPS</span>
               <span className="px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 text-xs inline-flex items-center gap-1.5"><Database size={13} aria-hidden="true" /> 50KB</span>
-              <span className="px-3 py-1.5 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5"><ChartBar size={13} aria-hidden="true" /> 6M filas</span>
+              <span className="px-3 py-1.5 rounded-full glass-card text-xs text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5"><ChartBar size={13} aria-hidden="true" /> 6M filas</span>
             </div>
           </div>
           <div className="lg:col-span-4 rounded-[32px] bg-white text-zinc-900 border border-zinc-200 dark:bg-gradient-to-br dark:from-zinc-900 dark:to-black dark:text-white dark:border-white/10 p-6 relative overflow-hidden">
@@ -244,7 +245,7 @@ export default function DashboardModern({ token }) {
         </LazySection>
 
         <motion.section whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 16 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5, ease: "easeOut" }} className="rounded-[24px] bg-white border border-zinc-200 dark:bg-gradient-to-r dark:from-zinc-900 dark:via-black dark:to-zinc-900 dark:border-white/10 p-[1px]">
-          <div className="rounded-[23px] bg-white dark:bg-gradient-to-r dark:from-zinc-900 dark:to-black p-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="rounded-[23px] glass-card p-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h3 className="text-zinc-900 dark:text-white font-semibold flex items-center gap-2">
                 <StatusMark status="running" size={18} /> ¿Alertas de este tipo?
@@ -256,7 +257,7 @@ export default function DashboardModern({ token }) {
         </motion.section>
 
         <section id="mapa" className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 min-w-0 scroll-mt-24">
-          <motion.div whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 16 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5, ease: "easeOut" }} className="rounded-[24px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_32px_rgba(0,0,0,0.06)] p-4 sm:p-6 min-w-0" style={{ contain: "layout paint" }}>
+          <motion.div whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 16 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5, ease: "easeOut" }} className="rounded-[24px] glass-card p-4 sm:p-6 min-w-0" style={{ contain: "layout paint" }}>
             <h3 className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><MapPin size={15} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" /> Mapa · % directa</h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">Clic filtra todo en sync • 100 FPS</p>
             <div className="mt-4 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 min-w-0">
@@ -265,7 +266,7 @@ export default function DashboardModern({ token }) {
               </Suspense>
             </div>
           </motion.div>
-          <motion.div whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 16 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5, ease: "easeOut", delay: 0.08 }} className="rounded-[24px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-[0_8px_32px_rgba(0,0,0,0.06)] p-4 sm:p-6 min-w-0">
+          <motion.div whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 16 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5, ease: "easeOut", delay: 0.08 }} className="rounded-[24px] glass-card p-4 sm:p-6 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><ChartBar size={15} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" /> Top contratistas</h3>
               <span className="text-[11px] px-2 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 font-mono">GROUP BY en BD</span>
@@ -323,7 +324,7 @@ export default function DashboardModern({ token }) {
           {errorTabla ? (
             <p role="alert" className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-2xl px-4 py-3">No se pudo cargar</p>
           ) : rows.length === 0 ? (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 border border-dashed border-zinc-200 dark:border-zinc-700 rounded-2xl p-8 text-center bg-white dark:bg-zinc-900 flex items-center justify-center gap-2"><MagnifyingGlass size={16} aria-hidden="true" /> Sin contratos para este filtro — prueba con Todos · Nacional</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 glass-card rounded-2xl p-8 text-center flex items-center justify-center gap-2"><MagnifyingGlass size={16} aria-hidden="true" /> Sin contratos para este filtro — prueba con Todos · Nacional</p>
           ) : (
             <div className="min-w-0 overflow-hidden">
             <DataTableSECOP rows={rows} isFetching={isFetching} count={contratosPag?.count} />

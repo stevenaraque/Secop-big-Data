@@ -4,6 +4,7 @@ import { EnvelopeSimple, ClockClockwise, ShieldCheck, ArrowRight, Lightning, Che
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import UiverseInput from "../components/UiverseInput.jsx";
 import Enlace from "../components/Enlace.jsx";
+import "../components/glass-card.css";
 import { API_URL as API } from "../lib/api.js";
 
 function MagneticButton({ children, disabled, className = "", ...props }) {
@@ -87,7 +88,7 @@ export default function SolicitarRecuperacion() {
               { icon: EnvelopeSimple, k: "SHA-256", label: "hash en BD", sub: "raw nunca guardado" },
               { icon: Lightning, k: "200 OK", label: "siempre", sub: "no revela existencia" },
             ].map((c) => (
-              <div key={c.label} className="rounded-[2rem] border border-slate-200/50 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)]">
+              <div key={c.label} className="glass-card rounded-[2rem] p-5">
                 <c.icon size={18} weight="regular" className="text-zinc-900 dark:text-white" />
                 <div className="mt-3 font-mono text-[20px] font-semibold tracking-tighter text-zinc-900 dark:text-white leading-none">{c.k}</div>
                 <div className="text-[12px] font-medium tracking-tight text-zinc-900 dark:text-white mt-1">{c.label}</div>
@@ -98,7 +99,7 @@ export default function SolicitarRecuperacion() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.18 }} className="order-1 lg:order-2 w-full max-w-[440px] mx-auto lg:mx-0 lg:justify-self-end lg:sticky lg:top-6">
-          <div className="rounded-[2.5rem] bg-white/85 dark:bg-zinc-900/80 backdrop-blur-xl border border-white/10 dark:border-zinc-800 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.1)] overflow-hidden">
+          <div className="glass-card rounded-[2.5rem] overflow-hidden">
             <div className="p-8 md:p-9">
               <div className="flex items-start justify-between gap-4">
                 <div><h2 className="text-[18px] font-semibold tracking-tight text-zinc-900 dark:text-white" style={{ fontFamily: "Geist, Satoshi, ui-sans-serif" }}>Recuperar contraseña</h2><p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 mt-1">Te enviaremos un enlace si el correo existe.</p></div>

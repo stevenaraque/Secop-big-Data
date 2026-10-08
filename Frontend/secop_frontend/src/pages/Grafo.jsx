@@ -2,7 +2,8 @@ import { useState } from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import ForceGraph2D from "react-force-graph-2d"
 import { ShareNetwork as Network } from "@phosphor-icons/react"
-import { useTheme } from "../hooks/useTheme.js"
+import { useTheme } from "../hooks/useTheme.js";
+import "../components/glass-card.css";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
@@ -33,7 +34,7 @@ export default function Grafo({ token, depto }) {
   })
 
   return (
-    <section aria-label="Grafo de conexiones" className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+    <section aria-label="Grafo de conexiones" className="rounded-2xl glass-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><Network size={18} aria-hidden="true" /> Grafo entidad-contratista</h2>
         <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">

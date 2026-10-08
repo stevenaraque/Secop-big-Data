@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
 import { motion } from "motion/react"
 import { Warning as TriangleAlert } from "@phosphor-icons/react"
-import MiniDataTable from "../components/MiniDataTable.jsx"
+import MiniDataTable from "../components/MiniDataTable.jsx";
+import "../components/glass-card.css";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
@@ -59,7 +60,7 @@ export default function PredominioDirecta({ token, depto }) {
   ], [])
 
   return (
-    <motion.section whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 16 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5, ease: "easeOut", delay: 0.06 }} aria-label="Predominio contratación directa" className="rounded-2xl border border-amber-200 dark:border-amber-900 bg-white dark:bg-zinc-900 shadow-[0_8px_32px_rgba(0,0,0,0.06)] p-5">
+    <motion.section whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 16 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5, ease: "easeOut", delay: 0.06 }} aria-label="Predominio contratación directa" className="rounded-2xl glass-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><TriangleAlert size={18} aria-hidden="true" /> Predominio contratación directa</h2>
         <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">

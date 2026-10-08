@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import "../components/glass-card.css";
 import { motion, useMotionValue, useSpring } from "motion/react";
 import {
   ShieldCheck,
@@ -185,7 +186,7 @@ export default function Registro() {
               <Enlace to="/login" className="h-11 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 grid place-items-center text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800">Ir a login</Enlace>
             </motion.div>
           </motion.div>
-          <div className="rounded-[2.5rem] border border-zinc-200/50 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] max-w-[440px] mx-auto lg:mx-0 lg:justify-self-end w-full">
+          <div className="glass-card rounded-[2.5rem] max-w-[440px] mx-auto lg:mx-0 lg:justify-self-end w-full p-8">
             <div className="size-10 rounded-2xl bg-emerald-600 grid place-items-center text-white"><CheckCircle size={20} weight="fill" /></div>
             <h2 className="mt-4 text-lg font-semibold tracking-tight text-zinc-900 dark:text-white">Sesión guardada</h2>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">Borra el token si quieres registrar una empresa distinta.</p>
@@ -244,7 +245,7 @@ export default function Registro() {
               { icon: Lightning, k: "23ms", label: "latencia API", sub: "JWT HS256 1h/1d" },
               { icon: ShieldCheck, k: "PBKDF2", label: "hash seguro", sub: "8+ may/min/número" },
             ].map((c) => (
-              <div key={c.label} className="group relative rounded-[2rem] border border-slate-200/50 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_24px_48px_-16px_rgba(0,0,0,0.07)] transition-shadow">
+              <div key={c.label} className="glass-card group relative rounded-[2rem] p-5">
                 <div className="flex items-center justify-between"><c.icon size={18} weight="regular" className="text-zinc-900 dark:text-white" /><span className="size-1.5 rounded-full bg-emerald-500/70 group-hover:bg-emerald-500 transition-colors" /></div>
                 <div className="mt-3 font-mono text-[20px] font-semibold tracking-tighter text-zinc-900 dark:text-white leading-none">{c.k}</div>
                 <div className="text-[12px] font-medium tracking-tight text-zinc-900 dark:text-white mt-1">{c.label}</div>
@@ -261,7 +262,7 @@ export default function Registro() {
             <span>Radares → notificaciones</span>
           </motion.div>
 
-          <motion.div variants={fadeUp} className="mt-8 rounded-2xl border border-zinc-200/60 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/40 backdrop-blur px-4 py-3 flex gap-3 max-w-[560px]">
+          <motion.div variants={fadeUp} className="glass-card mt-8 rounded-2xl px-4 py-3 flex gap-3 max-w-[560px]">
             <div className="size-8 rounded-full bg-zinc-900 dark:bg-white grid place-items-center shrink-0 mt-0.5"><span className="text-[10px] font-bold text-white dark:text-zinc-900">“</span></div>
             <div>
               <div className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">Me registré, creé un radar por "pavimento Boyacá" y al día siguiente ya tenía 4 oportunidades filtradas. Cero fricción.</div>
@@ -272,7 +273,7 @@ export default function Registro() {
 
         {/* RIGHT glass registro */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.18 }} className="order-1 lg:order-2 w-full max-w-[440px] mx-auto lg:mx-0 lg:justify-self-end lg:sticky lg:top-6">
-          <div className="rounded-[2.5rem] bg-white/85 dark:bg-zinc-900/80 backdrop-blur-xl border border-white/10 dark:border-zinc-800 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.1)] overflow-hidden">
+          <div className="glass-card rounded-[2.5rem] overflow-hidden">
             <div className="p-8 md:p-9">
               <div className="flex items-start justify-between gap-4">
                 <div>

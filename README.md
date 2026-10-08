@@ -32,7 +32,7 @@
 
 ## Estado
 
-Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transferencia)**. **56 requisitos (49 base + 7 Freemium RF-36..42) + RNF-04/07/08/09/10/11/12** completados y verificados (`manage.py check` 0 issues, `npm run build` OK, `pytest 5` + `vitest 11` passing, lint 0). **BD 07/10: carga total SECOP II 9.3M vía COPY + migraciones 0001..0017** (0013 sin unique en `id_contrato`, 0014 covering 9M, 0015-0017 precalculados) **+ perf dashboard 34s→ms + auth single-flight + registro anti-enumeración + tildes insensibles + bandeja modal Info**. **Front V3.3 (07/10):** observatorio público `AllowAny` + privado `IsAuthenticated` + layout persistente WebGL + `VITE_API_URL` env + `react-router` + CSP prod + auditoría P0/P1 + tags `v1.2-privado` + `v1.3-auditoria` (HEAD `df83925`). Evidencia en `CONTEXT.md:6`, errores en `ERRORES.md` (#32-#36).
+Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transferencia)**. **56 requisitos (49 base + 7 Freemium RF-36..42) + RNF-04/07/08/09/10/11/12** completados y verificados (`manage.py check` 0 issues, `npm run build` OK, `pytest 8` + `vitest 11` passing, lint 0). **BD 08/10: carga total SECOP II 9.3M vía COPY + migraciones 0001..0017** (0013 sin unique en `id_contrato`, 0014 covering 9M, 0015-0017 precalculados) **+ catálogo `entidad` poblado (11.582, upsert por lote en ETL RF-28)** + perf dashboard 34s→ms + auth single-flight + registro anti-enumeración + tildes insensibles + bandeja modal Info. **Front V3.3 (07/10):** observatorio público `AllowAny` + privado `IsAuthenticated` + layout persistente WebGL + `VITE_API_URL` env + `react-router` + CSP prod + auditoría P0/P1 + tags `v1.2-privado` + `v1.3-auditoria` (HEAD `df83925`). Evidencia en `CONTEXT.md:6`, errores en `ERRORES.md` (#32-#36).
 
 ## Módulos (detalle en `CONTEXT.md:4`)
 
@@ -212,4 +212,4 @@ python manage.py shell
   - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs) — ver `CONTEXT.md:8`
 
 ---
-*Última actualización: 08/10/2026 — V3.3 + esquema SECOP 85→95 cols (fecha 27/09/2026, Decreto 0997 + ABC sostenible, 6.11M filas diarias, ETL por nombre intacto) + login funcional/diseño (redirect /app, timeout 15s, stats honestos, sin flip duplicado) — HEAD `f95b363` — Autor: Steven Alejandro Araque Castro*
+*Última actualización: 08/10/2026 — V3.3 + esquema SECOP 85→95 cols (fecha 27/09/2026, Decreto 0997 + ABC sostenible, 6.11M filas diarias, ETL por nombre intacto) + login funcional/diseño + vidrio global + entidades RF-28 (11.582, ETL upsert, pytest 8/8) — HEAD `1482dfb` — Autor: Steven Alejandro Araque Castro*

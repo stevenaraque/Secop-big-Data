@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import "../components/glass-card.css";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
@@ -46,7 +47,7 @@ export default function Buscador({ token }) {
   return (
     <section
       aria-label="Búsqueda global"
-      className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5"
+      className="rounded-2xl glass-card p-5"
     >
       <input
         value={texto}

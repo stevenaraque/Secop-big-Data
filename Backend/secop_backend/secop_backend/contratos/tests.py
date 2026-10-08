@@ -169,6 +169,23 @@ class TestETLCarga(TestCase):
         self.assertEqual(trabajo2.nuevos_registros, 0)
         self.assertEqual(Contrato.objects.count(), primeros)
 
+    @pytest.mark.django_db(transaction=True)
+    def test_cargar_secop_puebla_catalogo_entidades(self):
+        # RF-28 regresión: cada carga ETL deja el catálogo Entidad poblado
+        # (antes quedaba en 0 y /api/entidades/ respondía vacío).
+        from unittest.mock import patch
+        from django.core.management import call_command
+        from io import StringIO
+        with patch("contratos.management.commands.cargar_secop.requests.get", return_value=self._fake_soda()):
+            call_command("cargar_secop", limit=10, offset=0, depto="Boyacá", stdout=StringIO())
+        ent = Entidad.objects.filter(nit_entidad="900001").first()
+        self.assertIsNotNone(ent)
+        self.assertEqual(ent.nombre_entidad, "Alcaldía Mock")
+        # Segunda carga no duplica entidades (unique NIT + ignore_conflicts)
+        with patch("contratos.management.commands.cargar_secop.requests.get", return_value=self._fake_soda()):
+            call_command("cargar_secop", limit=10, offset=0, depto="Boyacá", stdout=StringIO())
+        self.assertEqual(Entidad.objects.filter(nit_entidad="900001").count(), 1)
+
 
 # Ejecutar con: .\venv\Scripts\python.exe -m pytest Backend/secop_backend/pytest.ini -v
 
