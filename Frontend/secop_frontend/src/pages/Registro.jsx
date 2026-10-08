@@ -58,7 +58,7 @@ function LivePulse() {
         <span className="absolute inset-0 rounded-full bg-emerald-500 opacity-30 animate-ping" />
         <span className="relative rounded-full bg-emerald-500 size-2" />
       </span>
-      Registro abierto · 1.2s
+      Registro abierto
       <span className="size-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
       JWT + PBKDF2
     </span>
@@ -80,7 +80,6 @@ export default function Registro() {
   const [fieldErrors, setFieldErrors] = useState({}); // {nombre_usuario, correo, contrasena, confirmar, _global}
   // Lectura inicial perezosa: evita setState en effect solo para leer localStorage al montar
   const [sesionGuardada] = useState(() => !!localStorage.getItem("access"));
-  const [checked] = useState(true);
   // P1-2: router SPA en vez de window.location.href (conserva Query cache, sin reload full)
   const nav = useNavigate();
 
@@ -88,6 +87,16 @@ export default function Registro() {
     e.preventDefault();
     setMensaje("");
     setFieldErrors({});
+    // P2: vacíos tras trim se rechazan en cliente (antes viajaban como "" → 400 evitable)
+    if (!nombreUsuario.trim() || !correo.trim()) {
+      setFieldErrors({
+        ...(!nombreUsuario.trim() ? { nombre_usuario: "Escribe tu nombre de usuario." } : {}),
+        ...(!correo.trim() ? { correo: "Escribe tu correo." } : {}),
+      });
+      setEstado("error");
+      setMensaje("Escribe tu nombre de usuario y correo.");
+      return;
+    }
     // validación cliente unificada con backend (8-128, may/min/número, común, similitud) — mensajes idénticos a _validar_politica_contrasena
     if (contrasena !== confirmar) {
       setFieldErrors({ confirmar: "Las contraseñas no coinciden." });
@@ -194,14 +203,6 @@ export default function Registro() {
     }
   }
 
-  if (!checked) {
-    return (
-      <div className="min-h-[100dvh] grid place-items-center">
-        <span className="size-6 rounded-full border-2 border-zinc-200 border-t-emerald-600 animate-spin" aria-label="Cargando" />
-      </div>
-    );
-  }
-
   if (sesionGuardada) {
     return (
       <div className="min-h-[100dvh] relative overflow-hidden">
@@ -268,7 +269,7 @@ export default function Registro() {
         <motion.div variants={stagger} initial="hidden" animate="show" className="pt-2 lg:pt-0 lg:pl-[1.5vw] order-2 lg:order-1">
           <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-2">
             <LivePulse />
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-3 py-1 text-[11px] font-medium"><Sparkle size={12} weight="fill" /> Alta en 1.2s · sin papeleo</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-3 py-1 text-[11px] font-medium"><Sparkle size={12} weight="fill" /> Alta inmediata · sin papeleo</span>
           </motion.div>
 
           <motion.h1 variants={fadeUp} className="mt-6 text-4xl md:text-[52px] lg:text-[56px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white" style={{ fontFamily: "Geist, Satoshi, ui-sans-serif, system-ui" }}>

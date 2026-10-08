@@ -114,6 +114,39 @@ class TestPoliticaContrasena(TestCase):
         self.assertIn("128", str(r.data))
 
 
+class TestRefreshRotation(TestCase):
+    """P0-5: cada refresh emite uno nuevo y quema el anterior (antes reutilizable 24h)."""
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.client = APIClient()
+        User.objects.create_user(
+            username="rotar", email="rotar@example.com", password="Password1a"
+        )
+
+    def test_refresh_rota_y_quema_anterior(self):
+        r_login = self.client.post(
+            "/api/auth/login/",
+            {"correo": "rotar@example.com", "contrasena": "Password1a"},
+            format="json",
+        )
+        self.assertEqual(r_login.status_code, 200)
+        refresh1 = r_login.data["refresh"]
+        r_ref = self.client.post(
+            "/api/auth/token/refresh/", {"refresh": refresh1}, format="json"
+        )
+        self.assertEqual(r_ref.status_code, 200)
+        self.assertIn("access", r_ref.data)
+        self.assertNotEqual(r_ref.data.get("refresh"), refresh1)
+        # El anterior queda blacklisteado: reutilizarlo ya no da 200
+        r_reuso = self.client.post(
+            "/api/auth/token/refresh/", {"refresh": refresh1}, format="json"
+        )
+        self.assertNotEqual(r_reuso.status_code, 200)
+
+
 class TestLoginThrottle(TestCase):
     """P0-4: scope login 10/min frena fuerza bruta (antes anon 200/min)."""
 

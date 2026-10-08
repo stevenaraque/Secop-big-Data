@@ -48,13 +48,18 @@ export default function SolicitarRecuperacion() {
     e.preventDefault();
     setEstado("loading");
     setMensaje("");
+    // P1-4: mismo timeout 15s + 429 que Login/Registro (antes fetch pelado)
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 15000);
     try {
-      const r = await fetch(`${API}/auth/recuperar/`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ correo: correo.trim().toLowerCase() }) });
+      const r = await fetch(`${API}/auth/recuperar/`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ correo: correo.trim().toLowerCase() }), signal: ctrl.signal });
       const data = await r.json();
+      if (r.status === 429) throw new Error("Demasiados intentos. Espera un minuto e intenta de nuevo.");
       if (!r.ok) throw new Error(data.detalle || JSON.stringify(data));
       setEstado("ok");
       setMensaje(data.detalle);
-    } catch (err) { setEstado("error"); setMensaje(err.message); }
+    } catch (err) { setEstado("error"); setMensaje(err?.name === "AbortError" ? "Tiempo de espera agotado (15s). Revisa tu conexión o el backend." : err.message); }
+    finally { clearTimeout(t); }
   }
 
   return (

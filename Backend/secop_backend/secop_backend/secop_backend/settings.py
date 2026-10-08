@@ -210,8 +210,12 @@ SPECTACULAR_SETTINGS = {
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    "ROTATE_REFRESH_TOKENS": False,
-    "BLACKLIST_AFTER_ROTATION": False,
+    # P0-5: rotación + blacklist — cada refresh emite uno nuevo y quema el anterior.
+    # Antes: refresh reutilizable 24h (robo = 1 día de acceso). Access 1h sigue no revocable
+    # (trade-off JWT stateless documentado); logout blacklista el refresh vigente.
+    # Front compatible: refreshAccess() ya guarda data.refresh si viene (lib/api.js:100).
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "ALGORITHM": "HS256",
     "SIGNING_KEY": SECRET_KEY,
     "AUTH_HEADER_TYPES": ("Bearer",),

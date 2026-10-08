@@ -179,13 +179,12 @@ export default function UiverseInput({
           style={{ background: error ? "#dc2626" : "#059669" }}
         />
 
-        {/* icon acción (ver clave) */}
+        {/* icon acción (ver clave) — P2: sin tabIndex -1 para que el teclado lo alcance */}
         {Icon && (
           <button
             type="button"
             onClick={onIconClick}
             aria-label={iconLabel}
-            tabIndex={-1}
             className="absolute right-1.5 top-1/2 -translate-y-1/2 size-8 grid place-items-center rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-500 transition-colors"
           >
             <Icon size={16} />

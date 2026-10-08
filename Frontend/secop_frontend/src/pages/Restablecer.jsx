@@ -50,18 +50,41 @@ const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transi
 export default function Restablecer() {
   const [token, setToken] = useState(leerTokenInicial);
   const [nueva, setNueva] = useState("");
+  const [confirmar, setConfirmar] = useState("");
   const [show, setShow] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [estado, setEstado] = useState("idle");
   const [mensaje, setMensaje] = useState("");
+  // P1-4: validación cliente previa (mismos mensajes que backend; similitud la valida el backend con el usuario real)
+  function errorPolitica(clave) {
+    if (clave !== confirmar) return "Las contraseñas no coinciden.";
+    if (clave.length < 8) return "La contraseña debe tener al menos 8 caracteres.";
+    if (clave.length > 128) return "La contraseña debe tener máximo 128 caracteres.";
+    if (!/[A-Z]/.test(clave)) return "La contraseña debe tener al menos una mayúscula.";
+    if (!/[a-z]/.test(clave)) return "La contraseña debe tener al menos una minúscula.";
+    if (!/[0-9]/.test(clave)) return "La contraseña debe tener al menos un número.";
+    const COMUNES = new Set(["password", "password1", "12345678", "123456789", "qwerty", "abc123", "1234567", "letmein", "welcome", "admin123", "contrasena1"]);
+    if (COMUNES.has(clave.toLowerCase())) return "La contraseña es demasiado común. Elige otra menos predecible.";
+    return "";
+  }
   async function handleSubmit(e) {
     e.preventDefault();
+    const tokenLimpio = token.trim();
+    if (!tokenLimpio) { setEstado("error"); setMensaje("Pega el token del enlace."); return; }
+    const errP = errorPolitica(nueva);
+    if (errP) { setEstado("error"); setMensaje(errP); return; }
     setEstado("loading"); setMensaje("");
+    // P1-4: timeout 15s + 429 igual que Login/Registro/Recuperar
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 15000);
     try {
-      const r = await fetch(`${API}/auth/restablecer/`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, nueva_contrasena: nueva }) });
+      const r = await fetch(`${API}/auth/restablecer/`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: tokenLimpio, nueva_contrasena: nueva }), signal: ctrl.signal });
       const data = await r.json();
+      if (r.status === 429) throw new Error("Demasiados intentos. Espera un minuto e intenta de nuevo.");
       if (!r.ok) throw new Error(data.detalle || data.nueva_contrasena?.[0] || JSON.stringify(data));
       setEstado("ok"); setMensaje(data.detalle);
-    } catch (err) { setEstado("error"); setMensaje(err.message); }
+    } catch (err) { setEstado("error"); setMensaje(err?.name === "AbortError" ? "Tiempo de espera agotado (15s). Revisa tu conexión o el backend." : err.message); }
+    finally { clearTimeout(t); }
   }
   return (
     <div className="min-h-[100dvh] relative overflow-hidden flex flex-col">
@@ -117,7 +140,9 @@ export default function Restablecer() {
                 <p className="text-[11px] text-zinc-500 -mt-2 px-1 font-mono">Pega el token completo del enlace.</p>
 
                 <UiverseInput id="restablecer-nueva" label="Nueva contraseña" type={show ? "text" : "password"} value={nueva} onChange={(e) => setNueva(e.target.value)} placeholder="Ej: NuevaClave123" required autoComplete="new-password" icon={show ? EyeSlash : Eye} onIconClick={() => setShow((v) => !v)} iconLabel={show ? "Ocultar contraseña" : "Mostrar contraseña"} delay={80} />
-                <p className="text-[11px] text-zinc-500 -mt-2 px-1">8+ con mayúscula, minúscula y número.</p>
+                <p className="text-[11px] text-zinc-500 -mt-2 px-1">8-128, mayúscula, minúscula, número, no común.</p>
+
+                <UiverseInput id="restablecer-confirmar" label="Confirmar contraseña" type={showConfirm ? "text" : "password"} value={confirmar} onChange={(e) => setConfirmar(e.target.value)} placeholder="Repite tu contraseña" required autoComplete="new-password" icon={showConfirm ? EyeSlash : Eye} onIconClick={() => setShowConfirm((v) => !v)} iconLabel={showConfirm ? "Ocultar confirmación" : "Mostrar confirmación"} delay={160} />
 
                 {estado === "ok" && (<motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2.5 flex gap-2.5"><CheckCircle size={18} weight="fill" className="text-emerald-600 shrink-0 mt-0.5" /><p className="text-sm text-emerald-800 dark:text-emerald-300">{mensaje} — <Enlace to="/login" className="underline font-medium">ir a iniciar sesión</Enlace></p></motion.div>)}
                 {estado === "error" && (<motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 px-3 py-2.5 flex gap-2.5"><WarningCircle size={18} weight="fill" className="text-red-600 shrink-0 mt-0.5" /><p role="alert" className="text-sm text-red-800 dark:text-red-300">{mensaje}</p></motion.div>)}

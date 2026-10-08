@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
 import "./App.css";
@@ -54,8 +54,36 @@ function PublicDashboardRoute() {
 }
 
 function PrivateRoute() {
+  // P1-5: valida exp del access antes de pintar privado (antes solo existencia → flash con token expirado).
+  // Si expiró, intenta 1 refresh single-flight; solo si falla expulsa a /login.
+  const [estado, setEstado] = useState(() => {
+    const t = localStorage.getItem("access");
+    if (!t) return "no";
+    try {
+      const exp = JSON.parse(atob(t.split(".")[1])).exp;
+      if (!exp || exp * 1000 < Date.now()) return "revisar";
+      return "ok";
+    } catch {
+      return "revisar";
+    }
+  });
+  useEffect(() => {
+    if (estado !== "revisar") return;
+    let vivo = true;
+    (async () => {
+      try {
+        const { refreshAccess } = await import("./lib/api.js");
+        const nuevo = await refreshAccess();
+        if (vivo) setEstado(nuevo ? "ok" : "no");
+      } catch {
+        if (vivo) setEstado("no");
+      }
+    })();
+    return () => { vivo = false; };
+  }, [estado]);
+  if (estado === "no") return <Navigate to="/login" replace />;
+  if (estado === "revisar") return <PantallaCarga />;
   const token = localStorage.getItem("access");
-  if (!token) return <Navigate to="/login" replace />;
   return (
     <>
       <SkipLink />
