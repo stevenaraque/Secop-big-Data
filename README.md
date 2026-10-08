@@ -1,6 +1,6 @@
 # SECOP Insight — Observatorio y SaaS Freemium SECOP II
 
-> **Inteligencia de negocios sobre 5.98M de contratos electrónicos | Django + PostgreSQL local + React | V3 — Freemium (Público + Privado) + 95 columnas + Profiler Dual + Matchmaking**
+> **Inteligencia de negocios sobre 6.11M de contratos electrónicos | Django + PostgreSQL local + React | V3 — Freemium (Público + Privado) + 95 columnas + Profiler Dual + Matchmaking**
 > Grupo 8 — ADSO 3171062 — Steven Alejandro Araque Castro | Yesid Amaya — Instructor Gustavo Jiménez Suancha — CIMM — Septiembre 2026 — Sogamoso
 
 ## Qué es
@@ -8,7 +8,7 @@
 **SECOP Insight V3** es un **SaaS Freemium 2 en 1** que demuestra el stack Django + PostgreSQL + React manejando **6M de contratos (95 columnas)** sin congelar el navegador.
 
 - **Público (Observatorio):** cualquier ciudadano filtra 500k contratos por departamento/modalidad/fecha y ve KPIs, mapa y grafo en <300ms. El patrón es **agregar en BD y enviar <50KB** al front, nunca 6M filas (anti-patrón 100MB).
-- **Privado (SaaS B2B):** el contratista crea **Radares** (filtros guardados sobre 85 columnas elegibles) y recibe **Oportunidades** automáticas en su bandeja privada + email. El motor **ETL + Matchmaking** cruza contratos nuevos contra radares sin intervención.
+- **Privado (SaaS B2B):** el contratista crea **Radares** (filtros guardados sobre 95 columnas elegibles) y recibe **Oportunidades** automáticas en su bandeja privada + email. El motor **ETL + Matchmaking** cruza contratos nuevos contra radares sin intervención.
 
 **Objetivo General (Guía 4 GFPI-F-135 V04)** — Construir la estructura de datos y la interfaz bajo arquitectura *decoupled*, demostrando el stack completo con manejo masivo real y lógica de negocio.
 
@@ -16,15 +16,15 @@
 
 ## Qué hace
 
-- **Público:** KPIs + filtros elegibles (85 cols) + DataTable masivo 60 FPS (TanStack Table + virtual 44px, solo 50 nodos en DOM) + exportar CSV con BOM + Profiler Dual 4 barras (BD|Python|Red|Render) + toggle Usuario/Ingeniería.
+- **Público:** KPIs + filtros elegibles (95 cols) + DataTable masivo 60 FPS (TanStack Table + virtual 44px, solo 50 nodos en DOM) + exportar CSV con BOM + Profiler Dual 4 barras (BD|Python|Red|Render) + toggle Usuario/Ingeniería.
 - **Público visual:** Mapa coroplético % directa (clic filtra todo) + grafo entidad→contratista + Banderas rojas (concentración >30%, directa >80%) con umbrales configurables sin reinicio.
-- **Privado SaaS:** `POST /api/radares/` con `filtros_extras` JSON para 85 cols (ej. `{"ciudad":"Sogamoso","modalidad":"Licitación pública"}`) + `GET /api/mis-oportunidades/` bandeja con estados Nueva/Guardada/Postulado + filtros `?estado=` + email automático vía `send_mail` (console en dev, SMTP Gmail real en prod).
+- **Privado SaaS:** `POST /api/radares/` con `filtros_extras` JSON para 95 cols (ej. `{"ciudad":"Sogamoso","modalidad":"Licitación pública"}`) + `GET /api/mis-oportunidades/` bandeja con estados Nueva/Guardada/Postulado + filtros `?estado=` + email automático vía `send_mail` (console en dev, SMTP Gmail real en prod).
  - **Plataforma:** Auth JWT (registro abierto, login, logout, recuperar 30min + restablecer) + páginas `/`, `/login`, `/registro`, `/recuperar`, `/restablecer`, `/app` con `AuthGuard` + `UiverseInput` (uiverse.io + animejs line drawing) + panel admin + ETL SODA 2.1 con matchmaking + backup 7 días.
 
 ## Stack Tecnológico (V3 definitivo)
 
 - **Backend:** Django 6.1 (target 5.0.14) + DRF 3.18 + SimpleJWT 5.5.1 + `drf-spectacular` (OpenAPI 3.0.3)
-- **Base de datos:** PostgreSQL 16 local (pgAdmin, localhost:5432) — *local permite 6M completos sin techo 500MB; 85 columnas completas; índices B-tree + JSON para Radares*
+- **Base de datos:** PostgreSQL 16 local (pgAdmin, localhost:5432) — *local permite 6M completos sin techo 500MB; 95 columnas completas; índices B-tree + JSON para Radares*
 - **Frontend:** React 19.2.8 + Vite 8.2 + Tailwind 3.4.17 + TanStack Query (cache 5min) + TanStack Table 8.21 + TanStack Virtual 3.14 (60 FPS) + Recharts 3.10 + Leaflet 1.9 + `react-force-graph` + `motion` 13.4 + `animejs` 4.5 (stagger + line drawing) + `@phosphor-icons/react` 2.1 (unificado, lucide eliminado) + `sonner` + `ogl` 1.0 (metal WebGL) + `UiverseInput` (floating label + glow uiverse.io) + `vite-plugin-compression` (gzip + brotli)
 - **Manejo masivo:** Agregación en BD (50KB), paginación `page_size 20-50`, virtualización (solo visibles), `keepPreviousData` sin recarga
 - **Control:** Git + GitHub (`main` al día `df83925`, tags `v1.1-profiler` + `v1.2-privado` + `v1.3-auditoria`, PR #1 mergeado)
@@ -40,8 +40,8 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
 |---|---|
 | Auth API | Registro abierto, login, logout JWT + recuperar 30min un solo uso + restablecer PBKDF2 |
 | Login/Registro front | `/login` + `/registro` + `/recuperar` + `/restablecer` high-agency 8,6,4 (split 1.18fr/0.92fr, glass, MagneticButton `useMotionValue`, UiverseInput) con AuthGuard, redirect sin token, Salir con blacklist |
-| ETL 2 fases | `cargar_secop` SODA paginado `$limit=50k/$offset/$order=:id` + `bulk_create 1000` + **Fase 2 Matchmaking** (cruza `filtros_extras` 85 cols → `Oportunidad` Nueva) + validación RNF-04 |
-| Radares SaaS | `GET/POST /api/radares/` + `PUT/DELETE /api/radares/<id>/` con `filtros_extras` JSON (85 cols elegibles), validación `rango_min <= max`, `IsAuthenticated` + ownership |
+| ETL 2 fases | `cargar_secop` SODA paginado `$limit=50k/$offset/$order=:id` + `bulk_create 1000` + **Fase 2 Matchmaking** (cruza `filtros_extras` 95 cols → `Oportunidad` Nueva) + validación RNF-04 |
+| Radares SaaS | `GET/POST /api/radares/` + `PUT/DELETE /api/radares/<id>/` con `filtros_extras` JSON (95 cols elegibles), validación `rango_min <= max`, `IsAuthenticated` + ownership |
 | Bandeja privada | `GET /api/mis-oportunidades/?estado=Nueva` (bandeja) + `PATCH` a Guardada/Postulado + email `send_mail` best-effort (10 por carga) |
 | API agregada | Resumen, top, serie mensual, mapa, búsqueda y stats por entidad en BD (naive vs optimized con `tiempo_bd_ms`) |
 | Profiler Dual | 4 barras `BD|Python|TTFB|Render` + toggle Usuario/Ingeniería + comparativa `naive 8s rojo` vs `optimizado 280ms verde` (29×) |
@@ -49,7 +49,7 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
 | Mapa | Coroplético % directa, clic filtra, limpia con VER TODO |
 | Alertas | Banderas concentración (>30%) + predominio directa (>80%) + umbrales persistentes |
 | Entidades & Grafo | Lista con buscador + stats por entidad + red entidad→contratista (grosor monto, color modalidad) |
-| Panel admin | Contratos (85 cols), Entidades, Cargas, Radares, Oportunidades, Umbrales, Backups, Auditoría |
+| Panel admin | Contratos (95 cols), Entidades, Cargas, Radares, Oportunidades, Umbrales, Backups, Auditoría |
 | Auditoría | Quién hizo qué y cuándo (login, exportar, cargas, radares, oportunidades, backups, umbrales) |
 | Ops & Docs | Backup 7 días, deploy Docker `postgres:16`+`python:3.12`, Tailwind 3.4, a11y teclado, `browserslistrc` + Swagger `/api/docs/` 34 endpoints |
 
@@ -61,7 +61,7 @@ Big data/
 │   ├── Dockerfile            # RNF-10: python:3.12-slim + migrate --no-input + gunicorn
 │   ├── requirements.txt      # Django 6.1 + DRF + SimpleJWT + drf-spectacular + gunicorn + python-dotenv + psycopg2
 │   ├── secop_backend/        # proyecto Django (settings.py con env, urls.py con /api/docs/, wsgi.py)
-│   │   ├── contratos/        # Contrato 85 cols* + Entidad + TrabajoCarga + Radar(filtros_extras JSON) + Oportunidad + Umbral + Config + Backup + Auditoria (migrations 0001-0017), services.py, exceptions.py (503), management/commands/cargar_secop.py (2 fases)
+│   │   ├── contratos/        # Contrato 95 cols* + Entidad + TrabajoCarga + Radar(filtros_extras JSON) + Oportunidad + Umbral + Config + Backup + Auditoria (migrations 0001-0017), services.py, exceptions.py (503), management/commands/cargar_secop.py (2 fases)
 │   │   ├── users/            # Registro/Login/Logout + TokenRecuperacion 30min (hash SHA-256, select_for_update)
 │   │   └── manage.py
 │   └── venv/                 # venv Python 3.14.5 (no versionado)
@@ -70,10 +70,10 @@ Big data/
 ├── deploy.ps1 / deploy.sh    # RNF-10: migrate + check + build en orden
 ├── SECOP_Backlog_Producto.xlsx (56 historias: 42 base + 7 frontend + 7 Freemium RF-36..42, estandarizado)
 ├── SECOP_Backlog_Producto.csv (56 filas, formato Notion 16 cols, Hecho/Steven Araque, único)
-├── SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx V3.1 Freemium (13 secciones, 85 cols, único)
+├── SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx V3.1 Freemium (13 secciones, 95 cols — doc redactado con 85, esquema real 95 desde 27/09/2026)
 └── README.md / CONTEXT.md / ERRORES.md
 ```
-* Contrato persiste 15 cols en MVP analítico + Radar.filtros_extras JSON permite filtrar por cualquiera de las 85 sin migración por cada columna; escalar a 85 cols físicas es añadir campos + migrate.
+* Contrato persiste 15 cols en MVP analítico + Radar.filtros_extras JSON permite filtrar por cualquiera de las 85 sin migración por cada columna; escalar a 95 cols físicas es añadir campos + migrate.
 
 ## Cómo levantar el proyecto en otro computador (desde cero) — RNF-10 Deploy Reproducible
 
@@ -152,8 +152,8 @@ Big data/
 ## Arquitectura V3 — Freemium Decoupled + Flujo ETL 2 fases
 
 ```
-[datos.gov.co SODA jbjy-vk9h 5.98M 85 cols] --$limit=50k & $order=:id + X-App-Token--> [Django Thread bulk_create 1000] --> [PostgreSQL 85 cols indexadas + Radar JSON]
-                                                                                         |  matchmaking ILIKE + rango 85 cols
+[datos.gov.co SODA jbjy-vk9h 6.11M 95 cols] --$limit=50k & $order=:id + X-App-Token--> [Django Thread bulk_create 1000] --> [PostgreSQL 95 cols indexadas + Radar JSON]
+                                                                                         |  matchmaking ILIKE + rango 95 cols
 [React público filtros] --GET /api/optimized/resumen?depto=Boyaca--> [Django DRF] --JSON 50KB--> [React Recharts/Mapa/DataTable Virtual + Profiler 4 barras]
 [React privado /app] --GET /api/mis-oportunidades/?estado=Nueva--> [Django IsAuthenticated] --JSON paginado--> [React bandeja + email SMTP]
 ```
@@ -165,11 +165,11 @@ Big data/
 - **Sprint 2 / Sesión 2:** ETL 2 fases + `ProcessingJob` 202 + polling 1s + dual `/optimized/*` vs `/naive/*` + timing `tiempo_bd_ms`
 - **Sprint 3 / Sesión 3:** Dashboard + filtros 85 elegibles + `filtros_extras` JSON + `serie-mensual` + mapa Leaflet + búsqueda + cache TanStack Query + Tailwind
 - **Sprint 4 / Sesión 4:** Grafo + **Profiler Dual 4 barras + toggle** + banderas + Radares SaaS + bandeja privada + email SMTP
-- **Sprint 5 / Buffer — 18/09 DONE:** 56 historias + 85 cols + 5 Radares + 4 Oportunidades + DataTable 60 FPS + Swagger + tests 8 passing + `v1.1-profiler` + Word V3.1 único. Pendiente: video 3min pitch 45s + `EstructuraSesion` V3 + reflexión 3.1
+- **Sprint 5 / Buffer — 18/09 DONE:** 56 historias + 95 cols + 5 Radares + 4 Oportunidades + DataTable 60 FPS + Swagger + tests 8 passing + `v1.1-profiler` + Word V3.1 único. Pendiente: video 3min pitch 45s + `EstructuraSesion` V3 + reflexión 3.1
 
 ## ETL y Paginación SODA 2.1 (V3)
 
-Paginación obligatoria SODA: `?$limit=50000&$offset=50000&$order=:id&$where=departamento='Boyaca'` — 120 requests para 5.98M. Con `X-App-Token` 10k req/h. Índices `idx_contrato_depto` + `idx_radar_usuario` pasan de segundos a ms. **Filtros elegibles:** `Radar.filtros_extras = {"ciudad":"Sogamoso","modalidad":"Licitación pública"}` → matchmaking hace `WHERE ciudad ILIKE '%Sogamoso%'` en BD, no en cliente. Escalar a 85 cols es añadir campo a `Contrato` + `migrate`.
+Paginación obligatoria SODA: `?$limit=50000&$offset=50000&$order=:id&$where=departamento='Boyaca'` — 123 requests para 6.11M (count(*) verificado 08/10/2026). Con `X-App-Token` 10k req/h. Índices `idx_contrato_depto` + `idx_radar_usuario` pasan de segundos a ms. **Filtros elegibles:** `Radar.filtros_extras = {"ciudad":"Sogamoso","modalidad":"Licitación pública"}` → matchmaking hace `WHERE ciudad ILIKE '%Sogamoso%'` en BD, no en cliente. Escalar a 95 cols es añadir campo a `Contrato` + `migrate`.
 
 ## Actualización esquema SECOP II — 85 → 95 columnas (08/10/2026, verificado)
 
@@ -179,6 +179,9 @@ Datos Abiertos **no publica changelog** de columnas: las agregan en silencio. Ve
 - **ETL intacto:** `cargar_secop.py` accede por **nombre** (`fila.get("valor_del_contrato")`), nunca por índice — las 15 columnas físicas que persistimos (pos. 1–35) siguen existiendo y el código no se rompe con columnas nuevas.
 - **Radares cubren las 95 sin migración:** cualquier columna nueva ya es filtrable vía `filtros_extras` JSON (ej. `{"criterios_de_sostenibilidad_ambiental":"Sí"}`); solo se migra a columna física si se necesita índice/GROUP BY.
 - **Regla:** jamás usar `columna[86]`; siempre `item.valor_del_contrato`.
+- **Fecha estimada del cambio:** 27/09/2026 (`viewLastModified` Socrata + lote IDs 172M, posterior a dirección ejecución 169M y documentos tipo 163M).
+- **Origen normativo:** Decreto 0997 del 04/08/2026 (compra pública sostenible) + ABC CCE 10/09/2026 + Guía Contratación Sostenible MinAmbiente/CCE; pos. 83–84 (`documentos_tipo`) vienen de Circular Externa 003/2025.
+- **Volumen verificado 08/10/2026:** `count(*)` = 6.111.521 filas, `max(ultima_actualizacion)` = 2026-10-06, frecuencia diaria confirmada.
 
 ## Procedimiento de Restauración — RNF-09 (7 días retención)
 
@@ -201,12 +204,12 @@ python manage.py shell
 - **`CONTEXT.md`** — memoria viva: decisiones, estado 56 historias, verificación requisito por requisito, clave buenas prácticas, revisión Guía 4.
 - **`ERRORES.md`** — 36 errores con causa y solución.
 - **Fuentes y artefactos V3.1 Freemium**
-  - Dataset: https://www.datos.gov.co/resource/jbjy-vk9h.json (SECOP II, 5.98M, 95 cols verificadas 08/10/2026 vía `/api/views/jbjy-vk9h.json`, metadata `columns` pos. 1–95)
+  - Dataset: https://www.datos.gov.co/resource/jbjy-vk9h.json (SECOP II, 6.11M filas + 95 cols verificadas 08/10/2026 vía `/api/views/jbjy-vk9h.json`, metadata `columns` pos. 1–95, actualización diaria)
   - SODA 2.1 paginación: https://support.socrata.com (Tyler Tech, 2025 — $limit 50k + $offset)
   - Guía SENA GFPI-F-135 V04 — Fase Desarrollo — ADSO 3171062
-  - Planificación: `SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx` V3.1 Freemium (13 secciones, 85 cols, único)
+  - Planificación: `SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx` V3.1 Freemium (13 secciones — redactado con 85 cols, esquema real 95 desde 27/09/2026)
   - Backlogs: `SECOP_Backlog_Producto.xlsx` (56 historias, estandarizado) + `SECOP_Backlog_Producto.csv` (56 filas, Hecho/Steven Araque, único)
   - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs) — ver `CONTEXT.md:8`
 
 ---
-*Última actualización: 08/10/2026 — V3.3 + esquema SECOP 85→95 cols verificadas (10 nuevas sostenibilidad pos. 86–95, ETL por nombre intacto) + login funcional/diseño (redirect /app, timeout 15s, sin flip duplicado) — HEAD `f95b363` — Autor: Steven Alejandro Araque Castro*
+*Última actualización: 08/10/2026 — V3.3 + esquema SECOP 85→95 cols (fecha 27/09/2026, Decreto 0997 + ABC sostenible, 6.11M filas diarias, ETL por nombre intacto) + login funcional/diseño (redirect /app, timeout 15s, stats honestos, sin flip duplicado) — HEAD `f95b363` — Autor: Steven Alejandro Araque Castro*
