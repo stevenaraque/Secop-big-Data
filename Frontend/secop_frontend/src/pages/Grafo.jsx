@@ -35,10 +35,19 @@ export default function Grafo({ token, depto }) {
     placeholderData: keepPreviousData,
   })
   // La física NO debe recalentarse en cada render: objeto estable por datos.
-  const grafica = useMemo(
-    () => ({ nodes: data?.nodos ?? [], links: data?.aristas ?? [] }),
-    [data],
-  );
+  // val = grado del nodo (el hub se ve grande, las hojas chicas).
+  const grafica = useMemo(() => {
+    const nodes = data?.nodos ?? [];
+    const links = data?.aristas ?? [];
+    const grado = {};
+    links.forEach((l) => {
+      const s = typeof l.source === "object" ? l.source.id : l.source;
+      const t = typeof l.target === "object" ? l.target.id : l.target;
+      grado[s] = (grado[s] ?? 0) + 1;
+      grado[t] = (grado[t] ?? 0) + 1;
+    });
+    return { nodes: nodes.map((n) => ({ ...n, val: grado[n.id] ?? 1 })), links };
+  }, [data]);
   // Ancho medido del contenedor: el canvas no hereda ni se auto-mide.
   // Depende de data.total: el marco solo existe cuando hay datos (si corre al montar, ref es null y ancho queda 0).
   const marcoRef = useRef(null);
@@ -51,6 +60,19 @@ export default function Grafo({ token, depto }) {
     ro.observe(el);
     return () => ro.disconnect();
   }, [data?.total]);
+  // Fuerzas legibles: repulsión fuerte + links largos (sin esto todo colapsa al centro).
+  const fgRef = useRef(null);
+  useEffect(() => {
+    const fg = fgRef.current;
+    if (!fg || !grafica.nodes.length) return;
+    try {
+      fg.d3Force("charge")?.strength(-220);
+      fg.d3Force("link")?.distance(80);
+      fg.d3ReheatSimulation?.();
+    } catch {
+      /* noop: versión de force-graph sin d3Force */
+    }
+  }, [ancho, grafica]);
 
   return (
     <section aria-label="Grafo de conexiones" className="rounded-[24px] glass-card p-5">
@@ -87,10 +109,13 @@ export default function Grafo({ token, depto }) {
           <div ref={marcoRef} className="mt-2 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
             {ancho > 0 && (
             <ForceGraph2D
+              ref={fgRef}
               width={ancho}
               height={420}
               backgroundColor={dark ? "#09090b" : "#ffffff"}
               graphData={grafica}
+              nodeVal={(n) => n.val || 1}
+              nodeRelSize={5}
               nodeLabel={(n) => `${n.tipo === "entidad" ? "Entidad" : "Contratista"} · ${n.nombre}`}
               nodeColor={(n) => (n.tipo === "entidad" ? "#059669" : "#2563eb")}
               linkWidth={(l) => l.grosor}
@@ -99,7 +124,7 @@ export default function Grafo({ token, depto }) {
               enableZoomInteraction
               enablePanInteraction
               enableNodeDrag
-              cooldownTicks={80}
+              cooldownTicks={150}
             />
             )}
           </div>

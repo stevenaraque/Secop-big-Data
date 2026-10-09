@@ -527,6 +527,25 @@ class ServicioContratos:
         "Mínima cuantía": "#7c3aed",
     }
 
+    def _color_modalidad(self, modalidad):
+        # Grafo legible: las modalidades reales (régimen especial, subasta inversa…)
+        # no estaban en el mapa exacto y todo salía gris. Match por palabra clave.
+        import unicodedata
+        m = "".join(c for c in unicodedata.normalize("NFD", str(modalidad or "").lower()) if unicodedata.category(c) != "Mn")
+        if "directa" in m:
+            return "#dc2626"
+        if "licitacion" in m or "obra publica" in m:
+            return "#059669"
+        if "merito" in m:
+            return "#2563eb"
+        if "abreviada" in m or "subasta" in m:
+            return "#d97706"
+        if "minima" in m or "menor cuantia" in m:
+            return "#7c3aed"
+        if "especial" in m or "regimen" in m:
+            return "#0891b2"
+        return "#6b7280"
+
     def grafo_red(self, limite=50, depto=None):
         # RF-17: nodos entidad/contratista + aristas contrato. Qué: top montos para no congelar.
         # Por qué: el grosor muestra monto y el color la modalidad de un vistazo.
@@ -558,7 +577,7 @@ class ServicioContratos:
             grosor = round(1 + 7 * (math.log1p(monto) / math.log1p(max_monto)), 2)
             aristas.append({"source": ent_id, "target": con_id, "monto": monto,
                             "modalidad": f["modalidad"],
-                            "color": self.COLORES_MODALIDAD.get((f["modalidad"] or "").strip(), "#6b7280"),
+                            "color": self._color_modalidad(f["modalidad"]),
                             "grosor": grosor})
         return {"nodos": nodos, "aristas": aristas, "total": len(aristas)}
 
