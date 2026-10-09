@@ -118,7 +118,7 @@ export default function MiniDataTable({ columns, data, defaultSort, pageSize = 8
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
             aria-label="Página anterior"
-            className="h-7 w-7 grid place-items-center rounded-full border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors"
+            className="h-11 w-11 sm:h-7 sm:w-7 grid place-items-center rounded-full border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors"
           >
             <CaretLeft size={14} aria-hidden="true" />
           </button>
@@ -127,7 +127,7 @@ export default function MiniDataTable({ columns, data, defaultSort, pageSize = 8
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
             aria-label="Página siguiente"
-            className="h-7 w-7 grid place-items-center rounded-full border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors"
+            className="h-11 w-11 sm:h-7 sm:w-7 grid place-items-center rounded-full border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors"
           >
             <CaretRight size={14} aria-hidden="true" />
           </button>

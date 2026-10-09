@@ -29,3 +29,7 @@
 .tt-row b { font: 11.5px/1.4 ui-monospace, Consolas, monospace; color: #f3ecdc; }
 .tt-bar { height: 4px; background: rgba(243,236,220,.16); margin-top: 7px; }
 .tt-bar span { display: block; height: 100%; outline: 1px solid rgba(243,236,220,.45); }
+/* D4: pergamino legible solo en claro — en oscuro se atenúa para no encandilar. */
+.dark .rf15-simple #rf15-map { filter: brightness(.82) saturate(.85); }
+.dark .rf15-simple .map-clear { background: #27272a; border-color: #52525b; color: #e4e4e7; }
+.dark .rf15-simple .map-clear:hover { background: #e4e4e7; color: #27272a; }

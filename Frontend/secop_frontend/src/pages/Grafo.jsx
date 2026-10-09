@@ -36,7 +36,7 @@ export default function Grafo({ token, depto }) {
   })
 
   return (
-    <section aria-label="Grafo de conexiones" className="rounded-2xl glass-card p-5">
+    <section aria-label="Grafo de conexiones" className="rounded-[24px] glass-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><Network size={18} aria-hidden="true" /> Grafo entidad-contratista</h2>
         <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">

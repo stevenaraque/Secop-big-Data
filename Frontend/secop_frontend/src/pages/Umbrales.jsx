@@ -62,7 +62,7 @@ export default function Umbrales({ token }) {
   }
 
   return (
-    <section aria-label="Configuración de umbrales" className="rounded-2xl glass-card p-5">
+    <section aria-label="Configuración de umbrales" className="rounded-[24px] glass-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><SlidersHorizontal size={18} aria-hidden="true" /> Umbrales de alertas</h2>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">Se guardan en BD y aplican sin reinicio</p>

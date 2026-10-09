@@ -129,7 +129,7 @@ export default function ScrubChart({ data, titulo }) {
           <button
             type="button"
             onClick={volverAlVivo}
-            className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono hover:bg-emerald-500/25 transition-colors"
+            className="inline-flex items-center gap-1.5 h-9 sm:h-6 px-2.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono hover:bg-emerald-500/25 transition-colors"
           >
             <span className="relative flex size-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
@@ -203,7 +203,7 @@ export default function ScrubChart({ data, titulo }) {
                 setRango(k);
                 setFrac(1);
               }}
-              className={`h-7 px-3 rounded-full text-[11px] font-mono border transition-colors ${rKey === k ? "bg-zinc-900 text-white border-zinc-900 font-semibold dark:bg-white dark:text-black dark:border-white" : "text-zinc-500 border-zinc-200 hover:text-zinc-900 hover:border-zinc-400 dark:text-white/60 dark:border-white/15 dark:hover:text-white dark:hover:border-white/30"}`}
+              className={`h-9 sm:h-7 px-3 rounded-full text-[11px] font-mono border transition-colors ${rKey === k ? "bg-zinc-900 text-white border-zinc-900 font-semibold dark:bg-white dark:text-black dark:border-white" : "text-zinc-500 border-zinc-200 hover:text-zinc-900 hover:border-zinc-400 dark:text-white/60 dark:border-white/15 dark:hover:text-white dark:hover:border-white/30"}`}
             >
               {k}
             </button>

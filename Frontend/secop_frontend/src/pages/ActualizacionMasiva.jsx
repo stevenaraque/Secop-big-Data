@@ -232,7 +232,7 @@ export default function ActualizacionMasiva({ token }) {
   return (
     <section
       aria-label="Actualizacion masiva"
-      className="rounded-2xl glass-card p-5"
+      className="rounded-[24px] glass-card p-5"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-sm font-semibold tracking-tight">

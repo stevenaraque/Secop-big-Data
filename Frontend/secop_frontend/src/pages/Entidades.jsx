@@ -54,7 +54,7 @@ export default function Entidades({ token }) {
   })
 
   return (
-    <section aria-label="Entidades" className="rounded-2xl glass-card p-5">
+    <section aria-label="Entidades" className="rounded-[24px] glass-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><Landmark size={18} aria-hidden="true" /> Entidades</h2>
         <input
@@ -101,9 +101,9 @@ export default function Entidades({ token }) {
             </table>
           </div>
           <div className="mt-3 flex items-center gap-2 text-sm">
-            <button disabled={page <= 1} onClick={() => setPage(page - 1)} aria-label="Página anterior" className="h-8 w-8 grid place-items-center rounded-lg border border-zinc-200 dark:border-zinc-700 px-3 disabled:opacity-40"><ChevronLeft size={16} aria-hidden="true" /></button>
+            <button disabled={page <= 1} onClick={() => setPage(page - 1)} aria-label="Página anterior" className="h-11 w-11 sm:h-8 sm:w-8 grid place-items-center rounded-lg border border-zinc-200 dark:border-zinc-700 px-3 disabled:opacity-40"><ChevronLeft size={16} aria-hidden="true" /></button>
             <span className="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">Página {page}</span>
-            <button disabled={!data.next} onClick={() => setPage(page + 1)} aria-label="Página siguiente" className="h-8 w-8 grid place-items-center rounded-lg border border-zinc-200 dark:border-zinc-700 px-3 disabled:opacity-40"><ChevronRight size={16} aria-hidden="true" /></button>
+            <button disabled={!data.next} onClick={() => setPage(page + 1)} aria-label="Página siguiente" className="h-11 w-11 sm:h-8 sm:w-8 grid place-items-center rounded-lg border border-zinc-200 dark:border-zinc-700 px-3 disabled:opacity-40"><ChevronRight size={16} aria-hidden="true" /></button>
           </div>
         </>
       )}

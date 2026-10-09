@@ -120,7 +120,7 @@ export default function ProfilerDual({ token, depto }) {
   return (
     <section
       aria-label="Profiler dual"
-      className="rounded-2xl glass-card p-5"
+      className="rounded-[24px] glass-card p-5"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -147,8 +147,8 @@ export default function ProfilerDual({ token, depto }) {
             onClick={() => setModo("usuario")}
             className={`h-8 px-4 rounded-full text-xs font-medium transition-colors ${
               modo === "usuario"
-                ? "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100 dark:text-zinc-100"
-                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-100"
+                ? "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
             }`}
           >
             Usuario
@@ -159,8 +159,8 @@ export default function ProfilerDual({ token, depto }) {
             onClick={() => setModo("ingenieria")}
             className={`h-8 px-4 rounded-full text-xs font-medium transition-colors ${
               modo === "ingenieria"
-                ? "bg-zinc-900 dark:bg-zinc-100 dark:bg-zinc-800 text-white dark:text-zinc-900 dark:text-zinc-100"
-                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-100"
+                ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
             }`}
           >
             Ingeniería
