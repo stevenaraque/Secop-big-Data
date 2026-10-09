@@ -5,14 +5,14 @@
 
 ## Qué es
 
-**SECOP Insight V3** es un **SaaS Freemium 2 en 1** que demuestra el stack Django + PostgreSQL + React manejando **6M de contratos (95 columnas)** sin congelar el navegador.
+**SECOP Insight V3** es un **SaaS Freemium 2 en 1** que demuestra el stack Django + PostgreSQL + React manejando **9.3M de contratos locales (95 columnas)** sin congelar el navegador.
 
 - **Público (Observatorio):** cualquier ciudadano filtra 500k contratos por departamento/modalidad/fecha y ve KPIs, mapa y grafo en <300ms. El patrón es **agregar en BD y enviar <50KB** al front, nunca 6M filas (anti-patrón 100MB).
 - **Privado (SaaS B2B):** el contratista crea **Radares** (filtros guardados sobre 95 columnas elegibles) y recibe **Oportunidades** automáticas en su bandeja privada + email. El motor **ETL + Matchmaking** cruza contratos nuevos contra radares sin intervención.
 
 **Objetivo General (Guía 4 GFPI-F-135 V04)** — Construir la estructura de datos y la interfaz bajo arquitectura *decoupled*, demostrando el stack completo con manejo masivo real y lógica de negocio.
 
-**Pitch 45s (V3):** *“En lo público filtro 500k y el profiler marca Naive 8s en rojo vs Optimizado 280ms en verde — 29× más rápido. En lo privado creo un Radar ‘pavimento Boyacá’ y al correr el ETL me cae un Match automático con email. Así demuestro Big Data y SaaS con el mismo stack.”*
+**Pitch 45s (V3):** *“En lo público filtro por departamento y el profiler marca Naive en rojo vs Optimizado en verde — el backend mide BD|Python|Red|Render reales. En lo privado creo un Radar ‘pavimento Boyacá’ y al correr el ETL me cae un Match automático con email. Así demuestro Big Data y SaaS con el mismo stack.”*
 
 ## Qué hace
 
@@ -27,12 +27,12 @@
 - **Base de datos:** PostgreSQL 16 local (pgAdmin, localhost:5432) — *local permite 6M completos sin techo 500MB; 95 columnas completas; índices B-tree + JSON para Radares*
 - **Frontend:** React 19.2.8 + Vite 8.2 + Tailwind 3.4.17 + TanStack Query (cache 5min) + TanStack Table 8.21 + TanStack Virtual 3.14 (60 FPS) + Recharts 3.10 + Leaflet 1.9 + `react-force-graph` + `motion` 13.4 + `animejs` 4.5 (stagger + line drawing) + `@phosphor-icons/react` 2.1 (unificado, lucide eliminado) + `sonner` + `ogl` 1.0 (metal WebGL) + `UiverseInput` (floating label + glow uiverse.io) + `vite-plugin-compression` (gzip + brotli)
 - **Manejo masivo:** Agregación en BD (50KB), paginación `page_size 20-50`, virtualización (solo visibles), `keepPreviousData` sin recarga
-- **Control:** Git + GitHub (`main` al día `df83925`, tags `v1.1-profiler` + `v1.2-privado` + `v1.3-auditoria`, PR #1 mergeado)
+- **Control:** Git + GitHub (`main` al día `021d5ee`, tags `v1.1-profiler` + `v1.2-privado` + `v1.3-auditoria` + `v1.4-auth` + `v1.5-dashboard`, PR #1 mergeado)
 - **Gestión:** Notion (5 Sprints, 56 requisitos 399 pts) + `EstructuraSesion_v2.xlsx` (5 sesiones × 6h) + `SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx` V3.1 Freemium + `SECOP_Backlog_Producto.xlsx` (56 historias)
 
 ## Estado
 
-Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transferencia)**. **56 requisitos (49 base + 7 Freemium RF-36..42) + RNF-04/07/08/09/10/11/12** completados y verificados (`manage.py check` 0 issues, `npm run build` OK, `pytest 8` + `vitest 11` passing, lint 0). **BD 08/10: carga total SECOP II 9.3M vía COPY + migraciones 0001..0017** (0013 sin unique en `id_contrato`, 0014 covering 9M, 0015-0017 precalculados) **+ catálogo `entidad` poblado (11.582, upsert por lote en ETL RF-28)** + perf dashboard 34s→ms + auth single-flight + registro anti-enumeración + tildes insensibles + bandeja modal Info. **Front V3.3 (07/10):** observatorio público `AllowAny` + privado `IsAuthenticated` + layout persistente WebGL + `VITE_API_URL` env + `react-router` + CSP prod + auditoría P0/P1 + tags `v1.2-privado` + `v1.3-auditoria` (HEAD `df83925`). Evidencia en `CONTEXT.md:6`, errores en `ERRORES.md` (#32-#36).
+Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transferencia)**. **56 requisitos (49 base + 7 Freemium RF-36..42) + RNF-04/07/08/09/10/11/12** completados y verificados (`manage.py check` 0 issues, `npm run build` OK, `pytest 17` + `vitest 14` passing, lint 0). **BD 09/10: carga total SECOP II 9.3M vía COPY + migraciones 0001..0018** (0013 sin unique en `id_contrato`, 0014 covering 9M, 0015-0017 precalculados, 0018 `nit_entidad` + `-valor_contrato`) **+ catálogo `entidad` poblado (11.582 verificadas por API)** + perf dashboard (buscar frío 1.3s, por-entidad 60s→3.7s, grafo 0.75s) + profiler con tiempos reales + throttle exportar 20/min + KPIs honestos + `ErrorBoundary`. **Front V3.3 (09/10):** observatorio público `AllowAny` + privado `IsAuthenticated` + layout persistente WebGL + `VITE_API_URL` env + `react-router` + CSP prod + auditoría auth P0/P1/P2 + auditoría dashboard P0/P1/P2 + tags `v1.4-auth` + `v1.5-dashboard` (HEAD `021d5ee`). Evidencia en `CONTEXT.md:6`, errores en `ERRORES.md` (#32-#36).
 
 ## Módulos (detalle en `CONTEXT.md:4`)
 
@@ -44,7 +44,7 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
 | Radares SaaS | `GET/POST /api/radares/` + `PUT/DELETE /api/radares/<id>/` con `filtros_extras` JSON (95 cols elegibles), validación `rango_min <= max`, `IsAuthenticated` + ownership |
 | Bandeja privada | `GET /api/mis-oportunidades/?estado=Nueva` (bandeja) + `PATCH` a Guardada/Postulado + email `send_mail` best-effort (10 por carga) |
 | API agregada | Resumen, top, serie mensual, mapa, búsqueda y stats por entidad en BD (naive vs optimized con `tiempo_bd_ms`) |
-| Profiler Dual | 4 barras `BD|Python|TTFB|Render` + toggle Usuario/Ingeniería + comparativa `naive 8s rojo` vs `optimizado 280ms verde` (29×) |
+| Profiler Dual | 4 barras `BD|Python|TTFB|Render` + toggle Usuario/Ingeniería + comparativa naive vs optimizado con tiempos medidos reales |
 | Dashboard público | KPIs + DataTable masivo (TanStack Table + virtual 60 FPS, sorting por cabecera, solo 50 visibles) + exportar CSV BOM |
 | Mapa | Coroplético % directa, clic filtra, limpia con VER TODO |
 | Alertas | Banderas concentración (>30%) + predominio directa (>80%) + umbrales persistentes |
@@ -61,7 +61,7 @@ Big data/
 │   ├── Dockerfile            # RNF-10: python:3.12-slim + migrate --no-input + gunicorn
 │   ├── requirements.txt      # Django 6.1 + DRF + SimpleJWT + drf-spectacular + gunicorn + python-dotenv + psycopg2
 │   ├── secop_backend/        # proyecto Django (settings.py con env, urls.py con /api/docs/, wsgi.py)
-│   │   ├── contratos/        # Contrato 95 cols* + Entidad + TrabajoCarga + Radar(filtros_extras JSON) + Oportunidad + Umbral + Config + Backup + Auditoria (migrations 0001-0017), services.py, exceptions.py (503), management/commands/cargar_secop.py (2 fases)
+│   │   ├── contratos/        # Contrato 95 cols* + Entidad + TrabajoCarga + Radar(filtros_extras JSON) + Oportunidad + Umbral + Config + Backup + Auditoria (migrations 0001-0018), services.py, exceptions.py (503), management/commands/cargar_secop.py (2 fases)
 │   │   ├── users/            # Registro/Login/Logout + TokenRecuperacion 30min (hash SHA-256, select_for_update)
 │   │   └── manage.py
 │   └── venv/                 # venv Python 3.14.5 (no versionado)
@@ -73,7 +73,7 @@ Big data/
 ├── SECOP_Insight_Planificacion_Proyecto_ADSO3171062_Grupo8.docx V3.1 Freemium (13 secciones, 95 cols — doc redactado con 85, esquema real 95 desde 27/09/2026)
 └── README.md / CONTEXT.md / ERRORES.md
 ```
-* Contrato persiste 15 cols en MVP analítico + Radar.filtros_extras JSON permite filtrar por cualquiera de las 85 sin migración por cada columna; escalar a 95 cols físicas es añadir campos + migrate.
+* Contrato persiste 15 cols en MVP analítico + Radar.filtros_extras JSON permite filtrar por cualquiera de las 95 sin migración por cada columna; escalar a 95 cols físicas es añadir campos + migrate.
 
 ## Cómo levantar el proyecto en otro computador (desde cero) — RNF-10 Deploy Reproducible
 
@@ -115,8 +115,8 @@ Big data/
 5. **Migraciones — crear tablas + índices + Radares — ANTES de publicar (RNF-10 C3):**
    ```bash
    cd secop_backend
-   python manage.py migrate --no-input
-   # Applying contratos.0001... 0011 OK (0011_radar_filtros_extras)
+    python manage.py migrate --no-input
+    # Applying contratos.0001... 0018 OK (0018 idx_contrato_nitent + idx_contrato_valor; indexa 9.3M, minutos, 1 vez)
    python manage.py createsuperuser  # para /admin
    ```
 
@@ -212,4 +212,4 @@ python manage.py shell
   - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs) — ver `CONTEXT.md:8`
 
 ---
-*Última actualización: 08/10/2026 — V3.3 + esquema SECOP 85→95 cols (fecha 27/09/2026, Decreto 0997 + ABC sostenible, 6.11M filas diarias, ETL por nombre intacto) + login funcional/diseño + vidrio global + entidades RF-28 (11.582, ETL upsert, pytest 8/8) — HEAD `1482dfb` — Autor: Steven Alejandro Araque Castro*
+*Última actualización: 09/10/2026 — V3.3 + auditoría dashboard P0/P1/P2 (profiler real, 0018, buscar 1.3s, por-entidad 3.7s, KPIs honestos 9.3M/95cols, ErrorBoundary, tag v1.5-dashboard) + entidades en vivo (11.582) — HEAD `021d5ee` — Autor: Steven Alejandro Araque Castro*
