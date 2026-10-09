@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo, useRef, useEffect } from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import ForceGraph2D from "react-force-graph-2d"
 import { ShareNetwork as Network } from "@phosphor-icons/react"
@@ -34,6 +34,22 @@ export default function Grafo({ token, depto }) {
     staleTime: 1000 * 60 * 5,
     placeholderData: keepPreviousData,
   })
+  // La física NO debe recalentarse en cada render: objeto estable por datos.
+  const grafica = useMemo(
+    () => ({ nodes: data?.nodos ?? [], links: data?.aristas ?? [] }),
+    [data],
+  );
+  // Ancho medido del contenedor: el canvas no hereda ni se auto-mide.
+  const marcoRef = useRef(null);
+  const [ancho, setAncho] = useState(0);
+  useEffect(() => {
+    const el = marcoRef.current;
+    if (!el) return;
+    setAncho(el.clientWidth);
+    const ro = new ResizeObserver(() => setAncho(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   return (
     <section aria-label="Grafo de conexiones" className="rounded-[24px] glass-card p-5">
@@ -67,11 +83,13 @@ export default function Grafo({ token, depto }) {
       {!isLoading && !isError && data && data.total > 0 && (
         <>
           <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">{data.total} contratos · {data.nodos.length} nodos</p>
-          <div className="mt-2 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
+          <div ref={marcoRef} className="mt-2 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
+            {ancho > 0 && (
             <ForceGraph2D
+              width={ancho}
               height={420}
               backgroundColor={dark ? "#09090b" : "#ffffff"}
-              graphData={{ nodes: data.nodos, links: data.aristas }}
+              graphData={grafica}
               nodeLabel={(n) => `${n.tipo === "entidad" ? "Entidad" : "Contratista"} · ${n.nombre}`}
               nodeColor={(n) => (n.tipo === "entidad" ? "#059669" : "#2563eb")}
               linkWidth={(l) => l.grosor}
@@ -82,6 +100,7 @@ export default function Grafo({ token, depto }) {
               enableNodeDrag
               cooldownTicks={80}
             />
+            )}
           </div>
         </>
       )}
