@@ -16,6 +16,7 @@ const Grafo = lazy(() => import("./Grafo.jsx"));
 import ProfilerDual from "./ProfilerDual.jsx";
 import DataTableSECOP from "./DataTableSECOP.jsx";
 import StatusMark from "../components/StatusMark.jsx";
+import Enlace from "../components/Enlace.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import LazySection from "../components/LazySection.jsx";
 import ErrorBoundary from "../components/ErrorBoundary.jsx";
@@ -165,28 +166,29 @@ export default function DashboardModern({ token }) {
     <div className="relative isolate min-h-[100dvh] text-zinc-900 dark:text-white antialiased selection:bg-emerald-500/30 transition-colors duration-300" style={{ fontFamily: "Geist, system-ui, sans-serif" }}>
       {/* Fondo + Toaster viven en App (layout persistente) */}
 
-      <header className="sticky top-0 z-20 backdrop-blur-2xl bg-white/80 dark:bg-[#050505]/70 border-b border-zinc-200 dark:border-white/[0.06] transition-colors duration-300">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 min-h-[72px] py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      {/* Navbar gemelo al de /app (radar manda): mismo shell glass h-64, logo w-8 mono, pills chicas. z-20 para quedar sobre Leaflet. */}
+      <header className="sticky top-0 z-20 glass-card border-x-0 border-t-0">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 min-h-[64px] py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 shrink-0 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-black grid place-items-center font-bold text-[13px] tracking-tighter">SI</div>
+            <div className="w-8 h-8 shrink-0 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 grid place-items-center text-[11px] font-mono">SI</div>
             <div className="min-w-0">
-              <p className="text-[14px] font-semibold tracking-tight leading-none truncate">SECOP Insight</p>
-              <p className="text-[11px] text-zinc-500 dark:text-white/60 font-mono truncate">{totalCorto ? `${totalCorto} • Freemium 2 en 1` : "SECOP • Observatorio"}</p>
+              <p className="text-[13px] font-semibold tracking-tight truncate">SECOP Insight</p>
+              <p className="text-[11px] text-zinc-600 dark:text-zinc-400 font-mono truncate">{totalCorto ? `${totalCorto} • Freemium 2 en 1` : "SECOP • Observatorio"}</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 min-w-0">
             {token ? (
-              <EnlaceRadar href="/app">Mis oportunidades</EnlaceRadar>
+              <Enlace to="/app" className="text-xs px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1">Mis oportunidades</Enlace>
             ) : (
-              <EnlaceRadar href="/login">Iniciar sesión</EnlaceRadar>
+              <Enlace to="/login" className="text-xs px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1">Iniciar sesión</Enlace>
             )}
             <label htmlFor="filtro-territorio" className="sr-only">Filtrar por territorio</label>
-            <select id="filtro-territorio" value={depto} onChange={(e) => setDepto(e.target.value)} className="h-9 max-w-[170px] sm:max-w-[240px] truncate rounded-full border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 backdrop-blur px-4 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+            <select id="filtro-territorio" value={depto} onChange={(e) => setDepto(e.target.value)} className="h-9 max-w-[170px] sm:max-w-[240px] truncate rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30">
               <option value="">Todos · Nacional</option>
               {territorios.map((t) => <option key={t.departamento} value={t.departamento}>{t.departamento} · {t.total}</option>)}
             </select>
             {token ? (
-              <button aria-label="Cerrar sesión" onClick={handleLogout} className="h-9 w-9 shrink-0 rounded-full border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 grid place-items-center text-zinc-700 dark:text-white hover:bg-zinc-50 dark:hover:bg-white/10 transition-colors"><X size={16} aria-hidden="true" /></button>
+              <button aria-label="Cerrar sesión" onClick={handleLogout} className="h-9 w-9 shrink-0 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"><X size={16} aria-hidden="true" /></button>
             ) : null}
             <ThemeToggle />
           </div>
