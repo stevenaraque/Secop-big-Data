@@ -203,12 +203,18 @@ export default function PrivateDashboard({ token }) {
       ...(form.modalidad.trim() ? { modalidad: form.modalidad.trim() } : {}),
       ...extras,
     };
+    const min = form.rango_cuantia_min ? Number(form.rango_cuantia_min) : null;
+    const max = form.rango_cuantia_max ? Number(form.rango_cuantia_max) : null;
+    // P2: rango inválido se frena aquí (el back también valida, pero sin POST inútil).
+    if (min != null && max != null && min > max) {
+      return { error: "Rango inválido: el mínimo debe ser menor o igual al máximo." };
+    }
     return {
       payload: {
         departamento_objetivo: form.departamento_objetivo.trim(),
         palabras_clave: form.palabras_clave.trim(),
-        rango_cuantia_min: form.rango_cuantia_min ? Number(form.rango_cuantia_min) : null,
-        rango_cuantia_max: form.rango_cuantia_max ? Number(form.rango_cuantia_max) : null,
+        rango_cuantia_min: min,
+        rango_cuantia_max: max,
         filtros_extras: merged,
       },
     };

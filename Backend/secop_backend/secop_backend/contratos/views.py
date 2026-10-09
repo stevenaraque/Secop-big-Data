@@ -13,7 +13,7 @@ from django.db.models import Count, Sum, Q
 from .models import TrabajoCarga, Contrato, Entidad, Radar, Oportunidad
 from .services import servicio_contratos
 from django.db.models.functions import TruncMonth
-from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView
+from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.pagination import PageNumberPagination
 from .serializers import ContratoSerializer, EntidadSerializer, RadarSerializer, OportunidadSerializer
 
@@ -702,14 +702,18 @@ class VistaMisOportunidades(ListAPIView):
         return qs
 
     def list(self, request, *args, **kwargs):
-        # P2: página fuera de rango → 400 (DRF da 404).
+        # P2: página fuera de rango → 400 (DRF da 404) + estado inválido → 400 (antes devolvía todo).
+        estado = request.query_params.get("estado")
+        if estado and estado not in ["Nueva", "Guardada", "Postulado"]:
+            return Response({"detalle": "estado debe ser Nueva, Guardada o Postulado."}, status=400)
         try:
             return super().list(request, *args, **kwargs)
         except NotFound:
             return Response({"detalle": "Página fuera de rango."}, status=400)
 
 
-class VistaOportunidadActualizar(UpdateAPIView):
+class VistaOportunidadActualizar(RetrieveUpdateDestroyAPIView):
+    # P2: GET + PATCH + DELETE (antes sin DELETE, la bandeja solo crecía). Ownership por radar__usuario.
     serializer_class = OportunidadSerializer
     permission_classes = [permissions.IsAuthenticated]
     throttle_classes = [ScopedRateThrottle]
