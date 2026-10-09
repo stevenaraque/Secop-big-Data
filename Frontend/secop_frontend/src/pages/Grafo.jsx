@@ -7,6 +7,7 @@ import {
   Background,
   useNodesState,
   useEdgesState,
+  useReactFlow,
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 import { ShareNetwork as Network } from "@phosphor-icons/react"
@@ -51,6 +52,16 @@ function aNodos(nodos, tipo, dark) {
       padding: "6px 10px",
     },
   }))
+}
+
+// Encuadre inicial: fitView solo encuadra al montar (grafo vacío). Al llegar
+// los datos se re-encuadra con animación corta — sin esto arranca desorganizado.
+function AjusteInicial({ total }) {
+  const { fitView } = useReactFlow();
+  useEffect(() => {
+    fitView({ padding: 0.2, maxZoom: 1.25, duration: 350 });
+  }, [total, fitView]);
+  return null;
 }
 
 export default function Grafo({ token, depto }) {
@@ -144,6 +155,7 @@ export default function Grafo({ token, depto }) {
               fitViewOptions={{ padding: 0.2, maxZoom: 1.25 }}
               minZoom={0.3}
             >
+              <AjusteInicial total={data.total} />
               <MiniMap
                 pannable
                 zoomable
