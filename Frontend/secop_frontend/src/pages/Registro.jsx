@@ -82,6 +82,14 @@ export default function Registro() {
   const [sesionGuardada] = useState(() => !!localStorage.getItem("access"));
   // P1-2: router SPA en vez de window.location.href (conserva Query cache, sin reload full)
   const nav = useNavigate();
+  // Volteo de carta (espejo de /login): entra desde -90° y sale hacia +90°.
+  const [saliendo, setSaliendo] = useState(null);
+  function irConVolteo(e, to) {
+    e?.preventDefault?.();
+    if (saliendo) return;
+    setSaliendo(to);
+    setTimeout(() => nav(to), 430);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -264,7 +272,7 @@ export default function Registro() {
         </div>
       </header>
 
-      <main id="contenido" className="flex-1 w-full max-w-[1400px] mx-auto px-4 lg:px-8 pb-10 lg:pb-12 grid grid-cols-1 lg:grid-cols-[1.18fr_0.92fr] gap-8 lg:gap-10 items-start lg:items-center">
+      <main id="contenido" className="flex-1 w-full max-w-[1400px] mx-auto px-4 lg:px-8 pb-10 lg:pb-12 grid grid-cols-1 lg:grid-cols-[1.18fr_0.92fr] gap-8 lg:gap-10 items-start lg:items-center [perspective:1400px]">
         {/* LEFT editorial */}
         <motion.div variants={stagger} initial="hidden" animate="show" className="pt-2 lg:pt-0 lg:pl-[1.5vw] order-2 lg:order-1">
           <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-2">
@@ -315,7 +323,7 @@ export default function Registro() {
         </motion.div>
 
         {/* RIGHT glass registro */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.18 }} className="order-1 lg:order-2 w-full max-w-[440px] mx-auto lg:mx-0 lg:justify-self-end lg:sticky lg:top-6">
+        <motion.div initial={{ opacity: 0, y: 20, rotateY: -90 }} animate={saliendo ? { opacity: 0, rotateY: 90 } : { opacity: 1, y: 0, rotateY: 0 }} transition={saliendo ? { duration: 0.4, ease: [0.16, 1, 0.3, 1] } : { duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.18 }} style={{ transformStyle: "preserve-3d" }} className="order-1 lg:order-2 w-full max-w-[440px] mx-auto lg:mx-0 lg:justify-self-end lg:sticky lg:top-6">
           <div className="glass-card rounded-[2.5rem] overflow-hidden">
             <div className="p-8 md:p-9">
               <div className="flex items-start justify-between gap-4">
@@ -363,7 +371,7 @@ export default function Registro() {
               <div className="mt-6 flex items-center gap-3"><div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" /><span className="text-[11px] tracking-wide text-zinc-500">o</span><div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" /></div>
 
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <Enlace to="/login" className="h-10 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 active:scale-[0.98] transition-all">Ya tengo cuenta</Enlace>
+                <Enlace to="/login" onClick={(e) => irConVolteo(e, "/login")} className="h-10 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 active:scale-[0.98] transition-all">Ya tengo cuenta</Enlace>
                 <Enlace to="/" className="h-10 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 grid place-items-center text-xs font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 active:scale-[0.98] transition-all">Ver demo</Enlace>
               </div>
             </div>

@@ -43,6 +43,14 @@ export default function Login() {
   // Lectura inicial perezosa: evita setState en effect solo para leer localStorage al montar
   const [sesionGuardada, setSesionGuardada] = useState(() => !!localStorage.getItem("access"));
   const nav = useNavigate();
+  // Volteo de carta: gira 90° y navega (la otra página entra desde -90°).
+  const [saliendo, setSaliendo] = useState(null);
+  function irConVolteo(e, to) {
+    e?.preventDefault?.();
+    if (saliendo) return;
+    setSaliendo(to);
+    setTimeout(() => nav(to), 430);
+  }
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -136,13 +144,14 @@ export default function Login() {
               </motion.div>
         </div>
 
-        {/* RIGHT — tarjeta login */}
-        <div className="order-1 lg:order-2 w-full max-w-[440px] mx-auto lg:mx-0 lg:justify-self-end lg:sticky lg:top-6">
+        {/* RIGHT — tarjeta login con volteo 3D al ir a registro */}
+        <div className="order-1 lg:order-2 w-full max-w-[440px] mx-auto lg:mx-0 lg:justify-self-end lg:sticky lg:top-6 [perspective:1400px]">
           <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.18 }}
+            initial={{ opacity: 0, y: 18, rotateY: 0 }}
+            animate={saliendo ? { opacity: 0, rotateY: 90 } : { opacity: 1, y: 0, rotateY: 0 }}
+            transition={saliendo ? { duration: 0.4, ease: [0.16, 1, 0.3, 1] } : { duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.18 }}
             className="relative w-full"
+            style={{ transformStyle: "preserve-3d" }}
           >
             {/* Login */}
             <div className="w-full">
@@ -166,7 +175,7 @@ export default function Login() {
                     <Enlace to="/" className="h-10 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 grid place-items-center text-xs font-medium">Ver demo pública</Enlace>
                   </div>
                   <div className="mt-4 grid gap-2">
-                    <SpecularButton to="/registro" tint="#ffffff" tintOpacity={0} textColor="#059669" lineColor="#6ee7b7" baseColor="#a7f3d0" className="w-full" style={{ height: 44, border: "2px solid #059669" }}>Registrarme — crear cuenta en 30s</SpecularButton>
+                    <SpecularButton onClick={(e) => irConVolteo(e, "/registro")} tint="#ffffff" tintOpacity={0} textColor="#059669" lineColor="#6ee7b7" baseColor="#a7f3d0" className="w-full" style={{ height: 44, border: "2px solid #059669" }}>Registrarme — crear cuenta en 30s</SpecularButton>
                     <p className="text-center text-[11px] text-zinc-500">¿Sin cuenta? Activa tus radares en <span className="font-medium text-zinc-700">/app</span> tras registrarte.</p>
                   </div>
                 </div>
