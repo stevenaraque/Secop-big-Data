@@ -22,9 +22,10 @@ async function fetchRadares(token) {
   const j = await r.json();
   return j.results ?? j.value ?? j;
 }
-async function fetchOpos(token, estado) {
-  const q = estado ? `?estado=${estado}` : "";
-  const r = await fetch(`${API}/mis-oportunidades/${q}`, { headers: { Authorization: `Bearer ${token}` } });
+async function fetchOpos(token, estado, page) {
+  const p = new URLSearchParams({ page: String(page + 1), page_size: String(PAGE_OPOS) });
+  if (estado) p.set("estado", estado);
+  const r = await fetch(`${API}/mis-oportunidades/?${p}`, { headers: { Authorization: `Bearer ${token}` } });
   if (!r.ok) errorConStatus(r, "oportunidades");
   const j = await r.json();
   return j;
@@ -42,6 +43,16 @@ function detalleError(j, fallback) {
 }
 
 const FORM_VACIO = { departamento_objetivo: "Boyaca", palabras_clave: "", rango_cuantia_min: "", rango_cuantia_max: "", ciudad: "", modalidad: "", filtros_extras: "" };
+
+// P0: sub del JWT para las queryKeys. Sin esto la cuenta B ve radares/bandeja de A 5min (caché compartida).
+function getSub(token) {
+  try {
+    const p = JSON.parse(atob(String(token).split(".")[1]));
+    return p.sub ?? p.user_id ?? "?";
+  } catch {
+    return "?";
+  }
+}
 
 // Card de oportunidad: detalle completo del contrato que hizo match con el radar.
 // Qué: entidad, objeto expandible, valor/fecha/modalidad/contratista + acciones.
@@ -144,24 +155,31 @@ export default function PrivateDashboard({ token }) {
   const [pagOpos, setPagOpos] = useState(0);
   const [detalleOp, setDetalleOp] = useState(null);
 
-  const { data: radaresData, isLoading: cargandoRadares, isError: errorRadares, refetch: reintentarRadares } = useQuery({ queryKey: ["radares"], queryFn: () => fetchRadares(token), enabled: !!token, staleTime: 1000 * 60 * 5 });
+  // P0: keys con sub (sin fuga entre cuentas) + bandeja paginada en servidor (total real, no 20).
+  const sub = getSub(token);
+  const { data: radaresData, isLoading: cargandoRadares, isError: errorRadares, refetch: reintentarRadares } = useQuery({ queryKey: ["radares", sub], queryFn: () => fetchRadares(token), enabled: !!token, staleTime: 1000 * 60 * 5 });
   const radares = Array.isArray(radaresData) ? radaresData : radaresData?.results ?? [];
   const totalPagRadares = Math.max(1, Math.ceil(radares.length / PAGE_RADARES));
   const pagRadaresOk = Math.min(pagRadares, totalPagRadares - 1);
   const radaresPag = radares.slice(pagRadaresOk * PAGE_RADARES, pagRadaresOk * PAGE_RADARES + PAGE_RADARES);
 
   const { data: oposData, isLoading: cargandoOpos, isError: errorOpos, refetch: reintentarOpos } = useQuery({
-    queryKey: ["oportunidades", filtroEstado],
-    queryFn: () => fetchOpos(token, filtroEstado),
+    queryKey: ["oportunidades", sub, filtroEstado, pagOpos],
+    queryFn: () => fetchOpos(token, filtroEstado, pagOpos),
     enabled: !!token,
     // P1: conserva bandeja al cambiar filtro estado.
     staleTime: 1000 * 60 * 5,
     placeholderData: keepPreviousData,
   });
-  const oportunidades = oposData?.results ?? oposData?.value ?? (Array.isArray(oposData) ? oposData : []);
-  const totalPagOpos = Math.max(1, Math.ceil(oportunidades.length / PAGE_OPOS));
-  const pagOposOk = Math.min(pagOpos, totalPagOpos - 1);
-  const oposPag = oportunidades.slice(pagOposOk * PAGE_OPOS, pagOposOk * PAGE_OPOS + PAGE_OPOS);
+  const oportunidades = oposData?.results ?? [];
+  const totalOpos = oposData?.count ?? oportunidades.length;
+  const totalPagOpos = Math.max(1, Math.ceil(totalOpos / PAGE_OPOS));
+  // Si la página quedó vacía (PATCH movió el último ítem), retrocede 1.
+  useEffect(() => {
+    if (!cargandoOpos && !errorOpos && totalOpos > 0 && oportunidades.length === 0 && pagOpos > 0) {
+      setPagOpos(pagOpos - 1); // oxlint-disable-line react/set-state-in-effect -- retroceso de página vacía
+    }
+  }, [cargandoOpos, errorOpos, totalOpos, oportunidades.length, pagOpos]);
 
   function armarPayload() {
     let extras = {};
@@ -459,7 +477,7 @@ export default function PrivateDashboard({ token }) {
           <div className="rounded-2xl glass-card p-5">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold">Bandeja de Oportunidades</h2>
-              <span className="text-[11px] px-2 py-1 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 font-mono">{oportunidades.length} total</span>
+              <span className="text-[11px] px-2 py-1 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 font-mono">{totalOpos} total</span>
             </div>
             <div className="mt-3 flex flex-wrap gap-1">
               {["", "Nueva", "Guardada", "Postulado"].map((est) => (
@@ -488,7 +506,7 @@ export default function PrivateDashboard({ token }) {
             {!cargandoOpos && !errorOpos && (
               <>
                 <div className="mt-4 space-y-3">
-                  {oposPag.map((op) => (
+                  {oportunidades.map((op) => (
                     <OpoCard
                       key={op.id}
                       op={op}
@@ -501,12 +519,12 @@ export default function PrivateDashboard({ token }) {
                   {detalleOp && <ModalContrato op={detalleOp} onCerrar={() => setDetalleOp(null)} />}
                   {oportunidades.length === 0 && <p className="text-sm text-zinc-500 dark:text-zinc-400 border border-dashed rounded-xl p-6 text-center">Sin oportunidades para este filtro. Crea un Radar y espera al próximo ETL.</p>}
                 </div>
-                {oportunidades.length > PAGE_OPOS && (
+                {totalPagOpos > 1 && (
                   <nav aria-label="Paginación de oportunidades" className="mt-4 flex items-center justify-between">
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 tabular-nums">Pág {pagOposOk + 1}/{totalPagOpos} · {oportunidades.length} en bandeja</p>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 tabular-nums">Pág {pagOpos + 1}/{totalPagOpos} · {totalOpos} en bandeja</p>
                     <div className="flex gap-1">
-                      <button aria-label="Oportunidades anteriores" disabled={pagOposOk === 0} onClick={() => setPagOpos(pagOposOk - 1)} className="h-7 w-7 grid place-items-center rounded-full border border-zinc-200 dark:border-zinc-700 disabled:opacity-40 hover:bg-zinc-50 dark:hover:bg-zinc-800"><CaretLeft size={14} aria-hidden="true" /></button>
-                      <button aria-label="Oportunidades siguientes" disabled={pagOposOk >= totalPagOpos - 1} onClick={() => setPagOpos(pagOposOk + 1)} className="h-7 w-7 grid place-items-center rounded-full border border-zinc-200 dark:border-zinc-700 disabled:opacity-40 hover:bg-zinc-50 dark:hover:bg-zinc-800"><CaretRight size={14} aria-hidden="true" /></button>
+                      <button aria-label="Oportunidades anteriores" disabled={pagOpos === 0} onClick={() => setPagOpos(pagOpos - 1)} className="h-7 w-7 grid place-items-center rounded-full border border-zinc-200 dark:border-zinc-700 disabled:opacity-40 hover:bg-zinc-50 dark:hover:bg-zinc-800"><CaretLeft size={14} aria-hidden="true" /></button>
+                      <button aria-label="Oportunidades siguientes" disabled={pagOpos >= totalPagOpos - 1} onClick={() => setPagOpos(pagOpos + 1)} className="h-7 w-7 grid place-items-center rounded-full border border-zinc-200 dark:border-zinc-700 disabled:opacity-40 hover:bg-zinc-50 dark:hover:bg-zinc-800"><CaretRight size={14} aria-hidden="true" /></button>
                     </div>
                   </nav>
                 )}

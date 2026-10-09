@@ -147,12 +147,13 @@ class Command(BaseCommand):
                 Entidad.objects.bulk_create(a_entidades, batch_size=1000, ignore_conflicts=True)
 
         # RF-39 Fase 2 Matchmaking: cruzar nuevos contratos vs Radares activos
+        # P0: por PK, no por id_contrato (no-unique traía filas viejas y re-matcheaba
+        # histórico en cada carga). bulk_create en Postgres devuelve PKs en los objetos.
         nuevos_contratos = []
         if a_insertar:
-            # obtener objetos reales con PK para FK
-            nuevos_ids = [c.id_contrato for c in a_insertar]
-            if nuevos_ids:
-                nuevos_contratos = list(Contrato.objects.filter(id_contrato__in=nuevos_ids))
+            nuevos_pks = [c.pk for c in a_insertar if c.pk]
+            if nuevos_pks:
+                nuevos_contratos = list(Contrato.objects.filter(pk__in=nuevos_pks))
         if nuevos_contratos:
             radares = list(Radar.objects.filter(activo=True).select_related("usuario"))
             oportunidades = []
