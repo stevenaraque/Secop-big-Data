@@ -161,12 +161,59 @@ class ServicioContratos:
         hit = cache.get(ck)
         if hit is not None:
             return hit
-        # V3.4: insensible a tildes en ambos lados (unaccent BD + norm Python).
-        # OJO: unaccent SOLO en campos cortos; en descripcion (TEXT largo) es 20x
-        # más caro y tumba el query (medido 230s). Ahí icontains plano.
+        # P1: 0 GROUP BY sobre 9.3M. empresas/entidades salen de tablas chicas
+        # (contratista_total / entidad 11.5k + conteo por NIT con índice).
+        # Con tablas vacías (tests) fallback al vivo. `contratos` conserva 1 query
+        # con LIMIT (corta al hallar N, sin agregación total) + cache 10min.
         import unicodedata
         q_plano = "".join(
             c for c in unicodedata.normalize("NFD", q) if unicodedata.category(c) != "Mn")
+        if ContratistaTotal.objects.exists():
+            empresas = [
+                {"contratista_nit": r["contratista_nit"],
+                 "contratista_nombre": r["contratista_nombre"],
+                 "total": r["total_contratos"]}
+                for r in ContratistaTotal.objects.filter(
+                    Q(contratista_nombre__unaccent__icontains=q_plano)
+                    | Q(contratista_nit__icontains=q_plano)
+                ).order_by("-total_contratos").values(
+                    "contratista_nit", "contratista_nombre", "total_contratos"
+                )[:limite]
+            ]
+        else:
+            empresas = list(
+                self.modelo.objects.filter(
+                    Q(contratista_nombre__unaccent__icontains=q_plano)
+                    | Q(contratista_nit__icontains=q_plano)
+                ).values("contratista_nit", "contratista_nombre")
+                .annotate(total=Count("id"))
+                .order_by("-total")[:limite]
+            )
+        if Entidad.objects.exists():
+            matches = list(Entidad.objects.filter(
+                Q(nombre_entidad__unaccent__icontains=q_plano)
+                | Q(nit_entidad__icontains=q_plano)
+            ).values("nombre_entidad", "nit_entidad", "departamento")[:limite])
+            totales = {
+                r["nit_entidad"]: r["total"]
+                for r in self.modelo.objects.filter(
+                    nit_entidad__in=[m["nit_entidad"] for m in matches]
+                ).values("nit_entidad").annotate(total=Count("id"))
+            } if matches else {}
+            entidades = [
+                {"nombre_entidad": m["nombre_entidad"],
+                 "departamento": m["departamento"],
+                 "total": totales.get(m["nit_entidad"], 0)}
+                for m in matches
+            ]
+        else:
+            entidades = list(
+                self.modelo.objects.filter(
+                    Q(nombre_entidad__unaccent__icontains=q_plano)
+                ).values("nombre_entidad", "departamento")
+                .annotate(total=Count("id"))
+                .order_by("-total")[:limite]
+            )
         base = (
             Q(contratista_nombre__unaccent__icontains=q_plano)
             | Q(contratista_nit__icontains=q_plano)
@@ -177,18 +224,6 @@ class ServicioContratos:
             self.modelo.objects.filter(base).values(
                 "id_contrato", "contratista_nombre", "nombre_entidad", "departamento"
             )[:limite]
-        )
-        empresas = list(
-            self.modelo.objects.filter(base)
-            .values("contratista_nit", "contratista_nombre")
-            .annotate(total=Count("id"))
-            .order_by("-total")[:limite]
-        )
-        entidades = list(
-            self.modelo.objects.filter(base)
-            .values("nombre_entidad", "departamento")
-            .annotate(total=Count("id"))
-            .order_by("-total")[:limite]
         )
         out = {"contratos": contratos, "empresas": empresas, "entidades": entidades}
         cache.set(ck, out, 600)
@@ -424,34 +459,63 @@ class ServicioContratos:
         if entidad is None and nit:
             entidad = Entidad.objects.filter(nit_entidad=str(nit).strip()).first()
         if entidad is not None:
-            qs = self.modelo.objects.filter(Q(entidad=entidad) | Q(nit_entidad=entidad.nit_entidad))
+            nit_str = entidad.nit_entidad
             info = {"id": entidad.id, "nombre_entidad": entidad.nombre_entidad, "nit_entidad": entidad.nit_entidad,
                     "departamento": entidad.departamento, "ciudad": entidad.ciudad, "sector": entidad.sector}
         elif nit:
-            qs = self.modelo.objects.filter(Q(nit_entidad=str(nit).strip()))
-            primero = qs.order_by("id").first()
+            nit_str = str(nit).strip()
+            primero = self.modelo.objects.filter(nit_entidad=nit_str).order_by("id").first()
             info = {"id": None, "nombre_entidad": primero.nombre_entidad if primero else "",
-                    "nit_entidad": str(nit).strip(), "departamento": "", "ciudad": "", "sector": ""}
+                    "nit_entidad": nit_str, "departamento": "", "ciudad": "", "sector": ""}
         else:
             return {"entidad": None, "total_contratos": 0, "total_contratado": 0.0,
                     "por_modalidad": [], "top_contratistas": []}
-        qs = self._filtrar_depto(qs, depto)
+        # P1: 1 pasada con GROUPING SETS (total + modalidad + contratista).
+        # Antes eran 3 scans de ~182k filas (22s en disco); ahora 1.
+        conds = ["nit_entidad = %s"]
+        params = [nit_str]
+        if depto:
+            vals = self._variantes(depto)
+            if vals:
+                conds.append("departamento IN (%s)" % ",".join(["%s"] * len(vals)))
+                params.extend(vals)
         if fecha_desde:
-            qs = qs.filter(fecha_firma__gte=fecha_desde)
+            conds.append("fecha_firma >= %s")
+            params.append(fecha_desde)
         if fecha_hasta:
-            qs = qs.filter(fecha_firma__lte=fecha_hasta)
-        agg = qs.aggregate(total=Count("id"), suma=Sum("valor_contrato"))
-        total = agg["total"] or 0
+            conds.append("fecha_firma <= %s")
+            params.append(fecha_hasta)
+        sql = (
+            "SELECT modalidad, contratista_nit, contratista_nombre,"
+            " COUNT(*) AS total, SUM(valor_contrato) AS suma,"
+            " GROUPING(modalidad, contratista_nit, contratista_nombre) AS grp"
+            " FROM %s WHERE %s"
+            " GROUP BY GROUPING SETS ((), (modalidad), (contratista_nit, contratista_nombre))"
+            % (self.modelo._meta.db_table, " AND ".join(conds))
+        )
+        with connection.cursor() as cur:
+            cur.execute(sql, params)
+            filas = cur.fetchall()
+        total = 0
+        suma_total = 0.0
+        por_modalidad = []
+        contratistas = []
+        for modalidad, cnit, cnombre, t, s, grp in filas:
+            if grp == 7:
+                total = t or 0
+                suma_total = float(s or 0)
+            elif grp == 3:
+                por_modalidad.append({"modalidad": modalidad, "total": t, "suma": float(s or 0)})
+            elif grp == 4:
+                contratistas.append({"contratista_nit": cnit, "contratista_nombre": cnombre,
+                                     "total": t, "suma": float(s or 0)})
         if total == 0:
             return {"entidad": info, "total_contratos": 0, "total_contratado": 0.0,
                     "por_modalidad": [], "top_contratistas": []}
-        por_modalidad = list(qs.values("modalidad").annotate(total=Count("id"), suma=Sum("valor_contrato")).order_by("-total"))
-        por_modalidad = [{"modalidad": r["modalidad"], "total": r["total"], "suma": float(r["suma"] or 0)} for r in por_modalidad]
-        top = list(qs.values("contratista_nit", "contratista_nombre").annotate(total=Count("id"), suma=Sum("valor_contrato")).order_by("-suma")[:5])
-        top = [{"contratista_nit": r["contratista_nit"], "contratista_nombre": r["contratista_nombre"],
-                "total": r["total"], "suma": float(r["suma"] or 0)} for r in top]
-        return {"entidad": info, "total_contratos": total, "total_contratado": float(agg["suma"] or 0),
-                "por_modalidad": por_modalidad, "top_contratistas": top}
+        por_modalidad.sort(key=lambda r: -r["total"])
+        contratistas.sort(key=lambda r: -r["suma"])
+        return {"entidad": info, "total_contratos": total, "total_contratado": suma_total,
+                "por_modalidad": por_modalidad, "top_contratistas": contratistas[:5]}
 
     COLORES_MODALIDAD = {
         "Contratación directa": "#dc2626",

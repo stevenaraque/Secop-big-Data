@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
 import { motion } from "motion/react"
 import { Warning as TriangleAlert } from "@phosphor-icons/react"
@@ -25,10 +25,13 @@ const columnHelper = createColumnHelper()
 
 export default function PredominioDirecta({ token, depto }) {
   const [umbral, setUmbral] = useState(80)
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["predominio", umbral, depto],
+  // P0: key incluye modo (anon/auth) + caché 5min + conserva anterior. Sin esto el login mezcla datos entre modos.
+  const modo = token ? "auth" : "anon"
+  const { data, isLoading, isError, refetch: reintentar } = useQuery({
+    queryKey: ["predominio", umbral, depto, modo],
     queryFn: () => fetchPredominio(umbral, depto, token),
-    enabled: true,
+    staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
   })
 
   // DataTable: 8 filas por página + sorting (antes se pintaban TODAS de golpe)
@@ -70,13 +73,18 @@ export default function PredominioDirecta({ token, depto }) {
             min={1}
             max={100}
             value={umbral}
-            onChange={(e) => setUmbral(Number(e.target.value) || 0)}
+            onChange={(e) => setUmbral(Math.min(100, Math.max(1, Number(e.target.value) || 1)))}
             className="w-20 h-9 rounded-lg border border-zinc-200 dark:border-zinc-700 px-2 text-sm tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/30"
           />
         </label>
       </div>
       {isLoading && <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Evaluando predominio…</p>}
-      {isError && <p className="mt-3 text-sm text-red-700">Error evaluando predominio. Revisa el umbral (1-100).</p>}
+      {isError && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <p className="text-sm text-red-700 dark:text-red-300">Error evaluando predominio. Revisa el umbral (1-100).</p>
+          <button onClick={() => reintentar()} className="h-8 rounded-full border border-red-300 dark:border-red-800 px-4 text-xs font-medium text-red-700 dark:text-red-300">Reintentar</button>
+        </div>
+      )}
       {!isLoading && !isError && data && data.total === 0 && (
         <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">Sin banderas con umbral {data.umbral}%. Ninguna entidad supera el predominio.</p>
       )}

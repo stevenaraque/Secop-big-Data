@@ -18,13 +18,14 @@ import DataTableSECOP from "./DataTableSECOP.jsx";
 import StatusMark from "../components/StatusMark.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import LazySection from "../components/LazySection.jsx";
+import ErrorBoundary from "../components/ErrorBoundary.jsx";
 import ScrubChart from "../components/ScrubChart.jsx";
 import { useTheme } from "../hooks/useTheme.js";
 import { dineroCorto, dineroExacto } from "../lib/formato.js";
 import { ArrowRight, DownloadSimple as Download, X, Database, CurrencyCircleDollar, TrendUp, MapPin, ChartBar, BellRinging, Lightning, MagnifyingGlass } from "@phosphor-icons/react";
 import "../components/glass-card.css";
 
-import { API_URL as API } from "../lib/api.js";
+import { API_URL as API, obtenerTokenVigente } from "../lib/api.js";
 async function errorConStatus(r, etiqueta) {
   const e = new Error(etiqueta);
   e.status = r.status;
@@ -134,16 +135,27 @@ export default function DashboardModern({ token }) {
 
   // Público: queries funcionan anonimas (AllowAny) y con JWT; la key incluye modo
   // para no mezclar caché anon/auth. token null => headers vacios
-  const modo = token ? "auth" : "anon";
-  const { data: resumen, isLoading: cargandoResumen } = useQuery({ queryKey: ["resumen", depto, modo], queryFn: () => fetchResumen(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
-  const { data: topData } = useQuery({ queryKey: ["top", depto, modo], queryFn: () => fetchTop(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
-  const { data: mapaData } = useQuery({ queryKey: ["mapa", modo], queryFn: () => fetchMapa(token), staleTime: 5 * 60 * 1000 });
+  // P0: valida exp ANTES de disparar. Con expirado refresca 1 vez (single-flight) y las
+  // 5 queries salen con token vivo: 0×401, 0 reintentos. Si el refresh falla → anon (nunca expulsa a /login).
+  const [sesion, setSesion] = useState({ listo: false, t: null });
+  useEffect(() => {
+    let vivo = true;
+    obtenerTokenVigente(token).then((t) => { if (vivo) setSesion({ listo: true, t }); });
+    return () => { vivo = false; };
+  }, [token]);
+  const modo = sesion.t ? "auth" : "anon";
+  const { data: resumen, isLoading: cargandoResumen } = useQuery({ queryKey: ["resumen", depto, modo], queryFn: () => fetchResumen(depto, sesion.t), enabled: sesion.listo, staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
+  const { data: topData } = useQuery({ queryKey: ["top", depto, modo], queryFn: () => fetchTop(depto, sesion.t), enabled: sesion.listo, staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
+  const { data: mapaData } = useQuery({ queryKey: ["mapa", modo], queryFn: () => fetchMapa(sesion.t), enabled: sesion.listo, staleTime: 5 * 60 * 1000 });
   const territorios = [...(mapaData?.mapa || [])].sort((a, b) => String(a.departamento).localeCompare(String(b.departamento), "es"));
-  const { data: contratosPag, isFetching, isError: errorTabla } = useQuery({ queryKey: ["contratos", depto, modo], queryFn: () => fetchContratos({ depto }, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
+  // P1: conteo nacional real desde el mapa (siempre nacional). Sin hardcodear "6M".
+  const totalNacional = (mapaData?.mapa || []).reduce((a, t) => a + (Number(t.total) || 0), 0);
+  const totalCorto = totalNacional ? `${(totalNacional / 1e6).toLocaleString("es-CO", { maximumFractionDigits: 1 })}M` : null;
+  const { data: contratosPag, isFetching, isError: errorTabla, refetch: reintentarTabla } = useQuery({ queryKey: ["contratos", depto, modo], queryFn: () => fetchContratos({ depto }, sesion.t), enabled: sesion.listo, staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
   const rows = contratosPag?.results ?? [];
 
   // Serie mensual para el scrub: una sola serie manda (valor, cambio, %)
-  const { data: serieData } = useQuery({ queryKey: ["serie", depto, modo], queryFn: () => fetchSerie(depto, token), staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
+  const { data: serieData } = useQuery({ queryKey: ["serie", depto, modo], queryFn: () => fetchSerie(depto, sesion.t), enabled: sesion.listo, staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData });
   const serieMensual = (serieData?.serie ?? []).map((s) => ({
     label: String(s.mes ?? "").slice(0, 7),
     valor: Number(s.suma ?? 0),
@@ -159,7 +171,7 @@ export default function DashboardModern({ token }) {
             <div className="w-9 h-9 shrink-0 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-black grid place-items-center font-bold text-[13px] tracking-tighter">SI</div>
             <div className="min-w-0">
               <p className="text-[14px] font-semibold tracking-tight leading-none truncate">SECOP Insight</p>
-              <p className="text-[11px] text-zinc-500 dark:text-white/60 font-mono truncate">6M • 100 FPS • Freemium 2 en 1</p>
+              <p className="text-[11px] text-zinc-500 dark:text-white/60 font-mono truncate">{totalCorto ? `${totalCorto} • Freemium 2 en 1` : "SECOP • Observatorio"}</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 min-w-0">
@@ -187,13 +199,14 @@ export default function DashboardModern({ token }) {
             <motion.div aria-hidden="true" className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-emerald-500/20 to-sky-500/20 rounded-full blur-3xl pointer-events-none" animate={reduce ? undefined : { scale: [1, 1.1, 1], opacity: [0.7, 1, 0.7] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} />
             <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-2">
               <span className="relative flex size-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+                {/* P2: sin ping con reduced-motion (ya existe `reduce`). */}
+                {!reduce && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />}
                 <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
               </span>
               Observatorio público • {depto || "Nacional"}
             </p>
             <h1 className="text-[2rem] leading-[1.05] sm:text-4xl md:text-5xl font-bold tracking-tighter sm:leading-[0.95] mt-3 text-balance break-words" style={{ letterSpacing: "-0.04em" }}>
-              6 millones de{" "}
+              {totalCorto ? `${totalCorto.replace("M", "")} millones de` : "Millones de"}{" "}
               <span className="bg-gradient-to-r from-emerald-600 to-sky-600 bg-clip-text text-transparent">contratos</span>{" "}
               sin congelar tu navegador.
             </h1>
@@ -207,7 +220,7 @@ export default function DashboardModern({ token }) {
             <div className="mt-6 flex flex-wrap gap-2">
               <span className="px-3 py-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-mono inline-flex items-center gap-1.5"><Lightning size={13} aria-hidden="true" /> 100 FPS</span>
               <span className="px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 text-xs inline-flex items-center gap-1.5"><Database size={13} aria-hidden="true" /> 50KB</span>
-              <span className="px-3 py-1.5 rounded-full glass-card text-xs text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5"><ChartBar size={13} aria-hidden="true" /> 6M filas</span>
+              <span className="px-3 py-1.5 rounded-full glass-card text-xs text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5"><ChartBar size={13} aria-hidden="true" /> {totalCorto ? `${totalCorto} filas` : "… filas"}</span>
             </div>
           </div>
           <div className="lg:col-span-4 rounded-[32px] bg-white text-zinc-900 border border-zinc-200 dark:bg-gradient-to-br dark:from-zinc-900 dark:to-black dark:text-white dark:border-white/10 p-6 relative overflow-hidden">
@@ -216,7 +229,7 @@ export default function DashboardModern({ token }) {
             <div className="flex items-center justify-between relative">
               <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-white/60 flex items-center gap-2">
                 <span className="relative flex size-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 dark:bg-emerald-400 opacity-60" />
+                  {!reduce && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 dark:bg-emerald-400 opacity-60" />}
                   <span className="relative inline-flex size-2 rounded-full bg-emerald-500 dark:bg-emerald-400" />
                 </span>
                 Gráfica en vivo
@@ -234,14 +247,15 @@ export default function DashboardModern({ token }) {
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <KPICard label="Total contratos" value={(resumen?.total ?? 0).toLocaleString("es-CO")} sub="COUNT en BD • 100 FPS" delay={0} icon={Database} loading={cargandoResumen && !resumen} />
-          <KPICard label="Total dinero" value={dineroCorto(resumen?.suma_valor)} title={dineroExacto(resumen?.suma_valor)} sub="SUM • indexed" delay={80} icon={CurrencyCircleDollar} loading={cargandoResumen && !resumen} />
-          <KPICard label="Valor promedio" value={dineroCorto(resumen?.promedio_valor)} title={dineroExacto(resumen?.promedio_valor)} sub="AVG • 50KB" delay={160} icon={TrendUp} loading={cargandoResumen && !resumen} />
+          {/* P1: sin resumen no se pinta 0 — "—" distingue error de cero real. */}
+          <KPICard label="Total contratos" value={resumen ? Number(resumen.total ?? 0).toLocaleString("es-CO") : "—"} sub="COUNT en BD • 100 FPS" delay={0} icon={Database} loading={cargandoResumen && !resumen} />
+          <KPICard label="Total dinero" value={resumen ? dineroCorto(resumen.suma_valor) : "—"} title={resumen ? dineroExacto(resumen.suma_valor) : undefined} sub="SUM • indexed" delay={80} icon={CurrencyCircleDollar} loading={cargandoResumen && !resumen} />
+          <KPICard label="Valor promedio" value={resumen ? dineroCorto(resumen.promedio_valor) : "—"} title={resumen ? dineroExacto(resumen.promedio_valor) : undefined} sub="AVG • 50KB" delay={160} icon={TrendUp} loading={cargandoResumen && !resumen} />
         </section>
 
         {/* Profiler diferido: mide al acercarse (2 queries pesadas menos al abrir) */}
         <LazySection minHeight={180} label="Cargando profiler">
-          <ProfilerDual token={token} depto={depto} />
+          <ErrorBoundary nombre="Profiler"><ProfilerDual token={token} depto={depto} /></ErrorBoundary>
         </LazySection>
 
         <motion.section whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 16 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5, ease: "easeOut" }} className="rounded-[24px] bg-white border border-zinc-200 dark:bg-gradient-to-r dark:from-zinc-900 dark:via-black dark:to-zinc-900 dark:border-white/10 p-[1px]">
@@ -250,7 +264,7 @@ export default function DashboardModern({ token }) {
               <h3 className="text-zinc-900 dark:text-white font-semibold flex items-center gap-2">
                 <StatusMark status="running" size={18} /> ¿Alertas de este tipo?
               </h3>
-              <p className="text-zinc-500 dark:text-white/60 text-xs mt-1">Crea un Radar con 85 cols y recibe Matches + email en /app</p>
+              <p className="text-zinc-500 dark:text-white/60 text-xs mt-1">Crea un Radar con 95 cols y recibe Matches + email en /app</p>
             </div>
             <EnlaceRadar href="/app" sobreOscuro={dark}>Crear Radar</EnlaceRadar>
           </div>
@@ -262,7 +276,7 @@ export default function DashboardModern({ token }) {
             <p className="text-xs text-zinc-500 dark:text-zinc-400">Clic filtra todo en sync • 100 FPS</p>
             <div className="mt-4 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 min-w-0">
               <Suspense fallback={<p className="p-4 text-xs text-zinc-500 dark:text-zinc-400">Cargando mapa…</p>}>
-                <MapaDirecta token={token} deptoActivo={depto} onSelectDepto={(n) => setDepto(n)} />
+                <ErrorBoundary nombre="Mapa"><MapaDirecta token={token} deptoActivo={depto} onSelectDepto={(n) => setDepto(n)} /></ErrorBoundary>
               </Suspense>
             </div>
           </motion.div>
@@ -322,7 +336,10 @@ export default function DashboardModern({ token }) {
             </motion.button>
           </div>
           {errorTabla ? (
-            <p role="alert" className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-2xl px-4 py-3">No se pudo cargar</p>
+            <div role="alert" className="flex flex-wrap items-center gap-2 text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-2xl px-4 py-3">
+              <span>No se pudo cargar</span>
+              <button onClick={() => reintentarTabla()} className="h-8 rounded-full border border-red-300 dark:border-red-800 px-4 text-xs font-medium">Reintentar</button>
+            </div>
           ) : rows.length === 0 ? (
             <p className="text-sm text-zinc-500 dark:text-zinc-400 glass-card rounded-2xl p-8 text-center flex items-center justify-center gap-2"><MagnifyingGlass size={16} aria-hidden="true" /> Sin contratos para este filtro — prueba con Todos · Nacional</p>
           ) : (
@@ -336,28 +353,28 @@ export default function DashboardModern({ token }) {
             Antes eran ~12 queries a la vez contra runserver (1 hilo). */}
         <section className="grid grid-cols-1 gap-4 sm:gap-6 min-w-0">
           <LazySection minHeight={200} label="Cargando banderas">
-            <Banderas token={token} depto={depto} />
+            <ErrorBoundary nombre="Banderas"><Banderas token={token} depto={depto} /></ErrorBoundary>
           </LazySection>
           <LazySection minHeight={200} label="Cargando predominio">
-            <PredominioDirecta token={token} depto={depto} />
+            <ErrorBoundary nombre="Predominio"><PredominioDirecta token={token} depto={depto} /></ErrorBoundary>
           </LazySection>
           <LazySection minHeight={160} label="Cargando umbrales">
-            <Umbrales token={token} />
+            <ErrorBoundary nombre="Umbrales"><Umbrales token={token} /></ErrorBoundary>
           </LazySection>
           <LazySection minHeight={220} label="Cargando actualización">
-            <ActualizacionMasiva token={token} />
+            <ErrorBoundary nombre="Actualización"><ActualizacionMasiva token={token} /></ErrorBoundary>
           </LazySection>
           <LazySection minHeight={200} label="Cargando entidades">
-            <Entidades token={token} />
+            <ErrorBoundary nombre="Entidades"><Entidades token={token} /></ErrorBoundary>
           </LazySection>
           <LazySection minHeight={320} label="Cargando grafo">
-            <Suspense fallback={<p className="text-xs text-zinc-500 dark:text-zinc-400">Cargando grafo…</p>}>
-              <Grafo token={token} depto={depto} />
-            </Suspense>
+              <Suspense fallback={<p className="text-xs text-zinc-500 dark:text-zinc-400">Cargando grafo…</p>}>
+                <ErrorBoundary nombre="Grafo"><Grafo token={token} depto={depto} /></ErrorBoundary>
+              </Suspense>
           </LazySection>
         </section>
 
-        <p className="text-[11px] text-zinc-500 dark:text-white/40 border-t border-zinc-200 dark:border-white/10 pt-4">Sincronizado: Query cache 5min + 50 nodos + animejs transform/opacity → 100 FPS • Freemium 2 en 1 • 85 cols • 6M sin estallar</p>
+        <p className="text-[11px] text-zinc-500 dark:text-white/40 border-t border-zinc-200 dark:border-white/10 pt-4">Sincronizado: Query cache 5min + 50 nodos + animejs transform/opacity → 100 FPS • Freemium 2 en 1 • 95 cols • {totalCorto ? `${totalCorto} sin estallar` : "agregados, no filas"}</p>
       </main>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query"
 import { SlidersHorizontal } from "@phosphor-icons/react";
 import "../components/glass-card.css";
 
@@ -29,10 +29,13 @@ async function saveUmbral(nombre, valor, token) {
 
 export default function Umbrales({ token }) {
   const qc = useQueryClient()
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["umbrales"],
+  // P0: key incluye modo (anon/auth) + caché 5min + conserva anterior. Sin esto el login mezcla datos entre modos.
+  const modo = token ? "auth" : "anon"
+  const { data, isLoading, isError, refetch: reintentar } = useQuery({
+    queryKey: ["umbrales", modo],
     queryFn: () => fetchUmbrales(token),
-    enabled: true,
+    staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
   })
   // Overrides del usuario. El valor visible es override ?? valor del servidor.
   // Sin useEffect: evita setState en efecto y cascadas de render.
@@ -65,7 +68,12 @@ export default function Umbrales({ token }) {
         <p className="text-xs text-zinc-500 dark:text-zinc-400">Se guardan en BD y aplican sin reinicio</p>
       </div>
       {isLoading && <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Cargando umbrales…</p>}
-      {isError && <p className="mt-3 text-sm text-red-700 dark:text-red-300">Error cargando umbrales.</p>}
+      {isError && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <p className="text-sm text-red-700 dark:text-red-300">Error cargando umbrales.</p>
+          <button onClick={() => reintentar()} className="h-8 rounded-full border border-red-300 dark:border-red-800 px-4 text-xs font-medium text-red-700 dark:text-red-300">Reintentar</button>
+        </div>
+      )}
       {!isLoading && !isError && data && (
         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
           {data.umbrales.map((u) => (

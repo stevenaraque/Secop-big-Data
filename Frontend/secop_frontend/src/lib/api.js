@@ -8,6 +8,25 @@ export function getToken() {
   return localStorage.getItem("access");
 }
 
+// P0: exp local sin pedir al backend. Margen 30s para no usar un token que muere en vuelo.
+export function tokenExpirado(t, margenMs = 30000) {
+  if (!t) return true;
+  try {
+    const exp = JSON.parse(atob(t.split(".")[1])).exp;
+    if (!exp) return true;
+    return exp * 1000 < Date.now() + margenMs;
+  } catch {
+    return true;
+  }
+}
+
+// P0: token vivo o null. Con expirado intenta 1 refresh single-flight; si falla → null (anon), nunca token muerto.
+export async function obtenerTokenVigente(t) {
+  if (!t) return null;
+  if (!tokenExpirado(t)) return t;
+  return refreshAccess();
+}
+
 function buildUrl(path, params) {
   const base = path.startsWith("http") ? path : `${API_URL}${path}`;
   if (!params) return base;

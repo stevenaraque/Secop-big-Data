@@ -191,6 +191,8 @@ REST_FRAMEWORK = {
         "login": "10/min",
         "register": "20/min",
         "recuperar": "20/min",
+        # P0: /exportar/ genera 100k CSV en vivo — 20/min frena DoS sin afectar observatorio.
+        "exportar": "20/min",
     },
     "EXCEPTION_HANDLER": "contratos.exceptions.secop_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

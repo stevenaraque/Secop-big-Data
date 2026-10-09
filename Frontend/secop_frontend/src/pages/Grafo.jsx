@@ -24,8 +24,10 @@ export default function Grafo({ token, depto }) {
   const [limit, setLimit] = useState(30)
   // El canvas NO hereda el tema: fondo explícito blanco/negro según toggle
   const { dark } = useTheme()
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["grafo", limit, depto],
+  // P0: key incluye modo (anon/auth). Sin esto el login mezcla datos entre modos.
+  const modo = token ? "auth" : "anon"
+  const { data, isLoading, isError, refetch: reintentar } = useQuery({
+    queryKey: ["grafo", limit, depto, modo],
     queryFn: () => fetchGrafo(limit, depto, token),
     enabled: true,
     // P1: sin esto cada cambio re-dispara física + flicker. 5min + conserva anterior.
@@ -44,7 +46,7 @@ export default function Grafo({ token, depto }) {
             min={5}
             max={200}
             value={limit}
-            onChange={(e) => setLimit(Number(e.target.value) || 30)}
+            onChange={(e) => setLimit(Math.min(200, Math.max(5, Number(e.target.value) || 30)))}
             className="w-20 h-9 rounded-lg border border-zinc-200 dark:border-zinc-700 px-2 text-sm tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
           />
         </label>
@@ -53,7 +55,12 @@ export default function Grafo({ token, depto }) {
         Arrastra nodos para moverlos · rueda para zoom · grosor = monto · color = modalidad (rojo directa, verde licitación)
       </p>
       {isLoading && <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Cargando red…</p>}
-      {isError && <p className="mt-3 text-sm text-red-700">Error cargando el grafo.</p>}
+      {isError && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <p className="text-sm text-red-700 dark:text-red-300">Error cargando el grafo.</p>
+          <button onClick={() => reintentar()} className="h-8 rounded-full border border-red-300 dark:border-red-800 px-4 text-xs font-medium text-red-700 dark:text-red-300">Reintentar</button>
+        </div>
+      )}
       {!isLoading && !isError && data && data.total === 0 && (
         <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">Sin contratos para este filtro.</p>
       )}

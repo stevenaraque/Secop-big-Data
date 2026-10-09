@@ -47,6 +47,9 @@ class Contrato(models.Model):
             models.Index(fields=["modalidad"], name="idx_contrato_modalidad"),
             models.Index(fields=["fecha_firma"], name="idx_contrato_fecha"),
             models.Index(fields=["contratista_nit"], name="idx_contrato_nit"),
+            # P1: por-entidad filtra nit exacto + grafo ordena por valor (sort 9.3M sin esto).
+            models.Index(fields=["nit_entidad"], name="idx_contrato_nitent"),
+            models.Index(fields=["-valor_contrato"], name="idx_contrato_valor"),
         ]
 
     def __str__(self):

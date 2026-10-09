@@ -4,6 +4,7 @@ import threading
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status, permissions
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -39,6 +40,28 @@ def _parse_int_query_param(value, default, min_v=None, max_v=None, field_name="p
     if max_v is not None and v > max_v:
         return None, Response({"detalle": f"{field_name} debe ser <= {max_v}."}, status=status.HTTP_400_BAD_REQUEST)
     return v, None
+
+
+def _num(v):
+    """Decimal/None → float para JSON numérico (DRF serializa Decimal como string y rompe gráficas/totales)."""
+    try:
+        return float(v or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _parse_fecha_query_param(value, field_name="fecha"):
+    """Valida fecha YYYY-MM-DD de query string. Retorna (valor, error_response)."""
+    if value is None or value == "":
+        return None, None
+    try:
+        from datetime import date
+        date.fromisoformat(str(value).strip())
+    except (TypeError, ValueError):
+        return None, Response(
+            {"detalle": f"{field_name} debe ser fecha válida YYYY-MM-DD."},
+            status=status.HTTP_400_BAD_REQUEST)
+    return str(value).strip(), None
 
 
 def tarea_carga(trabajo_id, limite, offset, depto):
@@ -141,7 +164,14 @@ class VistaResumenOptimizado(APIView):
             anio=anio_raw,
             modalidad=request.query_params.get("modalidad"),
         )
-        dt = (time.perf_counter() - t0) * 1000
+        t1 = time.perf_counter()
+        # P0 profiler real: BD = servicio (queries + aggregate), Python = normalización + payload. Sin multiplicadores fijos.
+        payload = {
+            "total": datos.get("total") or 0,
+            "suma_valor": _num(datos.get("suma_valor")),
+            "promedio_valor": _num(datos.get("promedio_valor")),
+        }
+        t2 = time.perf_counter()
         return Response({
             "filtro": {
                 "depto": request.query_params.get("depto") or "todos",
@@ -149,9 +179,9 @@ class VistaResumenOptimizado(APIView):
                 "modalidad": request.query_params.get("modalidad") or "todos",
             },
             "optimizado": True,
-            "tiempo_bd_ms": round(dt, 1),
-            "tiempo_python_ms": round(dt * 0.15, 1),
-            **datos
+            "tiempo_bd_ms": round((t1 - t0) * 1000, 1),
+            "tiempo_python_ms": round((t2 - t1) * 1000, 1),
+            **payload
         })
 
 class VistaResumenNaive(APIView):
@@ -179,7 +209,14 @@ class VistaResumenNaive(APIView):
             anio=anio_raw,
             modalidad=request.query_params.get("modalidad"),
         )
-        dt = (time.perf_counter() - t0) * 1000
+        t1 = time.perf_counter()
+        # P0 profiler real: BD = traer filas + ORM (list(qs)), Python = agregación dict + payload. Sin multiplicadores fijos.
+        payload = {
+            "total": datos.get("total") or 0,
+            "suma_valor": _num(datos.get("suma_valor")),
+            "promedio_valor": _num(datos.get("promedio_valor")),
+        }
+        t2 = time.perf_counter()
         return Response({
             "filtro": {
                 "depto": request.query_params.get("depto") or "todos",
@@ -187,9 +224,9 @@ class VistaResumenNaive(APIView):
                 "modalidad": request.query_params.get("modalidad") or "todos",
             },
             "optimizado": False,
-            "tiempo_bd_ms": round(dt * 0.15, 1),
-            "tiempo_python_ms": round(dt * 0.85, 1),
-            **datos
+            "tiempo_bd_ms": round((t1 - t0) * 1000, 1),
+            "tiempo_python_ms": round((t2 - t1) * 1000, 1),
+            **payload
         })
 class VistaListarCargas(APIView):
     # Fix secop-idor-trabajo-carga-001: listar cargas también solo admin (coherente con VistaEstadoCarga)
@@ -258,6 +295,16 @@ class VistaListaContratos(ListAPIView):
         if fecha_hasta:
             qs = qs.filter(fecha_firma__lte=fecha_hasta)
         return qs
+    def list(self, request, *args, **kwargs):
+        # P2: fecha inválida → 400 (no 500) + página fuera de rango → 400 (DRF da 404).
+        for campo in ("fecha_desde", "fecha_hasta"):
+            _, err = _parse_fecha_query_param(request.query_params.get(campo), campo)
+            if err:
+                return err
+        try:
+            return super().list(request, *args, **kwargs)
+        except NotFound:
+            return Response({"detalle": "Página fuera de rango."}, status=400)
 
 class VistaDetalleContrato(APIView):
     # V3.3: id_contrato no es unique (versiones del mismo proceso SECOP) → devuelve todas.
@@ -419,6 +466,11 @@ class VistaEstadisticasEntidad(APIView):
     permission_classes = [permissions.AllowAny]
     throttle_classes = []
     def get(self, request):
+        # P2: fecha inválida → 400 (no 500 en el GROUPING SETS).
+        for campo in ("fecha_desde", "fecha_hasta"):
+            _, err = _parse_fecha_query_param(request.query_params.get(campo), campo)
+            if err:
+                return err
         datos = servicio_contratos.estadisticas_por_entidad(
             nit=request.query_params.get("nit"),
             entidad_id=request.query_params.get("id"),
@@ -434,8 +486,12 @@ class VistaGrafoRed(APIView):
     permission_classes = [permissions.AllowAny]
     throttle_classes = []
     def get(self, request):
+        # P2: limit inválido → 400 explícito (antes fallback silencioso a 50).
+        limite, err = _parse_int_query_param(request.query_params.get("limit", 50), 50, 1, 200, field_name="limit")
+        if err:
+            return err
         datos = servicio_contratos.grafo_red(
-            limite=request.query_params.get("limit", 50),
+            limite=limite,
             depto=request.query_params.get("depto"),
         )
         return Response(datos)
@@ -444,13 +500,19 @@ class VistaGrafoRed(APIView):
 class VistaExportarContratos(APIView):
     # RF-21: descarga el filtrado actual en CSV. Qué: mismos filtros + BOM + cap 100k. Por qué: 6M colapsa proxy/timeout. Público con throttle 20/min.
     permission_classes = [permissions.AllowAny]
-    throttle_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "exportar"
     def get(self, request):
         # RNF-08: auditoría exportar
         try:
             servicio_contratos.registrar_auditoria(usuario=request.user, accion="exportar", detalle=f"exportar depto={request.query_params.get('depto','')} modalidad={request.query_params.get('modalidad','')}")
         except Exception:
             pass
+        # P2: fecha inválida → 400 (no 500).
+        for campo in ("fecha_desde", "fecha_hasta"):
+            _, err = _parse_fecha_query_param(request.query_params.get(campo), campo)
+            if err:
+                return err
         qs = Contrato.objects.all().order_by("id")
         depto = request.query_params.get("depto")
         modalidad = request.query_params.get("modalidad")
@@ -599,6 +661,13 @@ class VistaRadarListaCrear(ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(usuario=self.request.user)
 
+    def list(self, request, *args, **kwargs):
+        # P2: página fuera de rango → 400 (DRF da 404).
+        try:
+            return super().list(request, *args, **kwargs)
+        except NotFound:
+            return Response({"detalle": "Página fuera de rango."}, status=400)
+
 
 class VistaRadarDetalle(RetrieveUpdateDestroyAPIView):
     serializer_class = RadarSerializer
@@ -619,6 +688,13 @@ class VistaMisOportunidades(ListAPIView):
         if estado in ["Nueva", "Guardada", "Postulado"]:
             qs = qs.filter(estado=estado)
         return qs
+
+    def list(self, request, *args, **kwargs):
+        # P2: página fuera de rango → 400 (DRF da 404).
+        try:
+            return super().list(request, *args, **kwargs)
+        except NotFound:
+            return Response({"detalle": "Página fuera de rango."}, status=400)
 
 
 class VistaOportunidadActualizar(UpdateAPIView):
