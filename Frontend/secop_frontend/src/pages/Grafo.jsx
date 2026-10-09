@@ -25,13 +25,10 @@ async function fetchGrafo(limit, depto, token) {
   return r.json()
 }
 
-const formatoCOP = (v) =>
-  new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v ?? 0)
-
 // Layout bipartito determinista: entidades a la izquierda, contratistas a la
 // derecha. Sin física = sin bola de pelos; el hub se lee de un vistazo.
-const COL_X = 460
-const FILA_H = 76
+const COL_X = 520
+const FILA_H = 84
 const corta = (s, n = 30) => {
   const t = String(s ?? "?")
   return t.length > n ? `${t.slice(0, n)}…` : t
@@ -93,13 +90,12 @@ export default function Grafo({ token, depto }) {
     Object.values(porTipo).forEach((arr) => arr.sort((a, b) => (grado[b.id] ?? 0) - (grado[a.id] ?? 0)))
     setNodes([...aNodos(porTipo.entidad, "entidad", dark), ...aNodos(porTipo.contratista, "contratista", dark)])
     setEdges(
+      // Sin label: 50 montos apilados al centro son ilegibles; el grosor ya codifica el monto.
       aristas.map((a, i) => ({
         id: `e${i}`,
         source: a.source,
         target: a.target,
-        label: formatoCOP(a.monto),
-        labelStyle: { fontSize: 9, fill: dark ? "#a1a1aa" : "#52525b" },
-        labelBgStyle: { fill: dark ? "#09090b" : "#ffffff", fillOpacity: 0.85 },
+        interactionWidth: 20,
         style: { stroke: a.color || "#6b7280", strokeWidth: Math.min(5, a.grosor || 1) },
       })),
     )
