@@ -14,6 +14,8 @@ import {
   ClockClockwise,
   Lightning,
   User,
+  EnvelopeSimple,
+  Sparkle,
 } from "@phosphor-icons/react";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import SpecularButton from "../components/SpecularButton.jsx";
@@ -47,6 +49,7 @@ export default function Login() {
   const nav = useNavigate();
   // Carta 2 caras: frente login, dorso registro. Gira en el sitio, sin recarga ni cambio de ruta.
   const [lado, setLado] = useState("login");
+  const reg = lado === "registro";
   // Dorso perezoso: evita duplicar labels/inputs (rompía tests y el tab llegaba a campos invisibles).
   const [vistoDorso, setVistoDorso] = useState(false);
   function irRegistro() { setVistoDorso(true); setLado("registro"); }
@@ -110,9 +113,15 @@ export default function Login() {
           <span className="hidden md:inline-flex ml-2 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 px-2.5 py-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 backdrop-blur">v3.3 · Render + Vercel</span>
         </div>
         <div className="flex items-center gap-2">
-          <Enlace to="/registro" className="hidden sm:inline-flex h-9 items-center justify-center rounded-full bg-emerald-600 px-4 text-xs font-medium text-white hover:bg-emerald-700 active:scale-[0.98] transition-all">
-            Registrarme
-          </Enlace>
+          {reg ? (
+            <button type="button" onClick={() => setLado("login")} className="hidden sm:inline-flex h-9 items-center justify-center rounded-full bg-zinc-900 dark:bg-white px-4 text-xs font-medium text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200 active:scale-[0.98] transition-all">
+              ¿Ya tienes cuenta? Entrar
+            </button>
+          ) : (
+            <button type="button" onClick={irRegistro} className="hidden sm:inline-flex h-9 items-center justify-center rounded-full bg-emerald-600 px-4 text-xs font-medium text-white hover:bg-emerald-700 active:scale-[0.98] transition-all">
+              Registrarme
+            </button>
+          )}
           <Enlace to="/" className="hidden sm:inline text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 underline-offset-4 hover:underline">Ver observatorio</Enlace>
           <ThemeToggle />
         </div>
@@ -121,7 +130,30 @@ export default function Login() {
       <main id="contenido" className="flex-1 w-full max-w-[1400px] mx-auto px-4 lg:px-8 pb-10 lg:pb-12 grid grid-cols-1 lg:grid-cols-[1.18fr_0.92fr] gap-8 lg:gap-10 items-start lg:items-center">
         {/* LEFT editorial con crossfade suave */}
         <div className="pt-2 lg:pt-0 lg:pl-[1.5vw] order-2 lg:order-1 min-h-[520px] flex flex-col justify-center">
-          <motion.div key="login-left" variants={stagger} initial="hidden" animate="show">
+          <motion.div key={lado} variants={stagger} initial="hidden" animate="show">
+            {reg ? (
+              <>
+                <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-2"><LivePulse text="Registro abierto" /><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-3 py-1 text-[11px] font-medium"><Sparkle size={12} weight="fill" /> Alta inmediata · sin papeleo</span></motion.div>
+                <motion.h1 variants={fadeUp} className="mt-6 text-4xl md:text-[52px] lg:text-[56px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white" style={{ fontFamily: "Geist, Satoshi, ui-sans-serif" }}>Crea tu cuenta<br /><span className="text-zinc-500 dark:text-zinc-400">y activa tus radares.</span></motion.h1>
+                <motion.p variants={fadeUp} className="mt-4 text-base leading-relaxed text-zinc-600 dark:text-zinc-400 max-w-[58ch]">Regístrate en 30 segundos, entra a <span className="font-medium text-zinc-900 dark:text-white">/app</span> y configura notificaciones por palabra clave, ciudad o NIT. Sin validación manual — <span className="font-medium text-zinc-900 dark:text-white">acceso inmediato</span>.</motion.p>
+                <motion.div variants={fadeUp} className="mt-8 grid grid-cols-2 gap-4 max-w-[560px]">
+                  {[{ icon: Buildings, k: "5", label: "radares por usuario", sub: "palabra + filtros_extras" },{ icon: EnvelopeSimple, k: "4", label: "oportunidades/día", sub: "tope anti-spam" },{ icon: Lightning, k: "23ms", label: "latencia API", sub: "JWT HS256 1h/1d" },{ icon: ShieldCheck, k: "PBKDF2", label: "hash seguro", sub: "8+ may/min/número" }].map((c) => (
+                    <div key={c.label} className="glass-card group relative rounded-[2rem] p-5">
+                      <div className="flex items-center justify-between"><c.icon size={18} weight="regular" className="text-zinc-900 dark:text-white" /><span className="size-1.5 rounded-full bg-emerald-500/70 group-hover:bg-emerald-500 transition-colors" /></div>
+                      <div className="mt-3 font-mono text-[20px] font-semibold tracking-tighter text-zinc-900 dark:text-white leading-none">{c.k}</div>
+                      <div className="text-[12px] font-medium tracking-tight text-zinc-900 dark:text-white mt-1">{c.label}</div>
+                      <div className="text-[11px] text-zinc-500">{c.sub}</div>
+                    </div>
+                  ))}
+                </motion.div>
+                <motion.div variants={fadeUp} className="mt-6 flex flex-wrap items-center gap-3 text-[11px] text-zinc-500"><span className="inline-flex items-center gap-1.5"><CheckCircle size={14} weight="fill" className="text-emerald-600" /> Correo único</span><span className="size-1 rounded-full bg-zinc-300" /><span>Token inmediato tras login</span><span className="size-1 rounded-full bg-zinc-300" /><span>Radares → notificaciones</span></motion.div>
+                <motion.div variants={fadeUp} className="glass-card mt-8 rounded-2xl px-4 py-3 flex gap-3 max-w-[560px]">
+                  <div className="size-8 rounded-full bg-zinc-900 dark:bg-white grid place-items-center shrink-0 mt-0.5"><span className="text-[10px] font-bold text-white dark:text-zinc-900">“</span></div>
+                  <div><div className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">Me registré, creé un radar por "pavimento Boyacá" y al día siguiente ya tenía 4 oportunidades filtradas. Cero fricción.</div><div className="text-xs text-zinc-500 mt-1.5">Carlos Rivera — Contratista vial, 12 licitaciones / mes</div></div>
+                </motion.div>
+              </>
+            ) : (
+              <>
                 <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-2"><LivePulse /><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-3 py-1 text-[11px] font-medium"><Lightning size={12} weight="fill" /> Datos abiertos · Datos.gov.co</span></motion.div>
                 <motion.h1 variants={fadeUp} className="mt-6 text-4xl md:text-[52px] lg:text-[56px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white" style={{ fontFamily: "Geist, Satoshi, ui-sans-serif" }}>Contratación<br /><span className="text-zinc-500 dark:text-zinc-400">por fin legible.</span></motion.h1>
                 <motion.p variants={fadeUp} className="mt-4 text-base leading-relaxed text-zinc-600 dark:text-zinc-400 max-w-[58ch]">Cruza SECOP II con trazabilidad real: entidades, contratistas y modalidad en un solo lugar. Sin jerga, sin humo — <span className="font-medium text-zinc-900 dark:text-white">solo evidencia</span> para veeduría, periodismo y control interno.</motion.p>
@@ -140,7 +172,9 @@ export default function Login() {
                   <div className="size-8 rounded-full bg-zinc-900 dark:bg-white grid place-items-center shrink-0 mt-0.5"><span className="text-[10px] font-bold text-white dark:text-zinc-900">“</span></div>
                   <div><div className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">Pasamos de Excel disperso a una sola vista. Las banderas por contratación directa nos ahorraron dos semanas de revisión.</div><div className="text-xs text-zinc-500 mt-1.5">Laura Méndez — Oficina Jurídica, Alcaldía intermedia <span className="ml-1 rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-[10px] font-medium">Testimonio ejemplo</span></div></div>
                 </motion.div>
-              </motion.div>
+              </>
+            )}
+          </motion.div>
         </div>
 
         {/* RIGHT — carta 2 caras (frente login, dorso registro) */}
