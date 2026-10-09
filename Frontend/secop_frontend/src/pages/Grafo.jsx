@@ -114,6 +114,8 @@ export default function Grafo({ token, depto }) {
         id: `e${i}`,
         source: a.source,
         target: a.target,
+        modalidad: a.modalidad,
+        monto: a.monto,
         interactionWidth: 20,
         style: { stroke: a.color || "#6b7280", strokeWidth: Math.min(5, a.grosor || 1) },
       })),
