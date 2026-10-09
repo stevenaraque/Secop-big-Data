@@ -313,6 +313,8 @@ export default function DashboardModern({ token }) {
                   if (depto) p.set("depto", depto);
                   const headers = token ? { Authorization: `Bearer ${token}` } : {};
                   const r = await fetch(`${API}/exportar/?${p}`, { headers });
+                  if (r.status === 429) throw new Error("Límite de descargas: espera 1 minuto y reintenta.");
+                  if (r.status === 401) throw new Error("Sesión vencida. Vuelve a entrar o descarga sin login.");
                   if (!r.ok) throw new Error(`HTTP ${r.status}`);
                   const b = await r.blob();
                   const u = URL.createObjectURL(b);
@@ -324,8 +326,8 @@ export default function DashboardModern({ token }) {
                   a.remove();
                   URL.revokeObjectURL(u);
                   toast.success("CSV descargado", { id: aviso });
-                } catch {
-                  toast.error("No se pudo exportar. Revisa tu sesión.", { id: aviso });
+                } catch (e) {
+                  toast.error(e?.message || "No se pudo exportar. Reintenta.", { id: aviso });
                 } finally {
                   setExportando(false);
                 }
