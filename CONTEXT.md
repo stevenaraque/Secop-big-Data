@@ -94,6 +94,11 @@ Colombia publica **6.11M de contratos** (verificado 08/10/2026, actualización d
 4. **ETL abierto (pedido explícito):** trigger + estado ETL `IsAdminUser→IsAuthenticated` + scope `cargar 10/min` (iniciar/listar/config/backups siguen admin); CSV anon intacto + errores por estado + panel sin-login guía al CSV. Verificado no-admin real (login 200, trigger 202, estado 200). Commits `85eb143` + `e8958aa`.
 5. **Pendiente:** video 3min pitch 45s + `EstructuraSesion` V3 + reflexión 3.1 (ver §9).
 
+### Sesión 09/10/2026 — Auditoría solo-diseño dashboard D1-D8 (DONE)
+1. **D1-D4:** tabs Profiler sin `dark:` duplicado + hover visible + 7 secciones a `rounded-[24px]` + táctiles 44px en móvil + mapa pergamino atenuado en dark (`brightness(.82)`, VER TODO legible). Commit `bbcb0cc`.
+2. **D5-D8:** Guardar umbral píldora `h-10` + dark en alerta amber/scrub/inputs + Banderas/Predominio sin `whileInView` (LazySection ya difiere) + 1 ping vivo + skeletons a medida (140/480/520, vidrio) + microtexto `xs` + focos en sorts/CTAs/CSV. Commit `959317b`. `build 0` + `lint 0`.
+3. **Pendiente:** video 3min pitch 45s + `EstructuraSesion` V3 + reflexión 3.1 (ver §9).
+
 ### Historial previo (conservado)
 1. **RF-36..42 Freemium DONE (18/09)** — 5 Radares + 4 Oportunidades + email SMTP + filtros 95 `filtros_extras` + matchmaking 2 fases. Probado `Sogamoso MATCH` vs `Tunja NO MATCH` + `Duitama` 201.
 2. **P0-1..3 Fixes DONE (17/09)** — secretos por env + `postgres:16`/`python:3.12` + Tailwind 37KB + build OK.
@@ -136,7 +141,7 @@ Colombia publica **6.11M de contratos** (verificado 08/10/2026, actualización d
 
 - **Proyecto de software OK:** 56 requisitos Freemium (42 base + 7 frontend + 7 SaaS) con Django 6M 95 cols + React DataTable 60 FPS + SaaS bandeja + email SMTP.
 - **Código fuente OK:** P0-1/2/3 fixes + SOLID/DRY, `check 0` + `build 37KB` OK, manejo masivo con virtualización (50 visibles, no 5.000).
-- **Repositorio OK (09/10):** `main` al día + tags `v1.0-sprint4` + `v1.1-profiler` + `v1.2-privado` + `v1.3-auditoria` + `v1.4-auth` + `v1.5-dashboard`, migraciones 0001..0018 (radar P0/P1/P2: `835194e` + `9fc555b` + `c6039b1`; ETL logueados: `85eb143` + `e8958aa`). `git config` `steven araque`.
+- **Repositorio OK (09/10):** `main` al día + tags `v1.0-sprint4` + `v1.1-profiler` + `v1.2-privado` + `v1.3-auditoria` + `v1.4-auth` + `v1.5-dashboard`, migraciones 0001..0018 (radar P0/P1/P2: `835194e` + `9fc555b` + `c6039b1`; ETL logueados: `85eb143` + `e8958aa`; diseño D1-D8: `bbcb0cc` + `959317b`). `git config` `steven araque`.
 - **Herramienta de gestión OK:** Notion 56/56 Hecho, `SECOP_Backlog_Producto.xlsx` 57 filas estandarizado + CSV 70KB único, `SECOP_Insight_Planificacion...docx` V3.1 13 secciones único.
 - **Pruebas OK:** 17 pytest (8 contratos + 9 users) + 14 vitest (Login 3 + Registro 7 + PrivateDashboard 4) = 31 passing (RF-22 email console/SMTP probado).
 - **Autoría OK:** historial con `steven araque <stevenldssaac@gmail.com>` desde 17/09.
@@ -144,4 +149,4 @@ Colombia publica **6.11M de contratos** (verificado 08/10/2026, actualización d
 - **Hallazgos estilo 18/09 ( resueltos):** Tailwind 37KB OK, routing `pathname` sin React Router (pendiente migrar a `react-router-dom` — explicado como trade-off), profiler dual en pantalla, DataTable 6 cols con sorting, 95 cols vía JSON sin recorte.
 
 ---
-*Actualizado: 09/10/2026 — Auditoría radar P0/P1/P2 (matchmaking por PK, bandeja servidor, keys por sub, emails thread, alias filtros, throttle radar, tag pendiente) + ETL abierto a logueados (`cargar 10/min`, verificado no-admin) — Pendiente video 3min + EstructuraSesion V3 + reflexión 3.1 (ver §9).*
+*Actualizado: 09/10/2026 — Auditoría radar P0/P1/P2 + ETL logueados + auditoría diseño D1-D8 (commits `bbcb0cc` + `959317b`) — Pendiente video 3min + EstructuraSesion V3 + reflexión 3.1 (ver §9).*
