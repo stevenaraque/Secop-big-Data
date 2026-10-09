@@ -13,9 +13,11 @@ import {
   Buildings,
   ClockClockwise,
   Lightning,
+  User,
 } from "@phosphor-icons/react";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import SpecularButton from "../components/SpecularButton.jsx";
+import RegistroForm from "../components/RegistroForm.jsx";
 import "../components/glass-card.css";
 import UiverseInput from "../components/UiverseInput.jsx";
 import Enlace from "../components/Enlace.jsx";
@@ -43,14 +45,11 @@ export default function Login() {
   // Lectura inicial perezosa: evita setState en effect solo para leer localStorage al montar
   const [sesionGuardada, setSesionGuardada] = useState(() => !!localStorage.getItem("access"));
   const nav = useNavigate();
-  // Volteo de carta: gira 90° y navega (la otra página entra desde -90°).
-  const [saliendo, setSaliendo] = useState(null);
-  function irConVolteo(e, to) {
-    e?.preventDefault?.();
-    if (saliendo) return;
-    setSaliendo(to);
-    setTimeout(() => nav(to), 430);
-  }
+  // Carta 2 caras: frente login, dorso registro. Gira en el sitio, sin recarga ni cambio de ruta.
+  const [lado, setLado] = useState("login");
+  // Dorso perezoso: evita duplicar labels/inputs (rompía tests y el tab llegaba a campos invisibles).
+  const [vistoDorso, setVistoDorso] = useState(false);
+  function irRegistro() { setVistoDorso(true); setLado("registro"); }
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -144,15 +143,16 @@ export default function Login() {
               </motion.div>
         </div>
 
-        {/* RIGHT — tarjeta login con volteo 3D al ir a registro */}
+        {/* RIGHT — carta 2 caras (frente login, dorso registro) */}
         <div className="order-1 lg:order-2 w-full max-w-[440px] mx-auto lg:mx-0 lg:justify-self-end lg:sticky lg:top-6 [perspective:1400px]">
           <motion.div
             initial={{ opacity: 0, y: 18, rotateY: 0 }}
-            animate={saliendo ? { opacity: 0, rotateY: 90 } : { opacity: 1, y: 0, rotateY: 0 }}
-            transition={saliendo ? { duration: 0.4, ease: [0.16, 1, 0.3, 1] } : { duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.18 }}
-            className="relative w-full"
-            style={{ transformStyle: "preserve-3d" }}
+            animate={{ opacity: 1, y: 0, rotateY: lado === "login" ? 0 : 180 }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            className="relative w-full grid [transform-style:preserve-3d]"
           >
+            {/* Frente — login */}
+            <div className="[grid-area:1/1] [backface-visibility:hidden] min-w-0" inert={lado !== "login" ? "" : undefined}>
             {/* Login */}
             <div className="w-full">
               <div className="glass-card rounded-[2.5rem] overflow-hidden">
@@ -175,7 +175,7 @@ export default function Login() {
                     <Enlace to="/" className="h-10 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 grid place-items-center text-xs font-medium">Ver demo pública</Enlace>
                   </div>
                   <div className="mt-4 grid gap-2">
-                    <SpecularButton onClick={(e) => irConVolteo(e, "/registro")} tint="#ffffff" tintOpacity={0} textColor="#059669" lineColor="#6ee7b7" baseColor="#a7f3d0" className="w-full" style={{ height: 44, border: "2px solid #059669" }}>Registrarme — crear cuenta en 30s</SpecularButton>
+                    <SpecularButton onClick={irRegistro} tint="#ffffff" tintOpacity={0} textColor="#059669" lineColor="#6ee7b7" baseColor="#a7f3d0" className="w-full" style={{ height: 44, border: "2px solid #059669" }}>Registrarme — crear cuenta en 30s</SpecularButton>
                     <p className="text-center text-[11px] text-zinc-500">¿Sin cuenta? Activa tus radares en <span className="font-medium text-zinc-700">/app</span> tras registrarte.</p>
                   </div>
                 </div>
@@ -183,6 +183,24 @@ export default function Login() {
               </div>
               <p className="mt-3 text-center text-[11px] text-zinc-500 px-4">Protegido con rate-limit y JWT rotativo. <Enlace to="/recuperar" className="underline hover:text-zinc-700">¿Problemas?</Enlace></p>
             </div>
+            </div>
+            {/* Dorso — registro (misma carta, sin recarga) */}
+            {vistoDorso && (
+            <div className="[grid-area:1/1] [backface-visibility:hidden] [transform:rotateY(180deg)] min-w-0" inert={lado !== "registro" ? "" : undefined}>
+            <div className="w-full">
+              <div className="glass-card rounded-[2.5rem] overflow-hidden">
+                <div className="p-8 md:p-9">
+                  <div className="flex items-start justify-between gap-4">
+                    <div><h2 className="text-[18px] font-semibold tracking-tight text-zinc-900 dark:text-white" style={{ fontFamily: "Geist, Satoshi, ui-sans-serif" }}>Crear cuenta</h2><p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 mt-1 max-w-[28ch]">En 30s activas tus radares en <span className="font-medium text-zinc-900 dark:text-white">/app</span>.</p></div>
+                    <div className="size-10 rounded-2xl bg-zinc-900 dark:bg-white grid place-items-center shrink-0"><User size={18} weight="fill" className="text-white dark:text-zinc-900" /></div>
+                  </div>
+                  <RegistroForm onExito={() => setTimeout(() => setLado("login"), 1400)} />
+                  <button type="button" onClick={() => setLado("login")} className="mt-4 w-full h-10 rounded-full border border-zinc-200 dark:border-zinc-700 grid place-items-center text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800">Ya tengo cuenta</button>
+                </div>
+              </div>
+            </div>
+            </div>
+            )}
 
           </motion.div>
         </div>
