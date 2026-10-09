@@ -88,7 +88,7 @@ export default function Entidades({ token }) {
                 {data.results.map((e) => (
                   <tr key={e.id} className="border-t border-zinc-100 dark:border-zinc-800">
                     <td className="py-2 pr-3">
-                      <button onClick={() => setSelNit(e.nit_entidad)} className="font-medium underline decoration-zinc-300 underline-offset-2 hover:text-emerald-700">
+                      <button onClick={() => setSelNit(e.nit_entidad)} className="font-medium underline decoration-zinc-300 underline-offset-2 hover:text-emerald-700 dark:hover:text-emerald-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 rounded">
                         {e.nombre_entidad}
                       </button>
                     </td>

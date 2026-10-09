@@ -129,7 +129,7 @@ export default function ScrubChart({ data, titulo }) {
           <button
             type="button"
             onClick={volverAlVivo}
-            className="inline-flex items-center gap-1.5 h-9 sm:h-6 px-2.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono hover:bg-emerald-500/25 transition-colors"
+            className="inline-flex items-center gap-1.5 h-9 sm:h-6 px-2.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-[11px] font-mono hover:bg-emerald-500/25 transition-colors"
           >
             <span className="relative flex size-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
@@ -186,7 +186,7 @@ export default function ScrubChart({ data, titulo }) {
           )}
         </svg>
       </div>
-      <div className="mt-1 flex justify-between text-[10px] font-mono text-zinc-500 dark:text-white/40 tabular-nums">
+      <div className="mt-1 flex justify-between text-xs font-mono text-zinc-500 dark:text-white/60 tabular-nums">
         <span>{serie[0].label}</span>
         <span>{serie[m - 1].label}</span>
       </div>

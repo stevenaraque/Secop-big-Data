@@ -61,7 +61,7 @@ export default function MiniDataTable({ columns, data, defaultSort, pageSize = 8
                           type="button"
                           onClick={h.column.getToggleSortingHandler()}
                           title="Ordenar"
-                          className={`inline-flex items-center gap-1 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors ${align === "right" ? "flex-row-reverse" : ""}`}
+                          className={`inline-flex items-center gap-1 rounded-full px-1 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 ${align === "right" ? "flex-row-reverse" : ""}`}
                         >
                           {flexRender(h.column.columnDef.header, h.getContext())}
                           <span aria-hidden="true" className="text-zinc-400">

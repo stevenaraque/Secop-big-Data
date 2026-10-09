@@ -87,11 +87,11 @@ export default function Umbrales({ token }) {
                   max={100}
                   value={edit[u.nombre] ?? u.valor ?? ""}
                   onChange={(e) => setEdit({ ...edit, [u.nombre]: e.target.value })}
-                  className="w-24 h-9 rounded-lg border border-zinc-200 px-2 text-sm tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
+                  className="w-24 h-9 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 px-2 text-sm tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
                 />
                 <button
                   onClick={() => guardar(u.nombre, u.valor)}
-                  className="h-9 rounded-lg bg-zinc-900 dark:bg-zinc-100 px-3 text-sm text-white dark:text-zinc-900 active:scale-[0.98]"
+                  className="h-10 rounded-full bg-zinc-900 dark:bg-zinc-100 px-5 text-sm text-white dark:text-zinc-900 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/50"
                 >
                   Guardar
                 </button>

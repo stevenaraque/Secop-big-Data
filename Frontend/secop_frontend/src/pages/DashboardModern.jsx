@@ -73,7 +73,7 @@ function EnlaceRadar({ href, children, icono, sobreOscuro }) {
       onClick={(e) => { e.preventDefault(); nav(href); }}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.97 }}
-      className={`h-10 inline-flex items-center gap-1.5 rounded-full px-5 text-sm font-semibold transition-colors ${colores}`}
+      className={`h-10 inline-flex items-center gap-1.5 rounded-full px-5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 ${colores}`}
     >
       {children} {icono ?? <ArrowRight size={16} aria-hidden="true" />}
     </motion.a>
@@ -198,11 +198,7 @@ export default function DashboardModern({ token }) {
           <div className="lg:col-span-8 rounded-[24px] sm:rounded-[32px] glass-card text-zinc-900 dark:text-zinc-100 p-6 sm:p-8 md:p-10 overflow-hidden relative min-w-0">
             <motion.div aria-hidden="true" className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-emerald-500/20 to-sky-500/20 rounded-full blur-3xl pointer-events-none" animate={reduce ? undefined : { scale: [1, 1.1, 1], opacity: [0.7, 1, 0.7] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} />
             <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-2">
-              <span className="relative flex size-2">
-                {/* P2: sin ping con reduced-motion (ya existe `reduce`). */}
-                {!reduce && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />}
-                <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-              </span>
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
               Observatorio público • {depto || "Nacional"}
             </p>
             <h1 className="text-[2rem] leading-[1.05] sm:text-4xl md:text-5xl font-bold tracking-tighter sm:leading-[0.95] mt-3 text-balance break-words" style={{ letterSpacing: "-0.04em" }}>
@@ -228,10 +224,7 @@ export default function DashboardModern({ token }) {
             <div aria-hidden="true" className="absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2 w-[280px] h-[170px] bg-emerald-500/15 blur-[70px] rounded-full pointer-events-none" />
             <div className="flex items-center justify-between relative">
               <p className="text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-white/60 flex items-center gap-2">
-                <span className="relative flex size-2">
-                  {!reduce && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 dark:bg-emerald-400 opacity-60" />}
-                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-                </span>
+                <span className="relative inline-flex size-2 rounded-full bg-emerald-500 dark:bg-emerald-400" />
                 Gráfica en vivo
               </p>
               <span className="text-[11px] font-mono px-2 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-600 dark:bg-white/5 dark:border-white/10 dark:text-white/70">Mensual</span>
@@ -254,7 +247,7 @@ export default function DashboardModern({ token }) {
         </section>
 
         {/* Profiler diferido: mide al acercarse (2 queries pesadas menos al abrir) */}
-        <LazySection minHeight={180} label="Cargando profiler">
+        <LazySection minHeight={140} label="Cargando profiler">
           <ErrorBoundary nombre="Profiler"><ProfilerDual token={token} depto={depto} /></ErrorBoundary>
         </LazySection>
 
@@ -332,7 +325,7 @@ export default function DashboardModern({ token }) {
                   setExportando(false);
                 }
               }}
-              className="h-8 inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 text-xs font-medium text-zinc-900 dark:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60"
+              className="h-8 inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 text-xs font-medium text-zinc-900 dark:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
             >
               <Download size={14} aria-hidden="true" /> {exportando ? "Exportando…" : "CSV"}
             </motion.button>
@@ -354,10 +347,10 @@ export default function DashboardModern({ token }) {
         {/* Bajo el fold: cada sección pide su API al hacer scroll, no al abrir.
             Antes eran ~12 queries a la vez contra runserver (1 hilo). */}
         <section className="grid grid-cols-1 gap-4 sm:gap-6 min-w-0">
-          <LazySection minHeight={200} label="Cargando banderas">
+          <LazySection minHeight={480} label="Cargando banderas">
             <ErrorBoundary nombre="Banderas"><Banderas token={token} depto={depto} /></ErrorBoundary>
           </LazySection>
-          <LazySection minHeight={200} label="Cargando predominio">
+          <LazySection minHeight={480} label="Cargando predominio">
             <ErrorBoundary nombre="Predominio"><PredominioDirecta token={token} depto={depto} /></ErrorBoundary>
           </LazySection>
           <LazySection minHeight={160} label="Cargando umbrales">
@@ -369,14 +362,14 @@ export default function DashboardModern({ token }) {
           <LazySection minHeight={200} label="Cargando entidades">
             <ErrorBoundary nombre="Entidades"><Entidades token={token} /></ErrorBoundary>
           </LazySection>
-          <LazySection minHeight={320} label="Cargando grafo">
+          <LazySection minHeight={520} label="Cargando grafo">
               <Suspense fallback={<p className="text-xs text-zinc-500 dark:text-zinc-400">Cargando grafo…</p>}>
                 <ErrorBoundary nombre="Grafo"><Grafo token={token} depto={depto} /></ErrorBoundary>
               </Suspense>
           </LazySection>
         </section>
 
-        <p className="text-[11px] text-zinc-500 dark:text-white/40 border-t border-zinc-200 dark:border-white/10 pt-4">Sincronizado: Query cache 5min + 50 nodos + animejs transform/opacity → 100 FPS • Freemium 2 en 1 • 95 cols • {totalCorto ? `${totalCorto} sin estallar` : "agregados, no filas"}</p>
+        <p className="text-[11px] text-zinc-500 dark:text-white/60 border-t border-zinc-200 dark:border-white/10 pt-4">Sincronizado: Query cache 5min + 50 nodos + animejs transform/opacity → 100 FPS • Freemium 2 en 1 • 95 cols • {totalCorto ? `${totalCorto} sin estallar` : "agregados, no filas"}</p>
       </main>
     </div>
   );

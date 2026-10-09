@@ -33,7 +33,7 @@ export default function LazySection({ children, minHeight = 220, label }) {
       ref={ref}
       aria-label={label ?? "Cargando sección"}
       style={{ minHeight }}
-      className="rounded-[24px] border border-dashed border-zinc-200 dark:border-zinc-800 animate-pulse bg-white/50 dark:bg-zinc-900/50"
+      className="rounded-[24px] glass-card animate-pulse"
     />
   );
 }

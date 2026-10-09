@@ -1,7 +1,5 @@
 import { useMemo, useState } from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
-import { createColumnHelper } from "@tanstack/react-table"
-import { motion } from "motion/react"
 import { Flag } from "@phosphor-icons/react"
 import MiniDataTable from "../components/MiniDataTable.jsx";
 import "../components/glass-card.css";
@@ -62,7 +60,7 @@ export default function Banderas({ token, depto }) {
   ], [])
 
   return (
-    <motion.section whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 16 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5, ease: "easeOut" }} aria-label="Banderas rojas de concentración" className="rounded-[24px] glass-card p-5">
+    <section aria-label="Banderas rojas de concentración" className="rounded-[24px] glass-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2"><Flag size={18} aria-hidden="true" /> Banderas rojas de concentración</h2>
         <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
@@ -101,6 +99,6 @@ export default function Banderas({ token, depto }) {
           />
         </>
       )}
-    </motion.section>
+    </section>
   )
 }

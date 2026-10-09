@@ -169,7 +169,7 @@ export default function ProfilerDual({ token, depto }) {
       </div>
 
       {errorMsg && (
-        <p role="alert" className="mt-4 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
+        <p role="alert" className="mt-4 text-xs text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-900 rounded-xl px-4 py-2">
           {errorMsg}
         </p>
       )}
