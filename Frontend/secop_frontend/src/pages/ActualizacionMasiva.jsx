@@ -172,7 +172,7 @@ export default function ActualizacionMasiva({ token }) {
 
   async function handleCargar500k() {
     // Carga 500k en 10 bloques de 50k con offset incremental, sin depender del state limite (evita async setState)
-    if (!token) { setFase("error"); setMensaje("Necesitas login admin para cargar 500k."); return; }
+    if (!token) { setFase("error"); setMensaje("Necesitas login para cargar 500k."); return; }
     setFase("lanzando");
     setMensaje("Iniciando 500k (10×50k) desde offset 10000 — ~3 min, no cierres la pestaña...");
     const totalBloques = 10;
@@ -248,13 +248,13 @@ export default function ActualizacionMasiva({ token }) {
       </div>
       <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 max-w-[70ch] leading-relaxed">
         Trae bloques nuevos desde datos.gov.co sin duplicar por id_contrato.
-        Solo admin. El progreso se consulta cada 1s.
+        Cualquier usuario logueado puede actualizar (anti-spam 10/min).
         ¿Solo quieres llevarte los datos? Usa el botón CSV de la tabla de contratos (funciona sin login).
       </p>
 
       {!token ? (
         <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400 glass-card rounded-2xl p-4">
-          Necesitas login admin para cargar datos. La descarga CSV de arriba está abierta a todos.
+          Necesitas login para cargar datos. La descarga CSV de arriba está abierta a todos.
         </p>
       ) : (
       <form

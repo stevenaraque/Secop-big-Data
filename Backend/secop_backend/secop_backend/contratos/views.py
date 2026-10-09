@@ -127,8 +127,10 @@ class VistaIniciarCarga(APIView):
         return Response({"id": trabajo.id, "estado": trabajo.estado}, status=status.HTTP_202_ACCEPTED)
 
 class VistaEstadoCarga(APIView):
-    # Fix secop-idor-trabajo-carga-001: solo admin puede ver estado de ETL (antes IsAuthenticated permitía a cualquier usuario enumerar jobs secuenciales)
-    permission_classes = [permissions.IsAdminUser]
+    # ETL abierto a logueados: cualquier usuario autenticado puede seguir SU trabajo.
+    # Trade-off IDOR consciente: los ids son secuenciales y el detalle son conteos
+    # (sin datos personales); el ETL pesado (iniciar/listar/config/backups) sigue admin.
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, pk):
         trabajo = get_object_or_404(TrabajoCarga, id=pk)
@@ -545,7 +547,11 @@ class VistaExportarContratos(APIView):
 
 class VistaActualizarPeriodica(APIView):
     # RF-26: dispara actualización periódica reutilizando paginación SODA sin duplicar. Qué: Thread + TrabajoCarga periodica. Por qué: mantiene datos al día sin intervención.
-    permission_classes = [permissions.IsAdminUser]
+    # ETL abierto a logueados (no admin): throttle anti-spam + 409 si hay carga en curso.
+    # Iniciar-carga manual, listar, config y backups siguen IsAdminUser.
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "cargar"
 
     def post(self, request):
         limite, err = _parse_int_query_param(request.data.get("limit", 50), 50, 1, 1000, field_name="limit")

@@ -193,6 +193,8 @@ REST_FRAMEWORK = {
         "recuperar": "20/min",
         # P0: /exportar/ genera 100k CSV en vivo — 20/min frena DoS sin afectar observatorio.
         "exportar": "20/min",
+        # ETL abierto a logueados: 10 disparos/min por usuario frena spam (cada carga trae SODA + matchmaking + emails).
+        "cargar": "10/min",
     },
     "EXCEPTION_HANDLER": "contratos.exceptions.secop_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
