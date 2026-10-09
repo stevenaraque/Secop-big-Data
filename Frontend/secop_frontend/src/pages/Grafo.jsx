@@ -30,6 +30,8 @@ async function fetchGrafo(limit, depto, token) {
 // derecha. Sin física = sin bola de pelos; el hub se lee de un vistazo.
 const COL_X = 520
 const FILA_H = 84
+const formatoCOP = (v) =>
+  new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v ?? 0)
 const corta = (s, n = 30) => {
   const t = String(s ?? "?")
   return t.length > n ? `${t.slice(0, n)}…` : t
@@ -80,6 +82,12 @@ export default function Grafo({ token, depto }) {
   })
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
+  // Arista seleccionada: el monto se muestra aquí, no apilado sobre las líneas.
+  const [sel, setSel] = useState(null)
+  const nombres = useMemo(
+    () => Object.fromEntries(nodes.map((n) => [n.id, n.data?.label ?? n.id])),
+    [nodes],
+  )
 
   const conteo = useMemo(() => {
     const nodos = data?.nodos ?? []
@@ -144,12 +152,21 @@ export default function Grafo({ token, depto }) {
       {!isLoading && !isError && data && data.total > 0 && (
         <>
           <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">{data.total} contratos · {data.nodos.length} nodos</p>
+          {sel ? (
+            <p className="mt-1 text-xs text-zinc-700 dark:text-zinc-200 tabular-nums">
+              {(nombres[sel.source] ?? sel.source) || ""} → {(nombres[sel.target] ?? sel.target) || ""} · {sel.modalidad} · <span className="font-semibold">{formatoCOP(sel.monto)}</span>
+            </p>
+          ) : (
+            <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">Clic una línea para ver el monto.</p>
+          )}
           <div className="mt-2 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700 h-[420px]">
             <ReactFlow
               nodes={nodes}
               edges={edges}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
+              onEdgeClick={(_, e) => setSel(e)}
+              onPaneClick={() => setSel(null)}
               colorMode={dark ? "dark" : "light"}
               fitView
               fitViewOptions={{ padding: 0.2, maxZoom: 1.25 }}
