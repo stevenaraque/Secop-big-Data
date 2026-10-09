@@ -1,6 +1,14 @@
-import { useState, useMemo, useRef, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
-import ForceGraph2D from "react-force-graph-2d"
+import {
+  ReactFlow,
+  MiniMap,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+} from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
 import { ShareNetwork as Network } from "@phosphor-icons/react"
 import { useTheme } from "../hooks/useTheme.js";
 import "../components/glass-card.css";
@@ -20,6 +28,34 @@ async function fetchGrafo(limit, depto, token) {
 const formatoCOP = (v) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v ?? 0)
 
+// Layout bipartito determinista: entidades a la izquierda, contratistas a la
+// derecha. Sin física = sin bola de pelos; el hub se lee de un vistazo.
+const COL_X = 460
+const FILA_H = 76
+const corta = (s, n = 30) => {
+  const t = String(s ?? "?")
+  return t.length > n ? `${t.slice(0, n)}…` : t
+}
+
+function aNodos(nodos, tipo, dark) {
+  const esEnt = tipo === "entidad"
+  return nodos.map((n, i) => ({
+    id: n.id,
+    type: "default",
+    position: { x: esEnt ? 0 : COL_X, y: i * FILA_H },
+    data: { label: corta(n.nombre || n.id.slice(2)) },
+    style: {
+      width: 200,
+      background: dark ? "#18181b" : "#ffffff",
+      color: dark ? "#f4f4f5" : "#18181b",
+      border: `2px solid ${esEnt ? "#059669" : "#2563eb"}`,
+      borderRadius: 12,
+      fontSize: 11,
+      padding: "6px 10px",
+    },
+  }))
+}
+
 export default function Grafo({ token, depto }) {
   const [limit, setLimit] = useState(30)
   // El canvas NO hereda el tema: fondo explícito blanco/negro según toggle
@@ -30,49 +66,44 @@ export default function Grafo({ token, depto }) {
     queryKey: ["grafo", limit, depto, modo],
     queryFn: () => fetchGrafo(limit, depto, token),
     enabled: true,
-    // P1: sin esto cada cambio re-dispara física + flicker. 5min + conserva anterior.
+    // P1: 5min + conserva anterior al cambiar filtro.
     staleTime: 1000 * 60 * 5,
     placeholderData: keepPreviousData,
   })
-  // La física NO debe recalentarse en cada render: objeto estable por datos.
-  // val = grado del nodo (el hub se ve grande, las hojas chicas).
-  const grafica = useMemo(() => {
-    const nodes = data?.nodos ?? [];
-    const links = data?.aristas ?? [];
-    const grado = {};
-    links.forEach((l) => {
-      const s = typeof l.source === "object" ? l.source.id : l.source;
-      const t = typeof l.target === "object" ? l.target.id : l.target;
-      grado[s] = (grado[s] ?? 0) + 1;
-      grado[t] = (grado[t] ?? 0) + 1;
-    });
-    return { nodes: nodes.map((n) => ({ ...n, val: grado[n.id] ?? 1 })), links };
-  }, [data]);
-  // Ancho medido del contenedor: el canvas no hereda ni se auto-mide.
-  // Depende de data.total: el marco solo existe cuando hay datos (si corre al montar, ref es null y ancho queda 0).
-  const marcoRef = useRef(null);
-  const [ancho, setAncho] = useState(0);
+  const [nodes, setNodes, onNodesChange] = useNodesState([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+
+  const conteo = useMemo(() => {
+    const nodos = data?.nodos ?? []
+    const aristas = data?.aristas ?? []
+    const grado = {}
+    aristas.forEach((a) => {
+      grado[a.source] = (grado[a.source] ?? 0) + 1
+      grado[a.target] = (grado[a.target] ?? 0) + 1
+    })
+    return { nodos, aristas, grado }
+  }, [data])
+
+  // Reconstruye el diagrama solo cuando cambian los datos (drag local no se pierde).
   useEffect(() => {
-    const el = marcoRef.current;
-    if (!el) return;
-    setAncho(el.clientWidth);
-    const ro = new ResizeObserver(() => setAncho(el.clientWidth));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [data?.total]);
-  // Fuerzas legibles: repulsión fuerte + links largos (sin esto todo colapsa al centro).
-  const fgRef = useRef(null);
-  useEffect(() => {
-    const fg = fgRef.current;
-    if (!fg || !grafica.nodes.length) return;
-    try {
-      fg.d3Force("charge")?.strength(-220);
-      fg.d3Force("link")?.distance(80);
-      fg.d3ReheatSimulation?.();
-    } catch {
-      /* noop: versión de force-graph sin d3Force */
-    }
-  }, [ancho, grafica]);
+    const { nodos, aristas, grado } = conteo
+    const porTipo = { entidad: [], contratista: [] }
+    nodos.forEach((n) => porTipo[n.tipo === "entidad" ? "entidad" : "contratista"].push(n))
+    // Hub primero: los más conectados arriba.
+    Object.values(porTipo).forEach((arr) => arr.sort((a, b) => (grado[b.id] ?? 0) - (grado[a.id] ?? 0)))
+    setNodes([...aNodos(porTipo.entidad, "entidad", dark), ...aNodos(porTipo.contratista, "contratista", dark)])
+    setEdges(
+      aristas.map((a, i) => ({
+        id: `e${i}`,
+        source: a.source,
+        target: a.target,
+        label: formatoCOP(a.monto),
+        labelStyle: { fontSize: 9, fill: dark ? "#a1a1aa" : "#52525b" },
+        labelBgStyle: { fill: dark ? "#09090b" : "#ffffff", fillOpacity: 0.85 },
+        style: { stroke: a.color || "#6b7280", strokeWidth: Math.min(5, a.grosor || 1) },
+      })),
+    )
+  }, [conteo, dark, setNodes, setEdges])
 
   return (
     <section aria-label="Grafo de conexiones" className="rounded-[24px] glass-card p-5">
@@ -91,7 +122,7 @@ export default function Grafo({ token, depto }) {
         </label>
       </div>
       <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-        Arrastra nodos para moverlos · rueda para zoom · grosor = monto · color = modalidad (rojo directa, verde licitación)
+        Entidades a la izquierda, contratistas a la derecha · arrastra nodos · rueda para zoom · grosor = monto · color = modalidad
       </p>
       {isLoading && <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Cargando red…</p>}
       {isError && (
@@ -106,27 +137,25 @@ export default function Grafo({ token, depto }) {
       {!isLoading && !isError && data && data.total > 0 && (
         <>
           <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">{data.total} contratos · {data.nodos.length} nodos</p>
-          <div ref={marcoRef} className="mt-2 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
-            {ancho > 0 && (
-            <ForceGraph2D
-              ref={fgRef}
-              width={ancho}
-              height={420}
-              backgroundColor={dark ? "#09090b" : "#ffffff"}
-              graphData={grafica}
-              nodeVal={(n) => n.val || 1}
-              nodeRelSize={5}
-              nodeLabel={(n) => `${n.tipo === "entidad" ? "Entidad" : "Contratista"} · ${n.nombre}`}
-              nodeColor={(n) => (n.tipo === "entidad" ? "#059669" : "#2563eb")}
-              linkWidth={(l) => l.grosor}
-              linkColor={(l) => l.color}
-              linkLabel={(l) => `${l.modalidad} · ${formatoCOP(l.monto)}`}
-              enableZoomInteraction
-              enablePanInteraction
-              enableNodeDrag
-              cooldownTicks={150}
-            />
-            )}
+          <div className="mt-2 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700 h-[420px]">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              colorMode={dark ? "dark" : "light"}
+              fitView
+              fitViewOptions={{ padding: 0.2, maxZoom: 1.25 }}
+              minZoom={0.3}
+            >
+              <MiniMap
+                pannable
+                zoomable
+                nodeColor={(n) => (String(n.id).startsWith("E:") ? "#059669" : "#2563eb")}
+              />
+              <Controls />
+              <Background variant="dots" gap={16} size={1} />
+            </ReactFlow>
           </div>
         </>
       )}
