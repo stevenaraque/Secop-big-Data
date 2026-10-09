@@ -40,6 +40,7 @@ export default function Grafo({ token, depto }) {
     [data],
   );
   // Ancho medido del contenedor: el canvas no hereda ni se auto-mide.
+  // Depende de data.total: el marco solo existe cuando hay datos (si corre al montar, ref es null y ancho queda 0).
   const marcoRef = useRef(null);
   const [ancho, setAncho] = useState(0);
   useEffect(() => {
@@ -49,7 +50,7 @@ export default function Grafo({ token, depto }) {
     const ro = new ResizeObserver(() => setAncho(el.clientWidth));
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [data?.total]);
 
   return (
     <section aria-label="Grafo de conexiones" className="rounded-[24px] glass-card p-5">
