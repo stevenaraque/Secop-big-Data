@@ -557,16 +557,24 @@ class ServicioContratos:
         limite = max(1, min(limite, 200))
         qs = self.modelo.objects.all().order_by("-valor_contrato")
         qs = self._filtrar_depto(qs, depto)
+        # Diversidad: se piden 5× candidatos y se reparten (máx 4 por nodo).
+        # Sin esto el top-30 lo acapara 1 contratista y el grafo es un abanico.
         filas = list(qs.values("nombre_entidad", "nit_entidad", "contratista_nit",
-                               "contratista_nombre", "modalidad", "valor_contrato")[:limite])
+                               "contratista_nombre", "modalidad", "valor_contrato")[:limite * 5])
         if not filas:
             return {"nodos": [], "aristas": [], "total": 0}
         max_monto = max(float(f["valor_contrato"] or 0) for f in filas) or 1.0
         nodos, vistos = [], set()
         aristas = []
+        por_nodo = {}
+        MAX_POR_NODO = 4
         for i, f in enumerate(filas):
+            if len(aristas) >= limite:
+                break
             ent_id = "E:" + (f["nit_entidad"] or f["nombre_entidad"] or "?")
             con_id = "C:" + (f["contratista_nit"] or f["contratista_nombre"] or "?")
+            if por_nodo.get(ent_id, 0) >= MAX_POR_NODO or por_nodo.get(con_id, 0) >= MAX_POR_NODO:
+                continue
             if ent_id not in vistos:
                 vistos.add(ent_id)
                 nodos.append({"id": ent_id, "tipo": "entidad", "nombre": f["nombre_entidad"]})
@@ -579,6 +587,8 @@ class ServicioContratos:
                             "modalidad": f["modalidad"],
                             "color": self._color_modalidad(f["modalidad"]),
                             "grosor": grosor})
+            por_nodo[ent_id] = por_nodo.get(ent_id, 0) + 1
+            por_nodo[con_id] = por_nodo.get(con_id, 0) + 1
         return {"nodos": nodos, "aristas": aristas, "total": len(aristas)}
 
     # RF-26: actualización periódica reutilizando paginación
