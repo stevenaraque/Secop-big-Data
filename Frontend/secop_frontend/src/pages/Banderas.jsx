@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
+import { createColumnHelper } from "@tanstack/react-table"
 import { Flag } from "@phosphor-icons/react"
 import MiniDataTable from "../components/MiniDataTable.jsx";
 import "../components/glass-card.css";
