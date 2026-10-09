@@ -659,6 +659,8 @@ class PaginacionSaaS(PageNumberPagination):
 class VistaRadarListaCrear(ListCreateAPIView):
     serializer_class = RadarSerializer
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "radar"
     pagination_class = PaginacionSaaS
 
     def get_queryset(self):
@@ -678,6 +680,8 @@ class VistaRadarListaCrear(ListCreateAPIView):
 class VistaRadarDetalle(RetrieveUpdateDestroyAPIView):
     serializer_class = RadarSerializer
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "radar"
 
     def get_queryset(self):
         return Radar.objects.filter(usuario=self.request.user)
@@ -686,6 +690,8 @@ class VistaRadarDetalle(RetrieveUpdateDestroyAPIView):
 class VistaMisOportunidades(ListAPIView):
     serializer_class = OportunidadSerializer
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "radar"
     pagination_class = PaginacionSaaS
 
     def get_queryset(self):
@@ -706,6 +712,8 @@ class VistaMisOportunidades(ListAPIView):
 class VistaOportunidadActualizar(UpdateAPIView):
     serializer_class = OportunidadSerializer
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "radar"
 
     def get_queryset(self):
         return Oportunidad.objects.filter(radar__usuario=self.request.user)

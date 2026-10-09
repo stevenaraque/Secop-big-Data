@@ -195,6 +195,8 @@ REST_FRAMEWORK = {
         "exportar": "20/min",
         # ETL abierto a logueados: 10 disparos/min por usuario frena spam (cada carga trae SODA + matchmaking + emails).
         "cargar": "10/min",
+        # SaaS radares/bandeja: 20/min frena spam de radares sin afectar uso normal.
+        "radar": "20/min",
     },
     "EXCEPTION_HANDLER": "contratos.exceptions.secop_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

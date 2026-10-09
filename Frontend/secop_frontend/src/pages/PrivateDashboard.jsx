@@ -7,7 +7,7 @@ import ThemeToggle from "../components/ThemeToggle.jsx";
 import "../components/glass-card.css";
 import { ArrowLeft, PencilSimple, Trash, Pause, Play, CaretLeft, CaretRight } from "@phosphor-icons/react";
 
-import { API_URL as API } from "../lib/api.js";
+import { API_URL as API, obtenerTokenVigente } from "../lib/api.js";
 const PAGE_RADARES = 4;
 const PAGE_OPOS = 5;
 
@@ -157,7 +157,14 @@ export default function PrivateDashboard({ token }) {
 
   // P0: keys con sub (sin fuga entre cuentas) + bandeja paginada en servidor (total real, no 20).
   const sub = getSub(token);
-  const { data: radaresData, isLoading: cargandoRadares, isError: errorRadares, refetch: reintentarRadares } = useQuery({ queryKey: ["radares", sub], queryFn: () => fetchRadares(token), enabled: !!token, staleTime: 1000 * 60 * 5 });
+  // P1: valida exp antes de disparar (0×401). Mutations resuelven al momento del clic.
+  const [sesion, setSesion] = useState({ listo: false, t: null });
+  useEffect(() => {
+    let vivo = true;
+    obtenerTokenVigente(token).then((t) => { if (vivo) setSesion({ listo: true, t }); });
+    return () => { vivo = false; };
+  }, [token]);
+  const { data: radaresData, isLoading: cargandoRadares, isError: errorRadares, refetch: reintentarRadares } = useQuery({ queryKey: ["radares", sub], queryFn: () => fetchRadares(sesion.t), enabled: sesion.listo, staleTime: 1000 * 60 * 5 });
   const radares = Array.isArray(radaresData) ? radaresData : radaresData?.results ?? [];
   const totalPagRadares = Math.max(1, Math.ceil(radares.length / PAGE_RADARES));
   const pagRadaresOk = Math.min(pagRadares, totalPagRadares - 1);
@@ -165,8 +172,8 @@ export default function PrivateDashboard({ token }) {
 
   const { data: oposData, isLoading: cargandoOpos, isError: errorOpos, refetch: reintentarOpos } = useQuery({
     queryKey: ["oportunidades", sub, filtroEstado, pagOpos],
-    queryFn: () => fetchOpos(token, filtroEstado, pagOpos),
-    enabled: !!token,
+    queryFn: () => fetchOpos(sesion.t, filtroEstado, pagOpos),
+    enabled: sesion.listo,
     // P1: conserva bandeja al cambiar filtro estado.
     staleTime: 1000 * 60 * 5,
     placeholderData: keepPreviousData,
@@ -209,9 +216,11 @@ export default function PrivateDashboard({ token }) {
 
   const crearRadar = useMutation({
     mutationFn: async (payload) => {
+      const t = await obtenerTokenVigente(token);
+      if (!t) throw new Error("Sesión vencida. Vuelve a entrar.");
       const r = await fetch(`${API}/radares/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
         body: JSON.stringify(payload),
       });
       if (!r.ok) throw new Error(detalleError(await r.json().catch(() => ({})), "No se pudo crear el radar."));
@@ -227,9 +236,11 @@ export default function PrivateDashboard({ token }) {
 
   const guardarEdicion = useMutation({
     mutationFn: async ({ id, payload }) => {
+      const t = await obtenerTokenVigente(token);
+      if (!t) throw new Error("Sesión vencida. Vuelve a entrar.");
       const r = await fetch(`${API}/radares/${id}/`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
         body: JSON.stringify(payload),
       });
       if (!r.ok) throw new Error(detalleError(await r.json().catch(() => ({})), "No se pudo guardar."));
@@ -246,9 +257,11 @@ export default function PrivateDashboard({ token }) {
 
   const alternarActivo = useMutation({
     mutationFn: async ({ id, activo }) => {
+      const t = await obtenerTokenVigente(token);
+      if (!t) throw new Error("Sesión vencida. Vuelve a entrar.");
       const r = await fetch(`${API}/radares/${id}/`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
         body: JSON.stringify({ activo }),
       });
       if (!r.ok) throw new Error("No se pudo cambiar el estado.");
@@ -263,9 +276,11 @@ export default function PrivateDashboard({ token }) {
 
   const borrarRadar = useMutation({
     mutationFn: async (id) => {
+      const t = await obtenerTokenVigente(token);
+      if (!t) throw new Error("Sesión vencida. Vuelve a entrar.");
       const r = await fetch(`${API}/radares/${id}/`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${t}` },
       });
       if (!r.ok) throw new Error("No se pudo eliminar.");
     },
@@ -282,9 +297,11 @@ export default function PrivateDashboard({ token }) {
 
   const cambiarEstado = useMutation({
     mutationFn: async ({ id, estado }) => {
+      const t = await obtenerTokenVigente(token);
+      if (!t) throw new Error("Sesión vencida. Vuelve a entrar.");
       const r = await fetch(`${API}/mis-oportunidades/${id}/`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
         body: JSON.stringify({ estado }),
       });
       if (!r.ok) throw new Error("No se pudo actualizar");

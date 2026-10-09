@@ -1,4 +1,5 @@
 import os
+import threading
 import requests
 from decimal import Decimal, InvalidOperation
 from django.core.management.base import BaseCommand
@@ -13,6 +14,39 @@ def _norm(s):
     import unicodedata
     t = unicodedata.normalize("NFD", str(s or "").lower())
     return "".join(c for c in t if unicodedata.category(c) != "Mn")
+
+
+def _enviar_emails_oportunidades(oportunidad_ids):
+    """P1: emails fuera del thread ETL (daemon + fail_silently + conexión propia).
+    Qué: re-lee por PK con select_related. Por qué: SMTP caído sumaba 5-12min
+    al TrabajoCarga y pasar objetos ORM entre threads rompe conexiones."""
+    try:
+        from django.core.mail import send_mail
+        from django.conf import settings
+        from django.db import connection
+        ops = list(Oportunidad.objects.filter(pk__in=oportunidad_ids).select_related("contrato", "radar__usuario"))
+        for op in ops:
+            try:
+                email = op.radar.usuario.email
+                if not email:
+                    continue
+                send_mail(
+                    subject=f"Nueva oportunidad: {op.radar.palabras_clave}",
+                    message=f"Hola {op.radar.usuario.username}, tu Radar '{op.radar.palabras_clave}' hizo match con contrato {op.contrato.id_contrato} - {op.contrato.departamento} ${op.contrato.valor_contrato}. Revisa tu bandeja en /app.",
+                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@secop-insight.local"),
+                    recipient_list=[email],
+                    fail_silently=True,
+                )
+            except Exception:
+                continue
+    except Exception:
+        pass
+    finally:
+        try:
+            connection.close()
+        except Exception:
+            pass
+
 
 class Command(BaseCommand):
     help = "Carga contratos SECOP II desde SODA 2.1 con bulk_create 1000"
@@ -189,25 +223,11 @@ class Command(BaseCommand):
             if oportunidades:
                 Oportunidad.objects.bulk_create(oportunidades, batch_size=1000, ignore_conflicts=True)
                 self.stdout.write(self.style.SUCCESS(f"Matchmaking: {len(oportunidades)} oportunidades creadas para {len(radares)} radares"))
-                # RF-41: email no bloqueante (best-effort)
-                try:
-                    from django.core.mail import send_mail
-                    from django.conf import settings
-                    for op in oportunidades[:10]:  # limitar a 10 emails por carga para demo
-                        try:
-                            email = op.radar.usuario.email
-                            if email:
-                                send_mail(
-                                    subject=f"Nueva oportunidad: {op.radar.palabras_clave}",
-                                    message=f"Hola {op.radar.usuario.username}, tu Radar '{op.radar.palabras_clave}' hizo match con contrato {op.contrato.id_contrato} - {op.contrato.departamento} ${op.contrato.valor_contrato}. Revisa tu bandeja en /app.",
-                                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@secop-insight.local"),
-                                    recipient_list=[email],
-                                    fail_silently=True,
-                                )
-                        except Exception:
-                            continue
-                except Exception:
-                    pass
+                # RF-41/P1: email en thread daemon (10 por carga para demo). No suma
+                # tiempo al trabajo aunque SMTP caiga; solo PKs cruzan al thread.
+                ids_email = [op.pk for op in oportunidades[:10] if op.pk]
+                if ids_email:
+                    threading.Thread(target=_enviar_emails_oportunidades, args=(ids_email,), daemon=True).start()
 
         trabajo.registros_procesados = len(a_crear)
         trabajo.nuevos_registros = nuevos

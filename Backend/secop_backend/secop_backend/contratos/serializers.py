@@ -29,20 +29,37 @@ class RadarSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("palabras_clave no puede estar vacia.")
         return value.strip()
 
+    # P1: alias SODA → campo real (el matchmaking usa getattr con el nombre
+    # devuelto aquí, así el alias ya filtra de verdad, no solo valida).
+    ALIAS_FILTROS = {
+        "valor_del_contrato": "valor_contrato",
+        "fecha_de_firma": "fecha_firma",
+        "modalidad_de_contratacion": "modalidad",
+        "documento_proveedor": "contratista_nit",
+        "proveedor_adjudicado": "contratista_nombre",
+    }
+
     def validate_filtros_extras(self, value):
         if value is None:
             return {}
         if not isinstance(value, dict):
             raise serializers.ValidationError("filtros_extras debe ser un objeto JSON.")
-        # validar claves contra campos de Contrato (85 cols elegibles - para MVP 15 cols + extensible)
+        # validar claves contra campos de Contrato (15 físicas + alias SODA)
         validos = {f.name for f in Contrato._meta.get_fields() if hasattr(f, 'column')}
-        # permitir también alias comunes
-        for k in value.keys():
-            if k not in validos and k not in ["departamento", "ciudad", "modalidad", "estado_contrato", "sector", "orden"]:
+        normalizados = {}
+        for k, v in value.items():
+            campo = self.ALIAS_FILTROS.get(k, k)
+            if campo not in validos:
                 raise serializers.ValidationError(f"Campo '{k}' no existe en Contrato. Validos: {', '.join(sorted(list(validos))[:5])}...")
-            if not isinstance(value[k], str) or not value[k].strip():
-                raise serializers.ValidationError(f"Valor para '{k}' debe ser texto no vacio.")
-        return value
+            if isinstance(v, str):
+                if not v.strip():
+                    raise serializers.ValidationError(f"Valor para '{k}' debe ser texto no vacio.")
+                normalizados[campo] = v.strip()
+            elif isinstance(v, (int, float)) and not isinstance(v, bool):
+                normalizados[campo] = v
+            else:
+                raise serializers.ValidationError(f"Valor para '{k}' debe ser texto o número no vacio.")
+        return normalizados
 
     def validate(self, attrs):
         mn = attrs.get("rango_cuantia_min")

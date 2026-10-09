@@ -10,6 +10,9 @@ function client() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
 
+// JWT sin firmar con exp futuro: pasa obtenerTokenVigente sin refresh (un "t" plano sería 401 real).
+const T = ["e30", "eyJzdWIiOjcsImV4cCI6OTk5OTk5OTk5OX0", "e30"].join(".");
+
 function renderPrivate(ui) {
   return render(<MemoryRouter><QueryClientProvider client={client()}><Toaster />{ui}</QueryClientProvider></MemoryRouter>);
 }
@@ -29,7 +32,7 @@ describe("PrivateDashboard", () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ results: [] }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ results: [], count: 0 }) });
 
-    renderPrivate(<PrivateDashboard token="t" />);
+    renderPrivate(<PrivateDashboard token={T} />);
 
     expect(screen.getByText("Nuevo Radar")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("pavimento")).toBeInTheDocument();
@@ -44,7 +47,7 @@ describe("PrivateDashboard", () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ results: [] }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ results: [], count: 0 }) });
 
-    renderPrivate(<PrivateDashboard token="t" />);
+    renderPrivate(<PrivateDashboard token={T} />);
 
     fireEvent.change(screen.getByPlaceholderText("pavimento"), { target: { value: "puente" } });
     fireEvent.change(screen.getByPlaceholderText('{"orden":"1"}'), {
@@ -65,7 +68,7 @@ describe("PrivateDashboard", () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 9 }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ results: [{ id: 9 }] }) });
 
-    renderPrivate(<PrivateDashboard token="t" />);
+    renderPrivate(<PrivateDashboard token={T} />);
 
     fireEvent.change(screen.getByPlaceholderText("pavimento"), { target: { value: "puente" } });
     fireEvent.click(screen.getByRole("button", { name: /crear radar/i }));
