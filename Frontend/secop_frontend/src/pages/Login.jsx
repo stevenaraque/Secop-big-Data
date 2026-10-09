@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   ShieldCheck,
   ChartBar,
@@ -113,15 +113,17 @@ export default function Login() {
           <span className="hidden md:inline-flex ml-2 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 px-2.5 py-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 backdrop-blur">v3.3 · Render + Vercel</span>
         </div>
         <div className="flex items-center gap-2">
+          <motion.span key={lado} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="hidden sm:inline-flex">
           {reg ? (
-            <button type="button" onClick={() => setLado("login")} className="hidden sm:inline-flex h-9 items-center justify-center rounded-full bg-zinc-900 dark:bg-white px-4 text-xs font-medium text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200 active:scale-[0.98] transition-all">
+            <button type="button" onClick={() => setLado("login")} className="inline-flex h-9 items-center justify-center rounded-full bg-zinc-900 dark:bg-white px-4 text-xs font-medium text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200 active:scale-[0.98] transition-all">
               ¿Ya tienes cuenta? Entrar
             </button>
           ) : (
-            <button type="button" onClick={irRegistro} className="hidden sm:inline-flex h-9 items-center justify-center rounded-full bg-emerald-600 px-4 text-xs font-medium text-white hover:bg-emerald-700 active:scale-[0.98] transition-all">
+            <button type="button" onClick={irRegistro} className="inline-flex h-9 items-center justify-center rounded-full bg-emerald-600 px-4 text-xs font-medium text-white hover:bg-emerald-700 active:scale-[0.98] transition-all">
               Registrarme
             </button>
           )}
+          </motion.span>
           <Enlace to="/" className="hidden sm:inline text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 underline-offset-4 hover:underline">Ver observatorio</Enlace>
           <ThemeToggle />
         </div>
@@ -130,7 +132,8 @@ export default function Login() {
       <main id="contenido" className="flex-1 w-full max-w-[1400px] mx-auto px-4 lg:px-8 pb-10 lg:pb-12 grid grid-cols-1 lg:grid-cols-[1.18fr_0.92fr] gap-8 lg:gap-10 items-start lg:items-center">
         {/* LEFT editorial con crossfade suave */}
         <div className="pt-2 lg:pt-0 lg:pl-[1.5vw] order-2 lg:order-1 min-h-[520px] flex flex-col justify-center">
-          <motion.div key={lado} variants={stagger} initial="hidden" animate="show">
+          <AnimatePresence mode="wait" initial={false}>
+          <motion.div key={lado} variants={stagger} initial="hidden" animate="show" exit={{ opacity: 0, y: -10, transition: { duration: 0.22, ease: "easeIn" } }}>
             {reg ? (
               <>
                 <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-2"><LivePulse text="Registro abierto" /><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-3 py-1 text-[11px] font-medium"><Sparkle size={12} weight="fill" /> Alta inmediata · sin papeleo</span></motion.div>
@@ -175,6 +178,7 @@ export default function Login() {
               </>
             )}
           </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* RIGHT — carta 2 caras (frente login, dorso registro) */}
@@ -182,7 +186,7 @@ export default function Login() {
           <motion.div
             initial={{ opacity: 0, y: 18, rotateY: 0 }}
             animate={{ opacity: 1, y: 0, rotateY: lado === "login" ? 0 : 180 }}
-            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="relative w-full grid [transform-style:preserve-3d]"
           >
             {/* Frente — login */}
