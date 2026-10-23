@@ -67,6 +67,13 @@ class TrabajoCarga(models.Model):
     ]
     estado = models.CharField(max_length=20, choices=ESTADOS, default="pendiente")
     origen = models.CharField(max_length=20, choices=ORIGENES, default="manual")
+    # P0: dueño del trabajo. Qué: scoping del detalle (fin del IDOR por pk secuencial).
+    # Por qué: sin usuario, cualquier autenticado leía el historial y errores de todos.
+    # null=True: trabajos del sistema (scheduler/cron) y cargas creadas por consola.
+    usuario = models.ForeignKey(
+        "auth.User", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="trabajos_carga",
+    )
     total_registros = models.IntegerField(default=0)
     registros_procesados = models.IntegerField(default=0)
     nuevos_registros = models.IntegerField(default=0)

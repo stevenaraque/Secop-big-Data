@@ -55,7 +55,8 @@ function PublicDashboardRoute() {
 
 function PrivateRoute() {
   // P1-5: valida exp del access antes de pintar privado (antes solo existencia → flash con token expirado).
-  // Si expiró, intenta 1 refresh single-flight; solo si falla expulsa a /login.
+  // Si expiró, intenta 1 refresh single-flight; solo si el backend lo RECHAZA expulsa a /login.
+  // Un fallo de red/timeout deja la sesión intacta y muestra "Reintentar" (antes: PantallaCarga eterna).
   const [estado, setEstado] = useState(() => {
     const t = localStorage.getItem("access");
     if (!t) return "no";
@@ -73,16 +74,49 @@ function PrivateRoute() {
     (async () => {
       try {
         const { refreshAccess } = await import("./lib/api.js");
-        const nuevo = await refreshAccess();
-        if (vivo) setEstado(nuevo ? "ok" : "no");
+        const res = await refreshAccess();
+        if (!vivo) return;
+        setEstado(res.access ? "ok" : res.definitivo ? "no" : "error");
       } catch {
-        if (vivo) setEstado("no");
+        if (vivo) setEstado("error");
       }
     })();
     return () => { vivo = false; };
   }, [estado]);
   if (estado === "no") return <Navigate to="/login" replace />;
   if (estado === "revisar") return <PantallaCarga />;
+  if (estado === "error") {
+    return (
+      <div className="min-h-[60dvh] grid place-items-center px-4">
+        <div className="max-w-sm text-center">
+          <p className="text-sm font-medium">No se pudo verificar tu sesión</p>
+          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+            Fallo de red o el servidor no responde. Tu sesión sigue guardada.
+          </p>
+          <div className="mt-4 flex justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setEstado("revisar")}
+              className="h-9 px-4 rounded-full bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+            >
+              Reintentar
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                const { doLogout } = await import("./lib/api.js");
+                doLogout(false);
+                setEstado("no");
+              }}
+              className="h-9 px-4 rounded-full border border-zinc-300 dark:border-zinc-600 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800"
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const token = localStorage.getItem("access");
   return (
     <>

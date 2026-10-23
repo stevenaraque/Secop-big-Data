@@ -232,27 +232,37 @@ class ServicioContratos:
     def _banderas_fast(self, umbral=30, depto=None):
         umbral = float(umbral)
         vals = self._variantes(depto) if depto else None
+        # P1: denominador por entidad en subconsulta, NO en JOIN directo.
+        # Qué: agrega entidad_depto por nombre_entidad y luego une 1:1.
+        # Por qué: el JOIN d↔e fanouteaba (una fila d por cada e), así que
+        # SUM(d.monto) y SUM(e.total) se multiplicaban distinto y el % salía mal.
+        # La ruta naive (banderas_concentracion) define la semántica correcta:
+        # numerador = monto del contratista, denominador = total de la entidad
+        # dentro del mismo filtro de departamento.
+        columnas = (
+            "SELECT d.nombre_entidad, d.contratista_nit, d.contratista_nombre, "
+            "SUM(d.monto) AS monto, SUM(d.contratos) AS contratos, "
+            "SUM(d.monto)*100/NULLIF(t.total,0) AS pct "
+            "FROM bandera_det d JOIN ({denominador}) t "
+            "ON t.nombre_entidad = d.nombre_entidad "
+        )
         if vals:
-            sql = (
-                "SELECT d.nombre_entidad, d.contratista_nit, d.contratista_nombre, "
-                "SUM(d.monto) AS monto, SUM(d.contratos) AS contratos, "
-                "SUM(d.monto)*100/NULLIF(SUM(e.total),0) AS pct "
-                "FROM bandera_det d JOIN entidad_depto e "
-                "ON e.departamento = ANY(%s) AND e.nombre_entidad = d.nombre_entidad "
+            denominador = (
+                "SELECT nombre_entidad, SUM(total) AS total FROM entidad_depto "
+                "WHERE departamento = ANY(%s) GROUP BY nombre_entidad"
+            )
+            sql = columnas.format(denominador=denominador) + (
                 "WHERE d.departamento = ANY(%s) "
-                "GROUP BY d.nombre_entidad, d.contratista_nit, d.contratista_nombre "
-                "HAVING SUM(d.monto)*100/NULLIF(SUM(e.total),0) >= %s "
+                "GROUP BY d.nombre_entidad, d.contratista_nit, d.contratista_nombre, t.total "
+                "HAVING SUM(d.monto)*100/NULLIF(t.total,0) >= %s "
                 "ORDER BY pct DESC"
             )
             params = [vals, vals, umbral]
         else:
-            sql = (
-                "SELECT d.nombre_entidad, d.contratista_nit, d.contratista_nombre, "
-                "SUM(d.monto) AS monto, SUM(d.contratos) AS contratos, "
-                "SUM(d.monto)*100/NULLIF(SUM(e.total),0) AS pct "
-                "FROM bandera_det d JOIN entidad_depto e ON e.nombre_entidad = d.nombre_entidad "
-                "GROUP BY d.nombre_entidad, d.contratista_nit, d.contratista_nombre "
-                "HAVING SUM(d.monto)*100/NULLIF(SUM(e.total),0) >= %s "
+            denominador = "SELECT nombre_entidad, SUM(total) AS total FROM entidad_depto GROUP BY nombre_entidad"
+            sql = columnas.format(denominador=denominador) + (
+                "GROUP BY d.nombre_entidad, d.contratista_nit, d.contratista_nombre, t.total "
+                "HAVING SUM(d.monto)*100/NULLIF(t.total,0) >= %s "
                 "ORDER BY pct DESC"
             )
             params = [umbral]
@@ -613,14 +623,17 @@ class ServicioContratos:
         cfg.save()
         return cfg
 
-    def programar_actualizacion_periodica(self, limite=50, offset=0, depto=None):
+    def programar_actualizacion_periodica(self, limite=50, offset=0, depto=None, usuario=None):
         """Crea TrabajoCarga periódica. Qué: reutiliza bulk_create con ignore_conflicts. Por qué: sin duplicar."""
         from .models import TrabajoCarga, ConfigActualizacion
         from django.utils import timezone
         # Validar que no haya una en_progreso periódica activa (no mezclar)
         if TrabajoCarga.objects.filter(estado="en_progreso", origen="periodica").exists():
             raise ValueError("Ya hay una actualización periódica en curso.")
-        trabajo = TrabajoCarga.objects.create(estado="pendiente", origen="periodica", offset_actual=offset, total_registros=0)
+        trabajo = TrabajoCarga.objects.create(
+            estado="pendiente", origen="periodica", offset_actual=offset,
+            total_registros=0, usuario=usuario,
+        )
         # Actualizar config última ejecución pendiente
         cfg = self.obtener_config_actualizacion()
         cfg.ultima_ejecucion = timezone.now()

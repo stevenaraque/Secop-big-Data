@@ -72,6 +72,19 @@ function claveGeo(props) {
   return matchName(nameOf(props) || props?.name || "")
 }
 
+// Aplica el resaltado de selección sobre una capa YA creada.
+// Leaflet evalúa `style` solo al crear cada feature, así que cambiar el
+// departamento desde el header no repintaba el mapa.
+function aplicarSeleccion(layers, selKey) {
+  if (!layers) return
+  layers.eachLayer((layer) => {
+    const key = claveGeo(layer.feature?.properties)
+    const esSel = Boolean(key && selKey && key === selKey)
+    layer.setStyle({ color: esSel ? "#221a12" : "#fdfaf1", weight: esSel ? 2.4 : 1.1 })
+    if (esSel) layer.bringToFront()
+  })
+}
+
 export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
   const mapElRef = useRef(null)
   const mapRef = useRef(null)
@@ -83,10 +96,12 @@ export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
     onSelectRef.current = onSelectDepto
   }, [onSelectDepto])
 
-  // Sin effect espejo: el resaltado se deriva en el render como (deptoActivo || clickSel)
-  // Solo ref (sin setState): mantiene la clave de resaltado para mouseout tras cambios del header
+  // El resaltado se deriva en el render como (deptoActivo || clickSel).
+  // Además de la ref, repinta la capa ya creada: cambiar el departamento desde
+  // el header o con "Limpiar" no actualizaba el mapa.
   useEffect(() => {
     selKeyRef.current = norm(deptoActivo || clickSel || "")
+    aplicarSeleccion(layersRef.current, selKeyRef.current)
   }, [deptoActivo, clickSel])
 
   const { data, isLoading, isError } = useQuery({
@@ -160,12 +175,11 @@ export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
                 : `<div class="tt-name">${esc(geoName)}</div><div class="tt-sub">sin datos en la muestra actual</div>`)
             })
             layer.on("mouseout", () => {
-              layers.resetStyle(layer)
-              // Reaplica el resaltado si este era el seleccionado
-              const key = claveGeo(f.properties)
-              if (key && selKeyRef.current && key === selKeyRef.current) {
-                layer.setStyle({ color: "#221a12", weight: 2.4 })
-              }
+              // resetStyle repinta desde `style`, que se evaluó al crear la capa
+              // con el selKey de ese momento: el borde de la selección se perdía.
+              const esSel = key && selKeyRef.current && key === selKeyRef.current
+              layer.setStyle({ color: esSel ? "#221a12" : "#fdfaf1", weight: esSel ? 2.4 : 1.1 })
+              if (esSel) layer.bringToFront()
             })
             layer.on("click", (e) => {
               L.DomEvent.stopPropagation(e)
@@ -173,14 +187,13 @@ export default function MapaDirecta({ token, onSelectDepto, deptoActivo }) {
               // RF-16: fija selección, resalta y actualiza el filtro global
               selKeyRef.current = norm(hit.departamento)
               setClickSel(hit.departamento)
-              layers.eachLayer((l) => { layers.resetStyle(l) })
-              layer.setStyle({ color: "#221a12", weight: 2.4 })
-              layer.bringToFront()
+              aplicarSeleccion(layers, selKeyRef.current)
               if (onSelectRef.current) onSelectRef.current(hit.departamento)
             })
           },
         }).addTo(map)
         layersRef.current = layers
+        aplicarSeleccion(layers, selKeyRef.current)
         try { map.fitBounds(layers.getBounds(), { padding: [20, 20] }) } catch { /* noop: bounds vacíos */ }
       })
       .catch(() => { /* deja el aviso en pantalla */ })

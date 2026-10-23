@@ -15,6 +15,11 @@ export default function ActualizacionMasiva({ token }) {
   const [ultima, setUltima] = useState(null);
   const [cargandoUltima, setCargandoUltima] = useState(true);
   const timerRef = useRef(null);
+  const cancelRef = useRef(false);
+  const rechazarRef = useRef(null);
+  // Tope de reintentos ante 409 (ya hay una carga en curso). Sin esto el
+  // bucle reintentaba cada 2s para siempre contra el backend.
+  const MAX_REINTENTOS_409 = 5;
 
   async function cargarUltima() {
     if (!token) return;
@@ -37,6 +42,9 @@ export default function ActualizacionMasiva({ token }) {
     cargarUltima();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      // Evita promesa colgada si el componente se desmonta durante un polling.
+      rechazarRef.current?.(new Error("Componente desmontado"));
+      rechazarRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
@@ -56,8 +64,59 @@ export default function ActualizacionMasiva({ token }) {
     }
   }
 
+  // Espera un trabajo hasta estado terminal. Compartido por los 3 flujos
+  // (bloque, 500k, simple) y cancelable: al cancelar se rechaza la promesa
+  // en vez de dejar el `await` colgado para siempre.
+  function esperarTrabajo(id) {
+    return new Promise((resolve, reject) => {
+      rechazarRef.current = reject;
+      const iv = setInterval(async () => {
+        if (cancelRef.current) {
+          clearInterval(iv);
+          timerRef.current = null;
+          rechazarRef.current = null;
+          reject(new Error("Cancelado por el usuario."));
+          return;
+        }
+        try {
+          const j = await consultarTrabajo(id);
+          setTrabajo({
+            id: j.id,
+            estado: j.estado,
+            procesados: j.procesados ?? j.registros_procesados ?? 0,
+            nuevos: j.nuevos_registros ?? j.nuevos ?? null,
+            total: j.total ?? j.total_registros ?? 0,
+          });
+          if (j.estado === "completado" || j.estado === "error") {
+            clearInterval(iv);
+            timerRef.current = null;
+            rechazarRef.current = null;
+            if (j.estado === "error") reject(new Error(j.mensaje_error || "La carga falló"));
+            else resolve(j);
+          }
+        } catch (e) {
+          clearInterval(iv);
+          timerRef.current = null;
+          rechazarRef.current = null;
+          reject(e);
+        }
+      }, 1000);
+      timerRef.current = iv;
+    });
+  }
+
+  function handleCancelar() {
+    cancelRef.current = true;
+    detenerPolling();
+    rechazarRef.current?.(new Error("Cancelado por el usuario."));
+    rechazarRef.current = null;
+    setFase("idle");
+    setMensaje("Cancelado. Si el backend ya lanzó la carga, termina en segundo plano.");
+  }
+
   async function handleActualizar(e) {
     e.preventDefault();
+    cancelRef.current = false;
     setMensaje("");
     setTrabajo(null);
     const lim = Number(limite) || 50;
@@ -95,20 +154,8 @@ export default function ActualizacionMasiva({ token }) {
           if (r.status === 409) throw new Error(data.detalle || "Ya hay una actualizacion en curso — espera 1s y reintenta.");
           if (!r.ok) throw new Error(data.detalle || `Bloque ${i + 1} fallo.`);
           // Espera a que este bloque complete antes del siguiente (polling 1s)
-          await new Promise((resolve, reject) => {
-            const iv = setInterval(async () => {
-              try {
-                const j = await consultarTrabajo(data.id);
-                setTrabajo({ id: j.id, estado: j.estado, procesados: j.registros_procesados ?? 0, nuevos: j.nuevos_registros ?? null, total: j.total_registros ?? 0 });
-                if (j.estado === "completado" || j.estado === "error") {
-                  clearInterval(iv);
-                  if (j.estado === "error") reject(new Error(j.mensaje_error || "Bloque fallo"));
-                  else { totalNuevos += j.nuevos_registros ?? 0; resolve(); }
-                }
-              } catch (e) { clearInterval(iv); reject(e); }
-            }, 1000);
-            timerRef.current = iv;
-          });
+          const j = await esperarTrabajo(data.id);
+          totalNuevos += j.nuevos_registros ?? 0;
         }
         setFase("done");
         setMensaje(`Carga 500k completada en ${chunks} bloques. Total nuevos ~${totalNuevos}.`);
@@ -139,32 +186,15 @@ export default function ActualizacionMasiva({ token }) {
       setTrabajo({ id: data.id, estado: data.estado, nuevos: null });
       setFase("polling");
       detenerPolling();
-      timerRef.current = setInterval(async () => {
-        try {
-          const j = await consultarTrabajo(data.id);
-          setTrabajo({
-            id: j.id,
-            estado: j.estado,
-            procesados: j.procesados ?? j.registros_procesados ?? 0,
-            nuevos: j.nuevos_registros ?? j.nuevos ?? null,
-            total: j.total ?? j.total_registros ?? 0,
-          });
-          if (j.estado === "completado" || j.estado === "error") {
-            detenerPolling();
-            setFase(j.estado === "error" ? "error" : "done");
-            if (j.estado === "error") {
-              setMensaje(j.mensaje_error || "La carga fallo. Revisa el log.");
-            }
-            cargarUltima();
-          }
-        } catch {
-          detenerPolling();
-          setFase("error");
-          setMensaje("Se perdio el seguimiento. Consulta el trabajo manual.");
-        }
-      }, 1000);
+      await esperarTrabajo(data.id);
+      setFase("done");
+      cargarUltima();
     } catch (err) {
       detenerPolling();
+      if (cancelRef.current) {
+        setFase("idle");
+        return;
+      }
       setFase("error");
       setMensaje(err.message);
     }
@@ -173,11 +203,13 @@ export default function ActualizacionMasiva({ token }) {
   async function handleCargar500k() {
     // Carga 500k en 10 bloques de 50k con offset incremental, sin depender del state limite (evita async setState)
     if (!token) { setFase("error"); setMensaje("Necesitas login para cargar 500k."); return; }
+    cancelRef.current = false;
     setFase("lanzando");
     setMensaje("Iniciando 500k (10×50k) desde offset 10000 — ~3 min, no cierres la pestaña...");
     const totalBloques = 10;
     const baseOffset = 10000;
     let totalNuevos = 0;
+    let reintentos409 = 0;
     try {
       for (let i = 0; i < totalBloques; i++) {
         const chunkLim = 50000;
@@ -192,27 +224,21 @@ export default function ActualizacionMasiva({ token }) {
         if (r.status === 401) throw new Error("Sesion vencida. Vuelve a entrar.");
         if (r.status === 403) throw new Error("Solo admin puede actualizar.");
         if (r.status === 409) {
-          // Espera y reintenta este bloque
+          // Ya hay una carga en curso: reintentar el mismo bloque, con tope.
+          // Antes: i-- + continue sin límite → petición cada 2s para siempre.
+          reintentos409 += 1;
+          if (reintentos409 > MAX_REINTENTOS_409) {
+            throw new Error(data.detalle || "Ya hay una actualización en curso. Inténtalo más tarde.");
+          }
+          setMensaje(`Bloque ${i + 1}/${totalBloques}: en curso, reintento ${reintentos409}/${MAX_REINTENTOS_409}...`);
           await new Promise((res) => setTimeout(res, 2000));
           i--; continue;
         }
         if (!r.ok) throw new Error(data.detalle || `Bloque ${i + 1} fallo.`);
+        reintentos409 = 0;
         // Espera completado con polling 1s
-        await new Promise((resolve, reject) => {
-          const iv = setInterval(async () => {
-            try {
-              const j = await consultarTrabajo(data.id);
-              setTrabajo({ id: j.id, estado: j.estado, procesados: j.registros_procesados ?? 0, nuevos: j.nuevos_registros ?? null, total: j.total_registros ?? 0 });
-              if (j.estado === "completado" || j.estado === "error") {
-                clearInterval(iv);
-                timerRef.current = null;
-                if (j.estado === "error") reject(new Error(j.mensaje_error || "Bloque fallo"));
-                else { totalNuevos += j.nuevos_registros ?? 0; resolve(); }
-              }
-            } catch (e) { clearInterval(iv); reject(e); }
-          }, 1000);
-          timerRef.current = iv;
-        });
+        const j = await esperarTrabajo(data.id);
+        totalNuevos += j.nuevos_registros ?? 0;
       }
       setFase("done");
       setMensaje(`500k completado en ${totalBloques} bloques. Total nuevos ${totalNuevos}. Refresca dashboard.`);
@@ -220,6 +246,7 @@ export default function ActualizacionMasiva({ token }) {
       cargarUltima();
     } catch (err) {
       detenerPolling();
+      if (cancelRef.current) { setFase("idle"); return; }
       setFase("error");
       setMensaje(err.message);
     }
@@ -333,10 +360,19 @@ export default function ActualizacionMasiva({ token }) {
       <div aria-live="polite" className="mt-4">
         {enCurso && (
           <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 px-4 py-3">
-            <p className="text-xs text-zinc-700 dark:text-zinc-300 tabular-nums">
-              Trabajo {trabajo?.id ?? ""} · {trabajo?.estado ?? "lanzando"} ·
-              procesados {trabajo?.procesados ?? 0}
-            </p>
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-xs text-zinc-700 dark:text-zinc-300 tabular-nums">
+                Trabajo {trabajo?.id ?? ""} · {trabajo?.estado ?? "lanzando"} ·
+                procesados {trabajo?.procesados ?? 0}
+              </p>
+              <button
+                type="button"
+                onClick={handleCancelar}
+                className="shrink-0 h-7 px-3 rounded-full border border-zinc-300 dark:border-zinc-600 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+              >
+                Cancelar
+              </button>
+            </div>
             <div className="mt-2 h-2 rounded bg-zinc-200 overflow-hidden">
               <div className="h-full w-1/2 bg-emerald-600 animate-pulse" />
             </div>

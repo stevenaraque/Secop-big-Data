@@ -105,10 +105,12 @@ class Command(BaseCommand):
                     valor = Decimal("0")
                 else:
                     valor = Decimal(str(raw_val).replace(",", ""))
-                    # SODA trae 6 decimales (ej 5000000.000000) → cuantizar a 2 para Decimal(18,2)
+                    # SODA trae 6 decimales (ej 5000000.000000) → cuantizar a 2 para Decimal(30,2)
                     valor = valor.quantize(Decimal("0.01"))
-                    if len(valor.as_tuple().digits) > 18:
-                        raise InvalidOperation("más de 18 dígitos")
+                    # P1: 30 dígitos = max_digits del modelo (antes 18 descartaba
+                    # justo las filas que motivaron ampliar el esquema).
+                    if len(valor.as_tuple().digits) > 30:
+                        raise InvalidOperation("más de 30 dígitos")
             except (InvalidOperation, ValueError, AttributeError) as e:
                 invalidas.append(f"valor no numérico '{raw_val}' id {idc}")
                 continue

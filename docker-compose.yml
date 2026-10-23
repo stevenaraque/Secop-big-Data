@@ -18,7 +18,7 @@ services:
 
   backend:
     build: ./Backend/secop_backend
-    environment:
+    environment: &backend-env
       DB_NAME: ${DB_NAME:-secop_db}
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -43,6 +43,18 @@ services:
       sh -c "python secop_backend/manage.py migrate --no-input &&
              python secop_backend/manage.py collectstatic --no-input 2>/dev/null || true &&
              gunicorn secop_backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+
+  # P1: actualizar_automatica no corría en ningún sitio (la config de intervalo se
+  # guardaba y nunca se ejecutaba). restart: unless-stopped reintenta solo si arranca
+  # antes de que existan las tablas (migración del backend aún en curso).
+  scheduler:
+    build: ./Backend/secop_backend
+    environment: *backend-env
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    command: python secop_backend/manage.py actualizar_automatica --loop --intervalo-min 5
 
   frontend:
     build: ./Frontend/secop_frontend

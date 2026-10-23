@@ -24,7 +24,8 @@ export function tokenExpirado(t, margenMs = 30000) {
 export async function obtenerTokenVigente(t) {
   if (!t) return null;
   if (!tokenExpirado(t)) return t;
-  return refreshAccess();
+  const res = await refreshAccess();
+  return res.access;
 }
 
 function buildUrl(path, params) {
@@ -100,27 +101,40 @@ export function doLogout(redirect = true) {
 }
 
 // Refresh single-flight: todas las llamadas 401 concurrentes comparten una promesa.
+// Devuelve { access, definitivo }:
+//   access     → token nuevo, o null
+//   definitivo → true  = el backend RECHAZÓ el refresh (400/401/403) → cerrar sesión
+//                false = red/timeout/5xx → transitorio, NO destruir la sesión
+// Antes devolvía null en ambos casos y un parpadeo de red de 2s expulsaba al usuario.
 let _refreshPromise = null;
-export function refreshAccess() {
+export function refreshAccess({ timeoutMs = 15000 } = {}) {
   if (_refreshPromise) return _refreshPromise;
   const refresh = localStorage.getItem("refresh");
-  if (!refresh) return Promise.resolve(null);
+  if (!refresh) return Promise.resolve({ access: null, definitivo: true });
   _refreshPromise = (async () => {
+    const ctrl = new AbortController();
+    const id = setTimeout(() => ctrl.abort(), timeoutMs);
     try {
       const r = await fetch(`${API_URL}/auth/token/refresh/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refresh }),
+        signal: ctrl.signal,
       });
-      if (!r.ok) return null;
+      if (!r.ok) {
+        const rechazado = r.status === 400 || r.status === 401 || r.status === 403;
+        return { access: null, definitivo: rechazado };
+      }
       const data = await r.json().catch(() => ({}));
-      if (!data.access) return null;
+      if (!data.access) return { access: null, definitivo: false };
       localStorage.setItem("access", data.access);
       if (data.refresh) localStorage.setItem("refresh", data.refresh);
-      return data.access;
+      return { access: data.access, definitivo: false };
     } catch {
-      return null;
+      // AbortError (timeout) o TypeError (red caída): transitorio.
+      return { access: null, definitivo: false };
     } finally {
+      clearTimeout(id);
       _refreshPromise = null;
     }
   })();

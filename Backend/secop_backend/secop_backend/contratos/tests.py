@@ -215,3 +215,76 @@ class TestDetalleVersiones(TestCase):
         from rest_framework.test import APIClient
         r = APIClient().get("/api/contratos/NO-EXISTE/")
         self.assertEqual(r.status_code, 404)
+
+
+class TestBanderasConcentracion(TestCase):
+    """P1: el % de concentración divide por el total de la ENTIDAD, no por el
+    fan-out del JOIN. Con 2 contratistas (600 + 400) sobre 1000 el resultado
+    correcto es 60% / 40%; el JOIN d↔e duplicaba el denominador y daba 30% / 20%."""
+
+    def setUp(self):
+        from contratos.models import BanderaDet, EntidadDepto
+        EntidadDepto.objects.create(
+            departamento="Boyacá", nombre_entidad="Alcaldía X", total=Decimal("1000")
+        )
+        BanderaDet.objects.create(
+            departamento="Boyacá", nombre_entidad="Alcaldía X", contratista_nit="A",
+            contratista_nombre="Contratista A", monto=Decimal("600"), contratos=2,
+        )
+        BanderaDet.objects.create(
+            departamento="Boyacá", nombre_entidad="Alcaldía X", contratista_nit="B",
+            contratista_nombre="Contratista B", monto=Decimal("400"), contratos=1,
+        )
+
+    def test_pct_usa_total_de_entidad_sin_fanout(self):
+        res = ServicioContratos(modelo=Contrato).banderas_concentracion(umbral=30)
+        pcts = {b["contratista_nit"]: b["porcentaje"] for b in res["banderas"]}
+        self.assertEqual(res["total"], 2)
+        self.assertAlmostEqual(pcts["A"], 60.0, places=2)
+        self.assertAlmostEqual(pcts["B"], 40.0, places=2)
+        montos = {b["contratista_nit"]: b["monto"] for b in res["banderas"]}
+        self.assertAlmostEqual(montos["A"], 600.0, places=2)
+        self.assertAlmostEqual(montos["B"], 400.0, places=2)
+
+    def test_filtro_depto_no_mezcla_otras_regiones(self):
+        from contratos.models import BanderaDet, EntidadDepto
+        EntidadDepto.objects.create(
+            departamento="Cundinamarca", nombre_entidad="Alcaldía X", total=Decimal("5000")
+        )
+        BanderaDet.objects.create(
+            departamento="Cundinamarca", nombre_entidad="Alcaldía X", contratista_nit="A",
+            contratista_nombre="Contratista A", monto=Decimal("600"), contratos=1,
+        )
+        servicio = ServicioContratos(modelo=Contrato)
+        # Global: A = 1200/6000 = 20%, B = 400/6000 = 6,7% → nadie pasa el 30%.
+        self.assertEqual(servicio.banderas_concentracion(umbral=30)["total"], 0)
+        # Boyacá: el denominador se limita al departamento → 60% y 40%.
+        depto = servicio.banderas_concentracion(umbral=30, depto="Boyacá")
+        self.assertEqual(depto["total"], 2)
+        self.assertAlmostEqual(depto["banderas"][0]["porcentaje"], 60.0, places=2)
+
+
+class TestETLValorGrande(TestCase):
+    """P1: valor_contrato admite max_digits=30; el ETL rechazaba >18 dígitos."""
+
+    @pytest.mark.django_db(transaction=True)
+    def test_cargar_secop_acepta_valor_de_20_digitos(self):
+        from unittest.mock import Mock, patch
+        from django.core.management import call_command
+        from io import StringIO
+        fila = {
+            "id_contrato": "MOCK-BIG-001", "valor_del_contrato": "12345678901234567890",
+            "fecha_de_firma": "2024-01-15T00:00:00.000", "nombre_entidad": "Alcaldía Mock",
+            "nit_entidad": "900777", "departamento": "Boyacá", "ciudad": "Tunja", "orden": "1",
+            "sector": "Test", "estado_contrato": "Firmado", "codigo_categoria_principal": "CAT1",
+            "descripcion_del_proceso": "Valor grande", "modalidad_de_contratacion": "Licitación pública",
+            "documento_proveedor": "999", "proveedor_adjudicado": "Contratista Big",
+        }
+        resp = Mock()
+        resp.json.return_value = [fila]
+        resp.raise_for_status.return_value = None
+        with patch("contratos.management.commands.cargar_secop.requests.get", return_value=resp):
+            call_command("cargar_secop", limit=10, offset=0, depto="Boyacá", stdout=StringIO())
+        contrato = Contrato.objects.filter(id_contrato="MOCK-BIG-001").first()
+        self.assertIsNotNone(contrato)
+        self.assertEqual(contrato.valor_contrato, Decimal("12345678901234567890"))

@@ -22,13 +22,15 @@ window.fetch = async (...args) => {
     const esAuth = url.includes("/api/auth/login/") || url.includes("/api/auth/register/") || url.includes("/api/auth/token/refresh/");
     if (r.status === 401 && url.includes("/api/") && !esAuth) {
       const { refreshAccess, doLogout } = await import("./lib/api.js");
-      const nuevo = await refreshAccess();
-      if (nuevo) {
+      const res = await refreshAccess();
+      if (res.access) {
         const init = { ...(args[1] || {}) };
-        init.headers = { ...(init.headers || {}), Authorization: `Bearer ${nuevo}` };
+        init.headers = { ...(init.headers || {}), Authorization: `Bearer ${res.access}` };
         return _fetch(args[0], init);
       }
-      doLogout();
+      // Solo cerrar sesión si el backend rechazó el refresh. Un fallo de red
+      // o un timeout devuelve la respuesta 401 original sin destruir la sesión.
+      if (res.definitivo) doLogout();
     }
   } catch {
     /* noop: nunca romper el fetch */

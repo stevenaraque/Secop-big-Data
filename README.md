@@ -32,7 +32,7 @@
 
 ## Estado
 
-Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transferencia)**. **56 requisitos (49 base + 7 Freemium RF-36..42) + RNF-04/07/08/09/10/11/12** completados y verificados (`manage.py check` 0 issues, `npm run build` OK, `pytest 17` + `vitest 14` passing, lint 0). **BD 09/10: carga total SECOP II 9.3M vía COPY + migraciones 0001..0018** (0013 sin unique en `id_contrato`, 0014 covering 9M, 0015-0017 precalculados, 0018 `nit_entidad` + `-valor_contrato`) **+ catálogo `entidad` poblado (11.582 verificadas por API)** + perf dashboard (buscar frío 1.3s, por-entidad 60s→3.7s, grafo 0.75s) + profiler con tiempos reales + throttle exportar 20/min + KPIs honestos + `ErrorBoundary`. **Front V3.3 (09/10):** observatorio público `AllowAny` + privado `IsAuthenticated` + layout persistente WebGL + `VITE_API_URL` env + `react-router` + CSP prod + auditoría auth P0/P1/P2 + auditoría dashboard P0/P1/P2 + tags `v1.4-auth` + `v1.5-dashboard` (HEAD `021d5ee`). Evidencia en `CONTEXT.md:6`, errores en `ERRORES.md` (#32-#36).
+Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transferencia)**. **56 requisitos (49 base + 7 Freemium RF-36..42) + RNF-04/07/08/09/10/11/12** completados y verificados (`manage.py check` 0 issues, `npm run build` OK, `pytest 20` + `vitest 14` passing, lint 0). **BD 09/10: carga total SECOP II 9.3M vía COPY + migraciones 0001..0019** (0013 sin unique en `id_contrato`, 0014 covering 9M, 0015-0017 precalculados, 0018 `nit_entidad` + `-valor_contrato`, 0019 `trabajocarga.usuario`) **+ catálogo `entidad` poblado (11.582 verificadas por API)** + perf dashboard (buscar frío 1.3s, por-entidad 60s→3.7s, grafo 0.75s) + profiler con tiempos reales + throttle exportar 20/min + KPIs honestos + `ErrorBoundary`. **Front V3.3 (09/10):** observatorio público `AllowAny` + privado `IsAuthenticated` + layout persistente WebGL + `VITE_API_URL` env + `react-router` + CSP prod + auditoría auth P0/P1/P2 + auditoría dashboard P0/P1/P2 + tags `v1.4-auth` + `v1.5-dashboard` (HEAD `021d5ee`). **23/10 — auditoría de 8 problemas altos:** banderas sin fan-out, ETL 30 dígitos, IDOR de `TrabajoCarga` cerrado, reintento 409 acotado + Cancelar, refresh JWT que distingue rechazo de fallo de red, modal sin re-foco, mapa que repinta la selección y **scheduler real** (`actualizar_automatica` + tarea de Windows cada 30 min, `activo=True`/24 h). Evidencia en `CONTEXT.md:6`, errores en `ERRORES.md` (#32-#36).
 
 ## Módulos (detalle en `CONTEXT.md:4`)
 
@@ -52,6 +52,7 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
 | Panel admin | Contratos (95 cols), Entidades, Cargas, Radares, Oportunidades, Umbrales, Backups, Auditoría |
 | Auditoría | Quién hizo qué y cuándo (login, exportar, cargas, radares, oportunidades, backups, umbrales) |
 | Ops & Docs | Backup 7 días, deploy Docker `postgres:16`+`python:3.12`, Tailwind 3.4, a11y teclado, `browserslistrc` + Swagger `/api/docs/` 34 endpoints |
+| Scheduler | `manage.py actualizar_automatica` (idempotente: solo corre si venció `intervalo_horas`) + servicio `scheduler` en compose + tarea de Windows cada 30 min; marca éxito/fallo en `ConfigActualizacion` |
 
 ## Estructura de carpetas
 
@@ -59,14 +60,15 @@ Metodología **Scrum** + **Guía 4: Proceso A (Desarrollo) + Proceso B (Transfer
 Big data/
 ├── Backend/secop_backend/
 │   ├── Dockerfile            # RNF-10: python:3.12-slim + migrate --no-input + gunicorn
+│   ├── actualizar_automatica.cmd  # RF-26 local: wrapper de la tarea de Windows (log en logs/)
 │   ├── requirements.txt      # Django 6.1 + DRF + SimpleJWT + drf-spectacular + gunicorn + python-dotenv + psycopg2
 │   ├── secop_backend/        # proyecto Django (settings.py con env, urls.py con /api/docs/, wsgi.py)
-│   │   ├── contratos/        # Contrato 95 cols* + Entidad + TrabajoCarga + Radar(filtros_extras JSON) + Oportunidad + Umbral + Config + Backup + Auditoria (migrations 0001-0018), services.py, exceptions.py (503), management/commands/cargar_secop.py (2 fases)
+│   │   ├── contratos/        # Contrato 95 cols* + Entidad + TrabajoCarga + Radar(filtros_extras JSON) + Oportunidad + Umbral + Config + Backup + Auditoria (migrations 0001-0019), services.py, exceptions.py (503), management/commands/cargar_secop.py (2 fases) + actualizar_automatica.py (scheduler)
 │   │   ├── users/            # Registro/Login/Logout + TokenRecuperacion 30min (hash SHA-256, select_for_update)
 │   │   └── manage.py
 │   └── venv/                 # venv Python 3.14.5 (no versionado)
 ├── Frontend/secop_frontend/  # Vite + React + Tailwind (App.jsx AuthGuard + prefetch idle, main.jsx QueryClient, components: UiverseInput (animejs + phosphor) + StatusMark + ThemeToggle (phosphor), pages: DashboardModern, Registro/Login (8,6,4 + glass + magnetic), Solicitar/Restablecer (Uiverse), DataTableSECOP virtual 60 FPS, ProfilerDual, MapaDirecta, Grafo, Banderas, Entidades, Umbrales, Buscador, Dockerfile, nginx.conf, vite-plugin-compression)
-├── docker-compose.yml        # RNF-10: db (postgres:16) + backend + frontend reproducibles
+├── docker-compose.yml        # RNF-10: db (postgres:16) + backend + scheduler + frontend reproducibles
 ├── deploy.ps1 / deploy.sh    # RNF-10: migrate + check + build en orden
 ├── SECOP_Backlog_Producto.xlsx (56 historias: 42 base + 7 frontend + 7 Freemium RF-36..42, estandarizado)
 ├── SECOP_Backlog_Producto.csv (56 filas, formato Notion 16 cols, Hecho/Steven Araque, único)
@@ -116,7 +118,7 @@ Big data/
    ```bash
    cd secop_backend
     python manage.py migrate --no-input
-    # Applying contratos.0001... 0018 OK (0018 idx_contrato_nitent + idx_contrato_valor; indexa 9.3M, minutos, 1 vez)
+    # Applying contratos.0001... 0019 OK (0018 idx_contrato_nitent + idx_contrato_valor; indexa 9.3M, minutos, 1 vez — 0019 añade dueño a TrabajoCarga)
    python manage.py createsuperuser  # para /admin
    ```
 
@@ -146,6 +148,21 @@ Big data/
    .\deploy.ps1   # hace migrate + check + build
    ```
    **Nube HTTPS (RNF-10 C1):** Backend Render + DB Render Postgres + Frontend Vercel (TLS 1.3). Variables por entorno en dashboard, nunca hardcodear (RNF-10 C4).
+
+10. **Scheduler (RF-26) — la actualización automática necesita un ejecutor:**
+   ```bash
+   # Docker: el servicio ya viene en compose (revisa cada 5 min)
+   docker compose up -d scheduler
+
+   # Sin Docker (Windows): tarea cada 30 min sobre el wrapper del repo
+   schtasks /Create /TN "SECOP Insight - Actualizacion automatica" /SC MINUTE /MO 30 /F \
+     /TR "C:\ruta\Big data\Backend\secop_backend\actualizar_automatica.cmd"
+
+   # Comprobar qué haría ahora mismo (no carga nada)
+   python manage.py actualizar_automatica --dry-run
+   ```
+   El comando es idempotente: solo lanza el ETL si `ConfigActualizacion.activo=True` y ya venció `intervalo_horas` (se activa en `/admin` o `PATCH /api/cargar/config/`). Log local en `Backend/secop_backend/logs/actualizacion.log` (rota a 5 MB).
+   > Si la ruta tiene espacios, `schtasks` puede fallar con `0x80070002`: usa la ruta corta 8.3 (`C:\...\BIGDAT~1\Backend\SECOP_~1\ACTUAL~1.CMD`) o un `.cmd` sin espacios.
 
 > **Nota:** No subas tu `.env` real. Si `migrate` falla con `relation does not exist`, revisa que `secop_db` existe y `.env` apunta a `localhost:5432`. En prod `DEBUG=False`.
 
@@ -212,4 +229,4 @@ python manage.py shell
   - Buenas prácticas: `Informe_Stack_Django_React (1).pdf` (57 págs) — ver `CONTEXT.md:8`
 
 ---
-*Última actualización: 09/10/2026 — V3.3 + auditoría dashboard P0/P1/P2 (profiler real, 0018, buscar 1.3s, por-entidad 3.7s, KPIs honestos 9.3M/95cols, ErrorBoundary, tag v1.5-dashboard) + entidades en vivo (11.582) — HEAD `021d5ee` — Autor: Steven Alejandro Araque Castro*
+*Última actualización: 23/10/2026 — auditoría de 8 problemas altos (banderas sin fan-out, ETL 30 dígitos, IDOR de `TrabajoCarga` con `0019`, reintento 409 acotado + Cancelar, refresh JWT `{access, definitivo}`, modal sin re-foco, mapa que repinta) + scheduler real (`actualizar_automatica` + tarea de Windows, `activo=True`/24 h) — HEAD `021d5ee` (+ cambios sin commitear) — Autor: Steven Alejandro Araque Castro*

@@ -116,7 +116,7 @@ class VistaIniciarCarga(APIView):
             depto = str(depto).strip()[:100]
             if depto == "":
                 depto = None
-        trabajo = TrabajoCarga.objects.create(estado="pendiente", offset_actual=offset)
+        trabajo = TrabajoCarga.objects.create(estado="pendiente", offset_actual=offset, usuario=request.user)
         # RNF-08: auditoría carga
         try:
             servicio_contratos.registrar_auditoria(usuario=request.user, accion="carga", detalle=f"carga manual limite {limite} offset {offset} depto {depto or ''}")
@@ -127,13 +127,16 @@ class VistaIniciarCarga(APIView):
         return Response({"id": trabajo.id, "estado": trabajo.estado}, status=status.HTTP_202_ACCEPTED)
 
 class VistaEstadoCarga(APIView):
-    # ETL abierto a logueados: cualquier usuario autenticado puede seguir SU trabajo.
-    # Trade-off IDOR consciente: los ids son secuenciales y el detalle son conteos
-    # (sin datos personales); el ETL pesado (iniciar/listar/config/backups) sigue admin.
+    # P0: el detalle se limita al dueño del trabajo. Qué: staff/admin ve todo,
+    # el resto solo sus propios TrabajoCarga. Por qué: los id son secuenciales;
+    # sin scoping cualquiera enumeraba historial y mensaje_error ajenos (IDOR).
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, pk):
-        trabajo = get_object_or_404(TrabajoCarga, id=pk)
+        qs = TrabajoCarga.objects.all()
+        if not (request.user.is_staff or request.user.is_superuser):
+            qs = qs.filter(usuario=request.user)
+        trabajo = get_object_or_404(qs, id=pk)
         return Response({
             "id": trabajo.id,
             "estado": trabajo.estado,
@@ -562,7 +565,7 @@ class VistaActualizarPeriodica(APIView):
             return err
         depto = request.data.get("depto")
         try:
-            trabajo = servicio_contratos.programar_actualizacion_periodica(limite=limite, offset=offset, depto=depto)
+            trabajo = servicio_contratos.programar_actualizacion_periodica(limite=limite, offset=offset, depto=depto, usuario=request.user)
             try:
                 servicio_contratos.registrar_auditoria(usuario=request.user, accion="carga", detalle=f"periodica limite {limite} offset {offset}")
             except Exception:

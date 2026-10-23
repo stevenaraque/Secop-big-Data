@@ -167,5 +167,9 @@ Solución: `public/tema.js` (300 bytes) lee `localStorage secop-theme` y fija `.
 Causa: el fallback de Suspense moría antes de 100ms (parpadeo) y leía la clase de `<html>`, que aún no existía al montar → siempre "claro".
 Solución: `App.jsx` envuelve los 6 `lazy` en `minimo()` (chunk + `setTimeout 100ms` en paralelo); `PantallaCarga` congela el tema leyendo `localStorage` (misma fuente de `useTheme`) + `PageBackground tema` fijo y `Background forzar` que gana a `<html>` por cascada. Verificado `vitest 11 passed`.
 
+## 37. Tarea de Windows falla con `0x80070002` por un espacio en la ruta (23/10/2026)
+Causa: `schtasks /Create /TR "C:\Users\PC_03\Desktop\Big data\Backend\secop_backend\actualizar_automatica.cmd" /SC MINUTE` guardó la ruta con el espacio de `Big data` y Windows la partió al ejecutar → `0x80070002` ("no encuentra el archivo"), aunque `schtasks /Query` mostrara la ruta completa y `Register-ScheduledTask` no fuera opción (acceso denegado sin admin).
+Solución: registrar con la ruta corta 8.3 (`C:\Users\PC_03\Desktop\BIGDAT~1\Backend\SECOP_~1\ACTUAL~1.CMD`) o mover el `.cmd` a una ruta sin espacios. Verificado: `schtasks /Run` → último resultado `0` + log `Lanzando actualización automática (trabajo 7)` → 49.011 nuevos, 549 sin fecha descartadas, `ConfigActualizacion.ultima_ejecucion` al día.
+
 ---
-*Actualizado: 15/09/2026 — RF-16 clic sin recarga (keepPreviousData) + RF-04 login frontend — Steven Araque*
+*Actualizado: 23/10/2026 — #37 tarea de Windows + auditoría de 8 altos — Steven Araque*

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Enlace from "../components/Enlace.jsx";
@@ -88,19 +88,27 @@ function OpoCard({ op, onGuardar, onPostular, onInfo, deshabilitado }) {
 }
 
 // Modal con el detalle completo del contrato: se abre con Info, cierra con
-// backdrop, Escape o el botón. Atrapa el foco en Cerrar al abrir.
+// backdrop, Escape o el botón.
 function ModalContrato({ op, onCerrar }) {
   const refCerrar = useRef(null);
+  // El callback vive en un ref: así el efecto de montaje NO se re-ejecuta cuando
+  // el padre re-renderiza. Antes dependía de onCerrar (identidad nueva por render)
+  // → refCerrar.focus() en cada tecla, y el formulario del radar perdía caracteres.
+  const refCerrarCb = useRef(onCerrar);
+  useEffect(() => {
+    refCerrarCb.current = onCerrar;
+  }, [onCerrar]);
   useEffect(() => {
     refCerrar.current?.focus();
-    const alTeclar = (e) => { if (e.key === "Escape") onCerrar(); };
+    const overflowPrevio = document.body.style.overflow;
+    const alTeclar = (e) => { if (e.key === "Escape") refCerrarCb.current?.(); };
     document.addEventListener("keydown", alTeclar);
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", alTeclar);
-      document.body.style.overflow = "";
+      document.body.style.overflow = overflowPrevio;
     };
-  }, [onCerrar]);
+  }, []);
   if (!op) return null;
   const c = op.contrato ?? {};
   const valorTxt = c.valor_contrato == null || c.valor_contrato === ""
@@ -154,6 +162,8 @@ export default function PrivateDashboard({ token }) {
   const [pagRadares, setPagRadares] = useState(0);
   const [pagOpos, setPagOpos] = useState(0);
   const [detalleOp, setDetalleOp] = useState(null);
+  // Identidad estable: evita re-ejecutar el efecto del modal en cada render.
+  const cerrarDetalle = useCallback(() => setDetalleOp(null), []);
 
   // P0: keys con sub (sin fuga entre cuentas) + bandeja paginada en servidor (total real, no 20).
   const sub = getSub(token);
@@ -539,7 +549,7 @@ export default function PrivateDashboard({ token }) {
                       onInfo={(o) => setDetalleOp(o)}
                     />
                   ))}
-                  {detalleOp && <ModalContrato op={detalleOp} onCerrar={() => setDetalleOp(null)} />}
+                  {detalleOp && <ModalContrato op={detalleOp} onCerrar={cerrarDetalle} />}
                   {oportunidades.length === 0 && <p className="text-sm text-zinc-500 dark:text-zinc-400 border border-dashed rounded-xl p-6 text-center">Sin oportunidades para este filtro. Crea un Radar y espera al próximo ETL.</p>}
                 </div>
                 {totalPagOpos > 1 && (
