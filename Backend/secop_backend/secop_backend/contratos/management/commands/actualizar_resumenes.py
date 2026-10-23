@@ -57,11 +57,20 @@ class Command(BaseCommand):
                 "FROM contrato WHERE fecha_firma IS NOT NULL GROUP BY departamento, 2"
             )
             self.stdout.write(f"serie_depto OK ({time.time()-t0:.0f}s)")
+            # P2: excluir contratistas 'No Definido' / '' / 'N/A'.
+            # SECOP registra 8.28M contratos sin contratista real usando esos textos
+            # como placeholder. Incluirlos en bandera_det genera alertas falsas de
+            # 100 % concentración en cientos de entidades.
             cur.execute(
                 "INSERT INTO bandera_det (departamento, nombre_entidad, contratista_nit, contratista_nombre, monto, contratos) "
                 "SELECT departamento, nombre_entidad, contratista_nit, contratista_nombre, "
                 "COALESCE(SUM(valor_contrato),0), COUNT(*) "
-                "FROM contrato GROUP BY departamento, nombre_entidad, contratista_nit, contratista_nombre"
+                "FROM contrato "
+                "WHERE contratista_nit IS NOT NULL AND contratista_nit <> '' "
+                "  AND contratista_nombre IS NOT NULL AND contratista_nombre <> '' "
+                "  AND LOWER(contratista_nit) NOT IN ('no definido', 'n/a', 'no aplica', 'sin nit') "
+                "  AND LOWER(contratista_nombre) NOT IN ('no definido', 'n/a', 'no aplica', 'sin nombre') "
+                "GROUP BY departamento, nombre_entidad, contratista_nit, contratista_nombre"
             )
             self.stdout.write(f"bandera_det OK ({time.time()-t0:.0f}s)")
             cur.execute(

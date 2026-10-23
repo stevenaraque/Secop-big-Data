@@ -37,7 +37,15 @@ export default function Banderas({ token, depto }) {
   const columns = useMemo(() => [
     columnHelper.accessor("contratista_nombre", {
       header: "Contratista",
-      cell: (info) => <span className="font-medium">{info.getValue() || "—"}</span>,
+      cell: (info) => {
+        const nombre = info.getValue();
+        const nit = info.row.original.contratista_nit;
+        return (
+          <span className="font-medium">
+            {nombre || (nit ? `NIT: ${nit}` : "—")}
+          </span>
+        );
+      },
     }),
     columnHelper.accessor("entidad", {
       header: "Entidad",

@@ -236,9 +236,12 @@ const MoltenMetal = ({
     let raf = 0;
     let isVisible = true;
     let isPageVisible = !document.hidden;
+    let contextLost = false;
+    let destroyed = false;
     const t0 = performance.now();
 
     const loop = t => {
+      if (contextLost) return;
       program.uniforms.iTime.value = (t - t0) * 0.001;
       currentMouse[0] += 0.05 * (targetMouse[0] - currentMouse[0]);
       currentMouse[1] += 0.05 * (targetMouse[1] - currentMouse[1]);
@@ -249,7 +252,8 @@ const MoltenMetal = ({
     };
 
     const tryStart = () => {
-      if (isVisible && isPageVisible && raf === 0) raf = requestAnimationFrame(loop);
+      if (isVisible && isPageVisible && raf === 0 && !contextLost && !destroyed)
+        raf = requestAnimationFrame(loop);
     };
     const tryStop = () => {
       if (raf !== 0) {
@@ -257,6 +261,19 @@ const MoltenMetal = ({
         raf = 0;
       }
     };
+
+    // Handle GPU context loss gracefully (e.g. GPU reset, tab switching)
+    const onContextLost = e => {
+      e.preventDefault(); // allow restoration
+      contextLost = true;
+      tryStop();
+    };
+    const onContextRestored = () => {
+      contextLost = false;
+      tryStart();
+    };
+    canvas.addEventListener('webglcontextlost', onContextLost);
+    canvas.addEventListener('webglcontextrestored', onContextRestored);
 
     const io = new IntersectionObserver(
       ([entry]) => {
@@ -278,14 +295,21 @@ const MoltenMetal = ({
     tryStart();
 
     return () => {
-      tryStop();
+      if (destroyed) return; // React Strict Mode calls cleanup twice in dev
+      destroyed = true;
+      tryStop(); // must cancel RAF before losing context
       ro.disconnect();
       io.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
       canvas.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('mouseleave', handleMouseLeave);
+      canvas.removeEventListener('webglcontextlost', onContextLost);
+      canvas.removeEventListener('webglcontextrestored', onContextRestored);
       ctxMap.delete(container);
       if (canvas.parentNode === container) container.removeChild(canvas);
+      // Explicitly release GPU resources; suppress the console warning
+      // by marking contextLost first so no render occurs after this point.
+      contextLost = true;
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

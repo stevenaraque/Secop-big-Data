@@ -239,6 +239,11 @@ class ServicioContratos:
         # La ruta naive (banderas_concentracion) define la semántica correcta:
         # numerador = monto del contratista, denominador = total de la entidad
         # dentro del mismo filtro de departamento.
+        #
+        # P2: excluir contratistas 'No Definido' / '' / 'N/A'.
+        # SECOP tiene 8.28M contratos donde el contratista no fue registrado y
+        # viene con ese texto literal. Si se incluyen, generan alertas falsas de
+        # 100 % concentración en cientos de entidades.
         columnas = (
             "SELECT d.nombre_entidad, d.contratista_nit, d.contratista_nombre, "
             "SUM(d.monto) AS monto, SUM(d.contratos) AS contratos, "
@@ -253,6 +258,9 @@ class ServicioContratos:
             )
             sql = columnas.format(denominador=denominador) + (
                 "WHERE d.departamento = ANY(%s) "
+                "  AND d.contratista_nit <> '' AND d.contratista_nombre <> '' "
+                "  AND LOWER(d.contratista_nit) NOT IN ('no definido', 'n/a', 'no aplica', 'sin nit') "
+                "  AND LOWER(d.contratista_nombre) NOT IN ('no definido', 'n/a', 'no aplica', 'sin nombre') "
                 "GROUP BY d.nombre_entidad, d.contratista_nit, d.contratista_nombre, t.total "
                 "HAVING SUM(d.monto)*100/NULLIF(t.total,0) >= %s "
                 "ORDER BY pct DESC"
@@ -261,6 +269,9 @@ class ServicioContratos:
         else:
             denominador = "SELECT nombre_entidad, SUM(total) AS total FROM entidad_depto GROUP BY nombre_entidad"
             sql = columnas.format(denominador=denominador) + (
+                "WHERE d.contratista_nit <> '' AND d.contratista_nombre <> '' "
+                "  AND LOWER(d.contratista_nit) NOT IN ('no definido', 'n/a', 'no aplica', 'sin nit') "
+                "  AND LOWER(d.contratista_nombre) NOT IN ('no definido', 'n/a', 'no aplica', 'sin nombre') "
                 "GROUP BY d.nombre_entidad, d.contratista_nit, d.contratista_nombre, t.total "
                 "HAVING SUM(d.monto)*100/NULLIF(t.total,0) >= %s "
                 "ORDER BY pct DESC"
