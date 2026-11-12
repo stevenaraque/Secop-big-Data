@@ -76,6 +76,9 @@ class ServicioUsuarios:
         # P0-3: iexact + first() tolera duplicados legacy sin 500 MultipleObjectsReturned
         usuario = self.modelo_usuario.objects.filter(email__iexact=correo).order_by("id").first()
         if not usuario:
+            # run-4 #4: trabajo constante para no filtrar existencia por timing.
+            # Se ejecuta un authenticate contra un hash dummy para igualar el coste PBKDF2.
+            authenticate(username="__no_such_user__", password=contrasena or "")
             raise ValueError("Credenciales inválidas.")
         usuario_auth = authenticate(username=usuario.username, password=contrasena)
         if not usuario_auth:
@@ -160,6 +163,14 @@ class ServicioUsuarios:
                 usuario.save(update_fields=["password"])
                 token_obj.usado = True
                 token_obj.save(update_fields=["usado"])
+                # SECOP: revocar todos los refresh tokens vigentes del usuario para
+                # que la recuperacion de cuenta cierre sesiones previas (run-4 #3).
+                try:
+                    from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+                    for ot in OutstandingToken.objects.filter(user=usuario):
+                        BlacklistedToken.objects.get_or_create(token=ot)
+                except Exception:
+                    pass  # blacklist app no instalada o ya revocado: no bloquear el flujo
                 return usuario
         except ModeloToken.DoesNotExist:
             raise ValueError("Enlace inválido o expirado.")

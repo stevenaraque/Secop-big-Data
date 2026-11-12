@@ -3,28 +3,18 @@ import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-quer
 import { SlidersHorizontal } from "@phosphor-icons/react";
 import "../components/glass-card.css";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
+import { authFetch } from "../lib/api.js"
 
 async function fetchUmbrales(token) {
-  const r = await fetch(`${API}/umbrales/`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  })
-  if (!r.ok) throw new Error("Error umbrales")
-  return r.json()
+  return authFetch("/umbrales/", { token })
 }
 
 async function saveUmbral(nombre, valor, token) {
-  const r = await fetch(`${API}/umbrales/${encodeURIComponent(nombre)}/`, {
+  return authFetch(`/umbrales/${encodeURIComponent(nombre)}/`, {
     method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    token,
     body: JSON.stringify({ valor }),
   })
-  const data = await r.json()
-  if (!r.ok) throw new Error(data.detalle || "Error guardando umbral")
-  return data
 }
 
 export default function Umbrales({ token }) {
@@ -104,3 +94,6 @@ export default function Umbrales({ token }) {
     </section>
   )
 }
+
+
+

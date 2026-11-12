@@ -366,7 +366,8 @@ class VistaMapaDirectaOptimizado(APIView):
 
 class VistaBuscar(APIView):
     permission_classes = [permissions.AllowAny]
-    throttle_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "buscar"
     def get(self, request):
         q = request.query_params.get("q", "")
         datos = servicio_contratos.buscar(q=q)
@@ -582,7 +583,7 @@ class VistaUltimaActualizacion(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        datos = servicio_contratos.ultima_actualizacion()
+        datos = servicio_contratos.ultima_actualizacion(usuario=request.user)
         return Response(datos)
 
 
@@ -670,6 +671,10 @@ class VistaRadarListaCrear(ListCreateAPIView):
         return Radar.objects.filter(usuario=self.request.user)
 
     def perform_create(self, serializer):
+        # run-4 #7: cuota por usuario para evitar amplificacion en matchmaking ETL.
+        if Radar.objects.filter(usuario=self.request.user).count() >= 50:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"detalle": "Has alcanzado el máximo de 50 radares activos."})
         serializer.save(usuario=self.request.user)
 
     def list(self, request, *args, **kwargs):

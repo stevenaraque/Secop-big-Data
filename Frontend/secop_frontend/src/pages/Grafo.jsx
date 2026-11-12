@@ -14,16 +14,13 @@ import { ShareNetwork as Network } from "@phosphor-icons/react"
 import { useTheme } from "../hooks/useTheme.js";
 import "../components/glass-card.css";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
+import { authFetch } from "../lib/api.js"
 
 async function fetchGrafo(limit, depto, token) {
-  const params = new URLSearchParams({ limit: String(limit) })
-  if (depto) params.set("depto", depto)
-  const r = await fetch(`${API}/grafo/?${params}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  return authFetch("/grafo/", {
+    params: { limit, depto },
+    token,
   })
-  if (!r.ok) throw new Error("Error grafo")
-  return r.json()
 }
 
 // Layout bipartito determinista: entidades a la izquierda, contratistas a la
@@ -189,3 +186,6 @@ export default function Grafo({ token, depto }) {
     </section>
   )
 }
+
+
+

@@ -171,7 +171,7 @@ export default function PrivateDashboard({ token }) {
   const [sesion, setSesion] = useState({ listo: false, t: null });
   useEffect(() => {
     let vivo = true;
-    obtenerTokenVigente(token).then((t) => { if (vivo) setSesion({ listo: true, t }); });
+    obtenerTokenVigente(token).then((t) => { if (vivo) setSesion({ listo: true, t }); }).catch(() => { if (vivo) setSesion({ listo: true, t: null }); });
     return () => { vivo = false; };
   }, [token]);
   const { data: radaresData, isLoading: cargandoRadares, isError: errorRadares, refetch: reintentarRadares } = useQuery({ queryKey: ["radares", sub], queryFn: () => fetchRadares(sesion.t), enabled: sesion.listo, staleTime: 1000 * 60 * 5 });

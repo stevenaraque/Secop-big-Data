@@ -53,7 +53,7 @@ export default function StatusMark({ status = 'pending', progress, label, color 
     }
     const unit = determinate ? C : P;
     const to = Math.floor(travel.get() / unit) * unit;
-    animate(travel, to, UI).then(() => { if (gen.current === g) travel.jump(0); });
+    animate(travel, to, UI).then(() => { if (gen.current === g) travel.jump(0); }).catch(() => { /* animacion interrumpida: ignorar */ });
   }, [status, determinate, indeterminate, solid, targetArc, reduce, C, P, spinDuration, mode, arc, travel]);
   const spoken = TEXT[status] + (determinate ? `, ${Math.round(clamp01(progress) * 100)}%` : '');
   const hasLabel = label !== undefined && label !== null;

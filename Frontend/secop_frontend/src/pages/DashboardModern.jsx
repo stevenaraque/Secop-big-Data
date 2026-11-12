@@ -141,7 +141,7 @@ export default function DashboardModern({ token }) {
   const [sesion, setSesion] = useState({ listo: false, t: null });
   useEffect(() => {
     let vivo = true;
-    obtenerTokenVigente(token).then((t) => { if (vivo) setSesion({ listo: true, t }); });
+    obtenerTokenVigente(token).then((t) => { if (vivo) setSesion({ listo: true, t }); }).catch(() => { if (vivo) setSesion({ listo: true, t: null }); });
     return () => { vivo = false; };
   }, [token]);
   const modo = sesion.t ? "auth" : "anon";

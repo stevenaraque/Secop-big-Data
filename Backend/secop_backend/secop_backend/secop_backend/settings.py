@@ -42,6 +42,8 @@ if not DEBUG and set(ALLOWED_HOSTS) <= {"localhost", "127.0.0.1"}:
 # Hardening prod (activo solo si DEBUG=False): HTTPS + HSTS + cookies seguras
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
+    # run-4 #10: confiar en el terminador TLS upstream (Render/Vercel) para evitar loop 301.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SESSION_COOKIE_SECURE = True
@@ -125,14 +127,25 @@ DATABASES = {
     }
 }
 
-# V3.4: caché local en memoria (deptos distintos + variantes). Sin Redis en dev.
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "secop-cache",
-        "TIMEOUT": 3600,
+# V3.4: cache local en memoria (deptos distintos + variantes). Sin Redis en dev.
+# run-4 #8: si REDIS_URL esta definido (prod) se usa cache compartido para que los
+# throttles ScopedRateThrottle sean consistentes entre workers gunicorn.
+_redis_url = os.getenv("REDIS_URL", "")
+if _redis_url:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _redis_url,
+        }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "secop-cache",
+            "TIMEOUT": 3600,
+        }
+    }
 
 
 # Password validation
@@ -197,6 +210,8 @@ REST_FRAMEWORK = {
         "cargar": "10/min",
         # SaaS radares/bandeja: 20/min frena spam de radares sin afectar uso normal.
         "radar": "20/min",
+        # run-4 #6: buscar publico (scan sobre 9.3M) con tope moderado por IP.
+        "buscar": "60/min",
     },
     "EXCEPTION_HANDLER": "contratos.exceptions.secop_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

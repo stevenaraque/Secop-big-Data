@@ -3,27 +3,20 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { CaretLeft as ChevronLeft, CaretRight as ChevronRight, Buildings as Landmark } from "@phosphor-icons/react";
 import "../components/glass-card.css";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
+import { authFetch } from "../lib/api.js"
 
 async function fetchEntidades(q, page, token) {
-  const params = new URLSearchParams({ page: String(page) })
-  if (q) params.set("q", q)
-  const r = await fetch(`${API}/entidades/?${params}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  return authFetch("/entidades/", {
+    params: { q, page },
+    token,
   })
-  if (!r.ok) {
-    const d = await r.json().catch(() => ({}))
-    throw new Error(d.detalle || "Error entidades")
-  }
-  return r.json()
 }
 
 async function fetchStats(nit, token) {
-  const r = await fetch(`${API}/por-entidad/?nit=${encodeURIComponent(nit)}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  return authFetch("/por-entidad/", {
+    params: { nit },
+    token,
   })
-  if (!r.ok) throw new Error("Error stats")
-  return r.json()
 }
 
 const formatoCOP = (v) =>
@@ -126,3 +119,6 @@ export default function Entidades({ token }) {
     </section>
   )
 }
+
+
+

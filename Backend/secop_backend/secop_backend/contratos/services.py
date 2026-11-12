@@ -153,7 +153,7 @@ class ServicioContratos:
         return sorted(acumulado.values(), key=lambda x: x["suma_valor"], reverse=True)[:limite]
     
     def buscar(self, q, limite=10):
-        q = (q or "").strip()
+        q = (q or "").strip()[:200]  # run-4 #6: cap de longitud para acotar scans
         if len(q) < 2:
             return {"contratos": [], "empresas": [], "entidades": []}
         # V3.4: cache 10min por query (3 full-scans en frío duelen con 9.3M + 8GB RAM).
@@ -263,7 +263,7 @@ class ServicioContratos:
                 "  AND LOWER(d.contratista_nombre) NOT IN ('no definido', 'n/a', 'no aplica', 'sin nombre') "
                 "GROUP BY d.nombre_entidad, d.contratista_nit, d.contratista_nombre, t.total "
                 "HAVING SUM(d.monto)*100/NULLIF(t.total,0) >= %s "
-                "ORDER BY pct DESC"
+                "ORDER BY pct DESC LIMIT 500"
             )
             params = [vals, vals, umbral]
         else:
@@ -274,7 +274,7 @@ class ServicioContratos:
                 "  AND LOWER(d.contratista_nombre) NOT IN ('no definido', 'n/a', 'no aplica', 'sin nombre') "
                 "GROUP BY d.nombre_entidad, d.contratista_nit, d.contratista_nombre, t.total "
                 "HAVING SUM(d.monto)*100/NULLIF(t.total,0) >= %s "
-                "ORDER BY pct DESC"
+                "ORDER BY pct DESC LIMIT 500"
             )
             params = [umbral]
         banderas = []
@@ -338,7 +338,7 @@ class ServicioContratos:
                 "directas": r.directas,
                 "suma_total": float(r.suma_total or 0),
                 "suma_directa": float(r.suma_directa or 0),
-            } for r in qs.order_by("-pct")]
+            } for r in qs.order_by("-pct")[:500]]
             return {"umbral": umbral, "total": len(banderas), "banderas": banderas}
         qs = self.modelo.objects.all()
         qs = self._filtrar_depto(qs, depto)
@@ -652,10 +652,15 @@ class ServicioContratos:
         cfg.save(update_fields=["ultima_ejecucion", "ultimo_estado", "actualizado_en"])
         return trabajo
 
-    def ultima_actualizacion(self):
+    def ultima_actualizacion(self, usuario=None):
         from .models import TrabajoCarga, ConfigActualizacion
         cfg = self.obtener_config_actualizacion()
-        ultimo = TrabajoCarga.objects.order_by("-creado_en").first()
+        qs = TrabajoCarga.objects.all()
+        # run-4 #2: scope por owner para usuarios no-admin (evita IDOR paralelo).
+        # Staff/superuser ven el trabajo global (incl. scheduler, usuario NULL).
+        if usuario is not None and not (getattr(usuario, "is_staff", False) or getattr(usuario, "is_superuser", False)):
+            qs = qs.filter(usuario=usuario)
+        ultimo = qs.order_by("-creado_en").first()
         return {
             "config": {
                 "intervalo_horas": cfg.intervalo_horas,

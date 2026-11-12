@@ -5,16 +5,13 @@ import { Warning as TriangleAlert } from "@phosphor-icons/react"
 import MiniDataTable from "../components/MiniDataTable.jsx";
 import "../components/glass-card.css";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
+import { authFetch } from "../lib/api.js"
 
 async function fetchPredominio(umbral, depto, token) {
-  const params = new URLSearchParams({ umbral: String(umbral) })
-  if (depto) params.set("depto", depto)
-  const r = await fetch(`${API}/predominio-directa/?${params}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  return authFetch("/predominio-directa/", {
+    params: { umbral, depto },
+    token,
   })
-  if (!r.ok) throw new Error("Error predominio")
-  return r.json()
 }
 
 const formatoCOP = (v) =>
@@ -104,3 +101,6 @@ export default function PredominioDirecta({ token, depto }) {
     </section>
   )
 }
+
+
+

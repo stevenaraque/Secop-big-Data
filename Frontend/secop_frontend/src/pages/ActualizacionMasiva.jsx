@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "../components/glass-card.css";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
+import { API_URL as API } from "../lib/api.js"
 
 // RF-26: panel ops para disparar actualizacion masiva sin duplicar.
 // Origen periodica + bulk_create ignore_conflicts por id_contrato.
@@ -415,3 +415,5 @@ export default function ActualizacionMasiva({ token }) {
     </section>
   );
 }
+
+
